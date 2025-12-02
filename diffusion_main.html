@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cation Interdiffusion Simulator v5.4 (Auto-Params)</title>
+    <link href="./dist/output.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    
+    <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div class="bg-white border-b border-gray-200 px-4 flex items-center justify-between shrink-0 h-12 shadow-sm z-20">
+        <div class="flex space-x-1 h-full overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn active h-full flex items-center">
+                <i class="fas fa-chart-line mr-2"></i> 2D Profile
+            </button>
+            <button onclick="switchTab('diffusivity')" id="tab-diffusivity" class="tab-btn h-full flex items-center">
+                <i class="fas fa-wave-square mr-2"></i> Diffusivity
+            </button>
+            <button onclick="switchTab('time3d')" id="tab-time3d" class="tab-btn h-full flex items-center">
+                <i class="fas fa-cube mr-2"></i> 3D Time
+            </button>
+            <button onclick="switchTab('temp3d')" id="tab-temp3d" class="tab-btn h-full flex items-center">
+                <i class="fas fa-temperature-high mr-2"></i> 3D Temp
+            </button>
+            <button onclick="switchTab('help')" id="tab-help" class="tab-btn h-full flex items-center text-emerald-600">
+                <i class="fas fa-book mr-2"></i> Documentation
+            </button>
+        </div>
+        <div class="text-xs text-gray-400 font-mono hidden md:block">
+            DiffusionCouple v5.4 (Auto-Params)
+        </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <aside class="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] shrink-0 overflow-y-auto">
+            
+            <div class="p-4 space-y-6">
+                <div class="bg-slate-50 p-3 rounded border border-slate-200">
+                    <h3 class="section-header">1. Couple Geometry</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="input-group">
+                            <label title="Annealing Temperature">Temp (K)</label>
+                            <input type="number" id="temp" value="1250" min="300" max="2500" oninput="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label title="Annealing Duration">Time (Hours)</label>
+                            <input type="number" id="time" value="120" min="0.1" step="0.1" oninput="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label title="Length of the Source material">Source Len (µm)</label>
+                            <input type="number" id="sourceLength" value="0.5" min="0.01" step="0.01" oninput="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label title="Total simulation domain length">Total Len (µm)</label>
+                            <input type="number" id="totalLength" value="2.0" min="0.1" step="0.1" oninput="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label title="Higher points = More precision, slower speed">Grid Points</label>
+                            <input type="number" id="gridPoints" value="150" min="50" max="400" oninput="debouncedUpdate()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 p-3 rounded border border-blue-100">
+                    <h3 class="section-header text-blue-800">2. Target (Matrix) Properties</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="col-span-2 input-group">
+                            <label>Name (Balance Species)</label>
+                            <input type="text" id="targetName" value="Mg (Matrix)" oninput="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label title="Matrix Pre-exponential factor">Matrix D₀</label>
+                            <input type="text" id="targetD0" value="1.0e-12" oninput="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label title="Matrix Activation Energy">Matrix Q (eV)</label>
+                            <input type="number" id="targetQ" value="2.5" step="0.1" oninput="debouncedUpdate()">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 flex items-start space-x-2 bg-white p-2 rounded border border-blue-200">
+                        <div class="flex items-center h-5">
+                            <input id="blockingEnabled" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" onchange="debouncedUpdate()">
+                        </div>
+                        <div class="ml-1 text-xs">
+                            <label for="blockingEnabled" class="font-medium text-gray-700 cursor-pointer">Enable Vacancy/Site Blocking</label>
+                            <p class="text-gray-500 text-[10px] leading-tight mt-1">
+                                Cations slow down if the lattice is crowded (High Cation %).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="section-header mb-0 border-0">3. Source Composition</h3>
+                        <button onclick="addElement()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition shadow-sm">
+                            <i class="fas fa-plus"></i> Add Cation
+                        </button>
+                    </div>
+                    <div id="elementsList" class="space-y-3">
+                        </div>
+                </div>
+
+                <div class="pt-2">
+                    <button onclick="saveData()" id="saveBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow transition flex justify-center items-center gap-2 text-sm">
+                        <i class="fas fa-download"></i> Save Data (.txt)
+                    </button>
+                    <div id="saveStatus" class="text-center text-[10px] text-gray-500 mt-1 h-4"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-full relative bg-slate-50 overflow-hidden">
+            
+            <div id="loading-overlay">
+                <div class="flex flex-col items-center">
+                    <div class="spinner mb-2"></div>
+                    <span class="text-sm font-semibold text-gray-600">Simulating Physics...</span>
+                </div>
+            </div>
+
+            <div id="pane-profile" class="tab-pane active relative w-full h-full">
+                <div class="absolute inset-0 p-4">
+                    <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 relative flex flex-col">
+                        <div class="text-xs text-center text-gray-400 font-mono mb-2 flex justify-center gap-4">
+                             <span><i class="fas fa-minus text-red-600" style="border-bottom: 2px dashed red;"></i> Kirkendall Marker</span>
+                             <span><i class="fas fa-minus text-slate-400" style="border-bottom: 2px dashed #94a3b8;"></i> Original Interface</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <canvas id="diffusionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pane-diffusivity" class="tab-pane relative w-full h-full">
+                <div class="absolute inset-0 p-4">
+                    <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 relative flex flex-col">
+                         <h3 class="text-sm font-bold text-gray-700 mb-2">Local Diffusivity Profile (Log Scale)</h3>
+                        <div class="flex-1 relative">
+                            <canvas id="diffusivityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pane-time3d" class="tab-pane w-full h-full relative">
+                 <div id="plotly-time" class="w-full h-full"></div>
+            </div>
+
+            <div id="pane-temp3d" class="tab-pane w-full h-full relative">
+                <div id="plotly-temp" class="w-full h-full"></div>
+            </div>
+
+
+<div id="pane-help" class="tab-pane w-full h-full overflow-y-auto p-8 bg-white">
+                <div class="max-w-4xl mx-auto help-content pb-20">
+                    <div class="flex items-center space-x-3 border-b-2 border-slate-200 pb-4 mb-6">
+                        <i class="fas fa-book-reader text-3xl text-blue-600"></i>
+                        <h1 class="text-3xl font-extrabold text-slate-800 m-0 border-0 p-0">Simulator Documentation</h1>
+                    </div>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-r">
+                        <p class="text-blue-900 font-medium text-sm m-0">
+                            <strong>Version 5.4 Update:</strong> This simulator now utilizes adaptive time-stepping to ensure accuracy at both low and high temperatures. It solves the non-linear Fick's 2nd Law using the Finite Difference Method (FDM) on a 1D grid.
+                        </p>
+                    </div>
+
+                    <h2>1. User Guide & Controls</h2>
+                    <p>This tool simulates the interdiffusion of cations between a "Source" material (left) and a "Matrix" material (right).</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 mb-6">
+                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                            <h4 class="font-bold text-slate-700 mb-2">Defining the Couple</h4>
+                            <ul class="text-sm space-y-2 text-slate-600">
+                                <li><strong>Temp & Time:</strong> Controls the thermodynamics (speed) and duration of the anneal.</li>
+                                <li><strong>Source Len:</strong> The thickness of the dopant layer on the left side (0 to $x$).</li>
+                                <li><strong>Grid Points:</strong> Resolution ($N$). Higher $N$ is more accurate but requires smaller time steps (slower).</li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                            <h4 class="font-bold text-slate-700 mb-2">Visualization Tabs</h4>
+                            <ul class="text-sm space-y-2 text-slate-600">
+                                <li><strong>2D Profile:</strong> Standard Concentration vs. Depth plot.</li>
+                                <li><strong>Diffusivity:</strong> Plots $\log(D)$ vs. Depth to show how speed changes locally.</li>
+                                <li><strong>3D Time:</strong> A surface plot showing evolution ($t=0 \to t_{end}$).</li>
+                                <li><strong>3D Temp:</strong> Sweeps temperature $\pm 200K$ to show thermal sensitivity.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h2>2. The Physics Model</h2>
+                    <p>The simulator moves beyond simple error-function solutions. It calculates a <strong>Local Diffusivity</strong> $D_i(x,t)$ that changes based on local composition and temperature.</p>
+
+                    <h3>A. The Master Diffusivity Equation</h3>
+                    <p>For any cation $i$, the diffusion coefficient is modeled as:</p>
+                    
+                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
+                        $$ D_i(C, T) = \underbrace{D_{0,i} \exp\left(\frac{-Q_i}{k_B T}\right)}_{\text{Arrhenius (Thermal)}} \cdot \underbrace{\exp\left(\beta_i \frac{C_i}{100}\right)}_{\text{Thermodynamic Interaction}} \cdot \underbrace{\phi_{vac}}_{\text{Vacancy Factor}} $$
+                    </div>
+
+                    <h3>B. Term 1: Thermal Activation (Arrhenius)</h3>
+                    <p>
+                        Atoms vibrate in potential wells. To jump to a neighbor site, they must overcome an energy barrier $Q$ (Activation Energy). 
+                        <br><br>
+                        <span class="block text-center text-lg">$$ P_{jump} \propto \exp(-Q/k_BT) $$</span>
+                        <br>
+                        <strong>Key Insight:</strong> A high $Q$ means the element is very sluggish at low temps but speeds up drastically as $T$ rises.
+                    </p>
+
+                    <h3>C. Term 2: Interaction Parameter ($\beta$)</h3>
+                    <p>
+                        In non-ideal solutions, the "Activity" of an atom is not equal to its concentration. The parameter $\beta$ approximates the <strong>Margules interaction parameter</strong> in regular solution theory.
+                    </p>
+                    <ul class="list-disc pl-5 mt-2">
+                        <li><strong>$\beta > 0$ (Plasticizing):</strong> The presence of the dopant loosens the lattice or lowers the melting point locally. This makes diffusion <em>faster</em> in high-concentration regions.</li>
+                        <li><strong>$\beta < 0$ (Hardening):</strong> The dopant stiffens the lattice, increasing the energy barrier. Diffusion is slower where concentration is high.</li>
+                        <li><strong>$\beta = 0$ (Ideal):</strong> Fickian diffusion with a constant D.</li>
+                    </ul>
+
+                    <h3>D. Term 3: The Vacancy Mechanism ($\phi_{vac}$)</h3>
+                    <p>
+                        In substitutional diffusion (common in oxides and alloys), an atom cannot move unless there is an empty site (vacancy) next to it.
+                    </p>
+                    <div class="bg-yellow-50 p-4 border-l-4 border-yellow-400 my-4 text-sm text-yellow-800">
+                        <strong>Simulation Logic:</strong> We assume the "Matrix" species represents the host lattice solvent. If the matrix concentration drops (due to high dopant loading), the lattice quality degrades or sites become "stuffed". 
+                        <br><br>
+                        The simulator uses: $$ \phi_{vac} \approx \frac{C_{Matrix} \%}{100} $$
+                        If the Matrix concentration approaches 0%, diffusion halts because there are no solvent lattice sites/vacancies available to facilitate the jump.
+                    </div>
+
+                    <h2>3. Numerical Implementation (FDM)</h2>
+                    <p>We solve the Partial Differential Equation (PDE) using an <strong>Explicit Finite Difference Scheme</strong>.</p>
+
+                    <h3>Fick's Second Law</h3>
+                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
+                        $$ \frac{\partial C}{\partial t} = \frac{\partial}{\partial x} \left( D(C,x) \frac{\partial C}{\partial x} \right) $$
+                    </div>
+
+                    <h3>Discretization</h3>
+                    <p>The continuous domain is chopped into $N$ nodes. The flux $J$ is calculated at the half-steps ($i+1/2$) using the harmonic mean of diffusivity:</p>
+                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
+                        $$ C_i^{t+1} = C_i^t + \frac{\Delta t}{\Delta x} \left( J_{in} - J_{out} \right) $$
+                    </div>
+
+                    <h3>Boundary Conditions</h3>
+                    <p>We apply <strong>Neumann (No-Flux) Boundary Conditions</strong> at both ends of the simulation domain:</p>
+                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
+                        $$ \left.\frac{\partial C}{\partial x}\right|_{x=0} = 0 \quad \text{and} \quad \left.\frac{\partial C}{\partial x}\right|_{x=L} = 0 $$
+                    </div>
+                    <p>This means atoms cannot leave the simulation box; mass is perfectly conserved.</p>
+
+                    <h3>Stability & Adaptive Time Stepping</h3>
+                    <p>Explicit FDM is only stable if the time step $\Delta t$ satisfies the Courant-Friedrichs-Lewy (CFL) condition:</p>
+                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
+                        $$ \Delta t \le \frac{0.4 \cdot (\Delta x)^2}{D_{max}} $$
+                    </div>
+                    <p>
+                        <strong>How this Code Works:</strong> If $D$ is very low (low Temp), $\Delta t$ can become theoretically huge. To prevent calculating the entire simulation in a single step (which loses time resolution), the code clamps $\Delta t$ to be at most 1/200th of the total simulation time.
+                    </p>
+
+                    <h2>4. The Kirkendall Effect</h2>
+                    <p>
+                        When two species diffuse at different rates ($J_A \neq -J_B$), there is a net flow of mass across the interface. To conserve lattice planes (and prevent void formation), the lattice itself must drift.
+                    </p>
+                    <p>
+                        We track the position of the original interface (Marker) by integrating the net flux over time:
+                    </p>
+                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
+                        $$ v_{marker} = - V_m (J_{net}) \approx - V_m \sum J_i $$
+                    </div>
+                    <p>If the Marker moves <strong>Left</strong>, it means the Source atoms (moving Right) are faster than the Matrix atoms (moving Left).</p>
+
+                </div>
+            </div>
+
+
+        </main>
+    </div>
+
+    <template id="elementTemplate">
+        <div class="element-card bg-white p-3 rounded border border-gray-300 shadow-sm relative group border-l-4">
+            <input type="hidden" class="el-color">
+            <button class="delete-btn absolute top-1 right-2 text-gray-300 hover:text-red-500 hidden group-hover:block transition" title="Remove">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="col-span-2 input-group">
+                    <label>Cation Name</label>
+                    <select class="el-name border border-gray-300 rounded text-xs w-full p-1" onchange="updateElementParams(this)">
+                        </select>
+                </div>
+                <div class="input-group">
+                    <label title="Diffusion Coeff at infinite T">D₀ (m²/s)</label>
+                    <input type="text" class="el-d0" value="1.8e-9" oninput="debouncedUpdate()">
+                </div>
+                <div class="input-group">
+                    <label title="Activation Energy">Q (eV)</label>
+                    <input type="number" class="el-q" value="2.1" step="0.1" min="0.1" oninput="debouncedUpdate()">
+                </div>
+                <div class="input-group">
+                    <label title="Starting % in Source">Init Source %</label>
+                    <input type="number" class="el-c0" value="25" min="0" max="100" oninput="debouncedUpdate()">
+                </div>
+                <div class="input-group">
+                     <label title="Interaction Param (Beta)">β (Interact)</label>
+                     <input type="number" class="el-beta" value="2.0" step="0.5" oninput="debouncedUpdate()">
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        const KB_EV = 8.617333262145e-5; 
+        let chartInstance = null;
+        let diffChartInstance = null;
+        let currentTab = 'profile';
+        let debounceTimer;
+
+        // --- DATABASE: 3D Transition Metals (Estimated Oxide Values) ---
+        const CATION_DB = {
+            "Sc": { label: "Scandium (Sc3+)", d0: "3.2e-8", q: 3.1, beta: 0.5 },
+            "Ti": { label: "Titanium (Ti4+)", d0: "1.5e-7", q: 3.4, beta: 0.0 },
+            "V":  { label: "Vanadium (V5+)",  d0: "8.0e-8", q: 3.2, beta: 0.2 },
+            "Cr": { label: "Chromium (Cr3+)", d0: "6.0e-8", q: 3.0, beta: 0.5 },
+            "Mn": { label: "Manganese (Mn2+)",d0: "1.5e-9", q: 1.9, beta: 1.5 },
+            "Fe": { label: "Iron (Fe2+)",     d0: "8.0e-10", q: 2.0, beta: 1.8 },
+            "Co": { label: "Cobalt (Co2+)",   d0: "5.0e-10", q: 2.1, beta: 1.5 },
+            "Ni": { label: "Nickel (Ni2+)",   d0: "2.0e-10", q: 2.3, beta: 2.0 },
+            "Cu": { label: "Copper (Cu2+)",   d0: "6.0e-10", q: 2.0, beta: 1.0 },
+            "Zn": { label: "Zinc (Zn2+)",     d0: "3.0e-9",  q: 1.8, beta: 1.2 }
+        };
+
+        // --- Core Physics Engine ---
+        function calculateDiffusionMap(inputs, mode = 'snapshot', overrideTemp = null, overrideTime = null) {
+            const Temp = overrideTemp || inputs.temp;
+            const Time_h = overrideTime || inputs.timeHours;
+            const Time_s = Time_h * 3600;
+            const L_m = inputs.totalLength * 1e-6; 
+            const dx = L_m / (inputs.N - 1);
+            const sourceNodes = Math.ceil((inputs.sourceLength * 1e-6) / dx);
+
+            // Matrix (Target) Properties
+            const matExp = -inputs.targetQ / (KB_EV * Temp);
+            const D_mat_base = inputs.targetD0 * Math.exp(matExp);
+
+            const snapshots = 25; 
+            const historyStep = Time_s / snapshots;
+            let nextHistoryTime = historyStep; // Start recording AFTER t=0
+            
+            let markerPos = inputs.sourceLength * 1e-6; 
+            const trackMarker = (mode === 'snapshot'); 
+
+            // Initialize Dopants
+            const elementSims = inputs.elements.map(el => {
+                let C = new Float64Array(inputs.N);
+                for(let i=0; i<inputs.N; i++) C[i] = (i < sourceNodes) ? el.c0 : 0.0;
+                
+                const exponent = -el.q / (KB_EV * Temp);
+                const D_base = el.d0 * Math.exp(exponent);
+                
+                // Initialize history array
+                const history = mode === 'history' ? [] : null;
+                
+                // FIX: Explicitly record the initial state (Time=0) so the graph starts correctly
+                if (history) {
+                    history.push(Float64Array.from(C));
+                }
+
+                return { 
+                    ...el, C, C_next: new Float64Array(inputs.N),
+                    D_base, history,
+                    finalD: new Float64Array(inputs.N)
+                };
+            });
+
+            // Initialize Matrix (Calculated as Balance)
+            let C_mat = new Float64Array(inputs.N);
+            let finalD_mat = new Float64Array(inputs.N); 
+
+            // Stability Check (CFL Condition)
+            let maxD = D_mat_base; 
+            elementSims.forEach(el => {
+                const d = el.D_base * Math.exp(Math.abs(el.beta));
+                if(d > maxD) maxD = d;
+            });
+            if(maxD < 1e-30) maxD = 1e-30;
+
+            // --- THE FIX IS HERE ---
+            // 1. Calculate the max stable step allowed by physics
+            const stability_dt = (0.4 * dx * dx) / maxD;
+            
+            // 2. Ensure we take at least 200 steps per simulation to get smooth time evolution
+            //    This prevents "overshooting" low-temp/low-diffusivity simulations in one giant step.
+            const resolution_dt = Time_s / 200;
+            
+            // 3. Use the smaller of the two
+            const dt = Math.min(stability_dt, resolution_dt);
+
+            let totalSteps = Math.ceil(Time_s / dt);
+            // Safety cap to prevent browser freezing on extreme high-res runs
+            if(totalSteps > 2000000) totalSteps = 2000000; 
+
+            let currentTime = 0;
+
+            for(let t=0; t<totalSteps; t++) {
+                currentTime += dt;
+
+                // 1. Calculate Matrix Concentration Profile FIRST (Available Sites)
+                for(let i=0; i<inputs.N; i++) {
+                    let sum = 0;
+                    for(let el of elementSims) sum += el.C[i];
+                    C_mat[i] = 100 - sum;
+                }
+
+                let netFluxAtMarker = 0;
+                const markerNode = Math.min(Math.max(1, Math.round(markerPos / dx)), inputs.N - 2);
+
+                // 2. Dopant Diffusion
+                for(let el of elementSims) {
+                    // Optimization: If D is essentially zero, skip calculation to save CPU
+                    if (el.D_base <= 1e-30) {
+                        if(t === totalSteps - 1) el.finalD.fill(0);
+                        continue;
+                    }
+
+                    for(let i=1; i < inputs.N - 1; i++) {
+                        
+                        // -- Interpolations --
+                        const C_right = (el.C[i+1] + el.C[i]) / 2;
+                        const C_left = (el.C[i] + el.C[i-1]) / 2;
+                        
+                        // -- Base D with Self-Interaction (Beta) --
+                        let D_right = el.D_base * Math.exp(el.beta * (C_right / inputs.maxConc));
+                        let D_left  = el.D_base * Math.exp(el.beta * (C_left / inputs.maxConc));
+
+                        // -- Site Blocking / Vacancy Mechanism --
+                        if(inputs.blockingEnabled) {
+                            const Mat_right = (C_mat[i+1] + C_mat[i]) / 2;
+                            const Mat_left = (C_mat[i] + C_mat[i-1]) / 2;
+                            
+                            const factor_right = Math.max(0.01, Mat_right / 100.0);
+                            const factor_left = Math.max(0.01, Mat_left / 100.0);
+
+                            D_right *= factor_right;
+                            D_left *= factor_left;
+                        }
+
+                        if(t === totalSteps - 1) el.finalD[i] = (D_right + D_left) / 2;
+
+                        const flux_right = -D_right * (el.C[i+1] - el.C[i]) / dx; 
+                        const flux_left  = -D_left  * (el.C[i] - el.C[i-1]) / dx;
+                        
+                        el.C_next[i] = el.C[i] - (dt / dx) * (flux_right - flux_left);
+
+                        if(trackMarker && i === markerNode) {
+                            netFluxAtMarker += flux_right;
+                        }
+                    }
+                    el.C_next[0] = el.C_next[1];
+                    el.C_next[inputs.N-1] = el.C_next[inputs.N-2];
+                }
+
+                // 3. Matrix Flux (for Kirkendall)
+                if(trackMarker && D_mat_base > 1e-30) {
+                     const i = markerNode;
+                     const flux_mat_right = -D_mat_base * (C_mat[i+1] - C_mat[i]) / dx;
+                     netFluxAtMarker += flux_mat_right;
+                     
+                     if(t === totalSteps - 1) finalD_mat.fill(D_mat_base);
+                }
+
+                // 4. Update Marker
+                if(trackMarker) {
+                    const Vm_Vis = 2e-6; 
+                    markerPos += (-netFluxAtMarker * dt * Vm_Vis);
+                }
+
+                // 5. Swap
+                for(let el of elementSims) {
+                     // Only swap if we actually calculated something (optimization)
+                     if (el.D_base > 1e-30) {
+                        let temp = el.C; el.C = el.C_next; el.C_next = temp;
+                     }
+                }
+
+                // 6. Record History (Check time)
+                if(mode === 'history' && currentTime >= nextHistoryTime) {
+                    elementSims.forEach(el => el.history.push(Float64Array.from(el.C)));
+                    nextHistoryTime += historyStep;
+                }
+            }
+
+            // Ensure the final state is recorded in history if we missed the exact second
+            if(mode === 'history') {
+                 // Check if the last frame is significantly different from the last saved one, or just overwrite/append
+                 // For simplicity, we just ensure the user gets the final result.
+                 // (Optional: You could check length to avoid duplicates)
+                 elementSims.forEach(el => {
+                    // Force push final state
+                    el.history.push(Float64Array.from(el.C));
+                 });
+            }
+
+            return { 
+                elements: elementSims, 
+                markerShift: (markerPos * 1e6), 
+                originalInterface: inputs.sourceLength,
+                matrixD: finalD_mat
+            };
+        }
+
+        // --- UI Logic ---
+
+        function debouncedUpdate() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => { triggerCalculation(); }, 600);
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.getElementById('pane-' + tab).classList.add('active');
+
+            if(tab === 'time3d' || tab === 'temp3d') window.dispatchEvent(new Event('resize'));
+            if(tab === 'help' && window.MathJax) MathJax.typesetPromise();
+            
+            if(tab !== 'help') triggerCalculation();
+        }
+
+        function validateInputs() {
+            let t = parseFloat(document.getElementById('temp').value);
+            const l_src = parseFloat(document.getElementById('sourceLength').value);
+            const l_tot = parseFloat(document.getElementById('totalLength').value);
+            
+            // Matrix Inputs
+            const matD0 = parseFloat(document.getElementById('targetD0').value);
+            const matQ = parseFloat(document.getElementById('targetQ').value);
+            const blocking = document.getElementById('blockingEnabled').checked;
+
+            let isValid = true;
+            if (isNaN(t) || t < 300 || t > 3500) isValid = false;
+            if (l_src <= 0 || l_tot <= 0 || l_src >= l_tot) isValid = false;
+            if (isNaN(matD0) || matD0 <= 0 || isNaN(matQ)) isValid = false;
+
+            const elCards = document.querySelectorAll('.element-card');
+            const elements = [];
+            elCards.forEach((card, idx) => {
+                const c0 = parseFloat(card.querySelector('.el-c0').value);
+                const d0 = parseFloat(card.querySelector('.el-d0').value);
+                
+                // Handle SELECT name extraction
+                const nameSelect = card.querySelector('.el-name');
+                const name = nameSelect.options[nameSelect.selectedIndex].text;
+
+                if (isNaN(c0) || c0 < 0 || c0 > 100) isValid = false;
+                if (isNaN(d0) || d0 <= 0) isValid = false;
+                elements.push({
+                    name: name,
+                    d0: d0, q: parseFloat(card.querySelector('.el-q').value),
+                    c0: c0, beta: parseFloat(card.querySelector('.el-beta').value),
+                    color: card.querySelector('.el-color').value
+                });
+            });
+
+            if (!isValid) return null;
+
+            return { 
+                temp: t, timeHours: parseFloat(document.getElementById('time').value),
+                sourceLength: l_src, totalLength: l_tot,
+                N: parseInt(document.getElementById('gridPoints').value),
+                targetName: document.getElementById('targetName').value,
+                targetD0: matD0, targetQ: matQ,
+                maxConc: 100, elements: elements,
+                blockingEnabled: blocking
+            };
+        }
+
+        function triggerCalculation() {
+            const inputs = validateInputs();
+            if(!inputs) return;
+            
+            const overlay = document.getElementById('loading-overlay');
+            if(currentTab !== 'help') overlay.style.display = 'flex';
+            
+            setTimeout(() => {
+                try {
+                    if (currentTab === 'profile') render2D(inputs);
+                    else if (currentTab === 'diffusivity') renderDiffusivity(inputs);
+                    else if (currentTab === 'time3d') render3DTime(inputs);
+                    else if (currentTab === 'temp3d') render3DTemp(inputs);
+                } catch (e) { 
+                    console.error("Simulation Error:", e); 
+                } finally { 
+                    overlay.style.display = 'none'; 
+                }
+            }, 50);
+        }
+
+        async function saveData() {
+            const inputs = validateInputs();
+            if(!inputs) return;
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Generating...';
+
+            setTimeout(() => {
+                try {
+                    const simRes = calculateDiffusionMap(inputs, 'snapshot');
+                    let content = `CATION DIFFUSION SIM v5.4 - EXPORT\n`;
+                    content += `Temp(K): ${inputs.temp}, Time(h): ${inputs.timeHours}\n`;
+                    content += `Site Blocking Enabled: ${inputs.blockingEnabled}\n`;
+                    content += `Marker Position: ${simRes.markerShift.toFixed(4)} um\n\n`;
+
+                    content += `Depth(um)\tMatrix_D(m2/s)\tMatrix_Conc(%)\t`;
+                    inputs.elements.forEach(el => content += `${el.name}_Conc(%)\t${el.name}_D(m2/s)\t`);
+                    content += `\n`;
+
+                    const dx_um = inputs.totalLength / (inputs.N - 1);
+                    for(let i=0; i<inputs.N; i++) {
+                        let depth = (i * dx_um).toFixed(4);
+                        let dopantSum = 0;
+                        simRes.elements.forEach(el => dopantSum += el.C[i]);
+                        let matC = Math.max(0, 100 - dopantSum).toFixed(4);
+                        
+                        let line = `${depth}\t${simRes.matrixD[i]?.toExponential(3) || 0}\t${matC}\t`;
+                        simRes.elements.forEach(el => {
+                            line += `${el.C[i].toFixed(4)}\t${el.finalD[i].toExponential(3)}\t`;
+                        });
+                        content += line + `\n`;
+                    }
+
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `DiffusionData_v5.4.txt`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } catch(e) { console.error(e); } finally { btn.disabled = false; btn.innerText = 'Save Data (.txt)'; }
+            }, 100);
+        }
+
+        // --- Renderers ---
+        function render2D(inputs) {
+            const res = calculateDiffusionMap(inputs, 'snapshot');
+            const xLabels = [];
+            const dx_um = inputs.totalLength / (inputs.N - 1);
+            for(let i=0; i<inputs.N; i++) xLabels.push(i * dx_um);
+
+            const datasets = [];
+            let C_target = new Float64Array(inputs.N).fill(inputs.maxConc);
+
+            res.elements.forEach(el => {
+                datasets.push({
+                    label: el.name,
+                    data: Array.from(el.C),
+                    borderColor: el.color,
+                    backgroundColor: el.color + '33',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.4
+                });
+                for(let i=0; i<inputs.N; i++) C_target[i] -= el.C[i];
+            });
+
+            for(let i=0; i<inputs.N; i++) if(C_target[i] < 0) C_target[i] = 0;
+            datasets.unshift({
+                label: inputs.targetName,
+                data: Array.from(C_target),
+                borderColor: '#94a3b8',
+                backgroundColor: '#f1f5f988',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: true,
+                tension: 0.4
+            });
+
+            const ctx = document.getElementById('diffusionChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: xLabels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: { mode: 'nearest', intersect: false },
+                    scales: {
+                        x: { type: 'linear', title: {display:true, text:'Depth (µm)'}, ticks:{callback: v=>v.toFixed(2)} },
+                        y: { title: {display:true, text:'Concentration (%)'}, beginAtZero: true, max: 100 }
+                    },
+                    plugins: { 
+                        interfaceLine: { 
+                            originalX: res.originalInterface,
+                            markerX: res.markerShift
+                        },
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+        }
+
+        function renderDiffusivity(inputs) {
+            const res = calculateDiffusionMap(inputs, 'snapshot');
+            const xLabels = [];
+            const dx_um = inputs.totalLength / (inputs.N - 1);
+            for(let i=0; i<inputs.N; i++) xLabels.push(i * dx_um);
+
+            const datasets = res.elements.map(el => ({
+                label: el.name,
+                data: Array.from(el.finalD).map(v => v > 1e-25 ? Math.log10(v) : null),
+                borderColor: el.color,
+                borderWidth: 2, pointRadius: 0, fill: false
+            }));
+
+            if(res.matrixD && res.matrixD[0] > 0) {
+                 datasets.unshift({
+                    label: inputs.targetName,
+                    data: Array.from(res.matrixD).map(v => Math.log10(v)),
+                    borderColor: '#94a3b8',
+                    borderWidth: 2, borderDash: [5,5], pointRadius: 0, fill: false
+                });
+            }
+
+            const ctx = document.getElementById('diffusivityChart').getContext('2d');
+            if (diffChartInstance) diffChartInstance.destroy();
+            diffChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: xLabels, datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false, animation: false,
+                    scales: {
+                        x: { type: 'linear', title: {display:true, text:'Depth (µm)'}, ticks:{callback: v=>v.toFixed(2)} },
+                        y: { title: {display:true, text:'Log10(D) [m²/s]'} }
+                    }
+                }
+            });
+        }
+
+        function render3DTime(inputs) {
+            const res = calculateDiffusionMap(inputs, 'history');
+            const traces = [];
+            const xData = Array.from({length: inputs.N}, (_, i) => i * (inputs.totalLength / (inputs.N-1)));
+            const numSnapshots = res.elements[0].history.length;
+            const timeStep = inputs.timeHours / Math.max(1, numSnapshots - 1);
+            const yData = Array.from({length: numSnapshots}, (_, i) => i * timeStep);
+            
+            res.elements.forEach(el => {
+                traces.push({
+                    type: 'surface',
+                    x: xData, y: yData, z: el.history,
+                    name: el.name, showlegend: true, showscale: false, opacity: 0.8,
+                    colorscale: [ [0, '#ffffff'], [1, el.color] ],
+                    contours: {
+                        z: { show: true, usecolormap: true, highlightcolor: "#42f462", project: { z: true } }
+                    }
+                });
+            });
+            const layout = {
+                title: 'Concentration Evolution vs Time',
+                autosize: true, margin: { l: 0, r: 0, b: 0, t: 30 },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98, xanchor: 'left', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.7)' },
+                scene: {
+                    xaxis: { title: 'Depth (µm)' }, 
+                    yaxis: { title: 'Time (h)' },
+                    zaxis: { title: 'Conc (%)', range: [0, 100] },
+                    camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
+                }
+            };
+            Plotly.newPlot('plotly-time', traces, layout, {displayModeBar: true});
+        }
+
+        function render3DTemp(inputs) {
+            const tempSteps = 8;
+            const range = 200; 
+            let startT = Math.max(inputs.temp - range, 300);
+            let endT = Math.min(inputs.temp + range, 2500);
+            const stepT = (endT - startT) / (tempSteps - 1);
+            const xData = Array.from({length: inputs.N}, (_, i) => i * (inputs.totalLength / (inputs.N-1)));
+            const yData = []; 
+            const zGrids = inputs.elements.map(() => []);
+            
+            for(let i=0; i<tempSteps; i++) {
+                const T = startT + (i * stepT);
+                yData.push(T);
+                const res = calculateDiffusionMap(inputs, 'snapshot', T);
+                res.elements.forEach((el, idx) => zGrids[idx].push(Array.from(el.C)));
+            }
+            
+            const traces = inputs.elements.map((el, idx) => ({
+                type: 'surface',
+                x: xData, y: yData, z: zGrids[idx],
+                name: el.name, showlegend: true, showscale: false, opacity: 0.9,
+                colorscale: [ [0, '#ffffff'], [1, el.color] ]
+            }));
+            
+            const layout = {
+                title: `Sensitivity: ${startT.toFixed(0)}K to ${endT.toFixed(0)}K`,
+                autosize: true, margin: { l: 0, r: 0, b: 0, t: 30 },
+                showlegend: true,
+                legend: { x: 0.02, y: 0.98, xanchor: 'left', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.7)' },
+                scene: {
+                    xaxis: { title: 'Depth (µm)' }, 
+                    yaxis: { title: 'Temp (K)' },
+                    zaxis: { title: 'Conc (%)', range: [0, 100] },
+                    camera: { eye: { x: 1.5, y: -1.5, z: 1.5 } }
+                }
+            };
+            Plotly.newPlot('plotly-temp', traces, layout, {displayModeBar: true});
+        }
+
+        const interfaceLinePlugin = {
+            id: 'interfaceLine',
+            afterDraw: (chart, args, options) => {
+                const ctx = chart.ctx;
+                const xAxis = chart.scales.x;
+                const yAxis = chart.scales.y;
+                
+                function drawLine(xVal, color, text, isDashed, yTextOffset) {
+                    const xPixel = xAxis.getPixelForValue(xVal);
+                    if (xPixel < xAxis.left || xPixel > xAxis.right) return;
+                    
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    if(isDashed) ctx.setLineDash([5, 5]);
+                    ctx.moveTo(xPixel, yAxis.top);
+                    ctx.lineTo(xPixel, yAxis.bottom);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = color;
+                    ctx.font = 'bold 10px Inter';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(text, xPixel - 4, yAxis.top + yTextOffset);
+                    ctx.restore();
+                }
+                
+                if (options.originalX) drawLine(options.originalX, '#94a3b8', 'Orig. Interface', true, 15);
+                if (options.markerX) drawLine(options.markerX, '#dc2626', 'Marker', true, 30);
+            }
+        };
+        Chart.register(interfaceLinePlugin);
+
+        // --- New Logic: Add Elements with Dropdown & Auto-fill ---
+
+        function addElement(initialKey = null) {
+            const list = document.getElementById('elementsList');
+            if (list.children.length >= 4) { alert("Max 4 dopants allowed."); return; }
+            
+            const template = document.getElementById('elementTemplate');
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector('.element-card');
+            
+            // Random Color
+            const finalColor = getRandomColor();
+            card.style.borderLeftColor = finalColor;
+            clone.querySelector('.el-color').value = finalColor;
+            
+            // Populate Dropdown
+            const select = clone.querySelector('.el-name');
+            Object.keys(CATION_DB).forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.text = CATION_DB[k].label;
+                select.appendChild(opt);
+            });
+
+            // Set Initial Selection (Default to Ni if null, or passed key)
+            // If passed key is unavailable, default to first.
+            if(initialKey && CATION_DB[initialKey]) {
+                select.value = initialKey;
+            } else {
+                // Heuristic: try to pick one that isn't already used? 
+                // For simplicity, default to Ni or the first one.
+                select.value = "Ni"; 
+            }
+            
+            // Initial Param Fill based on selection
+            const key = select.value;
+            const data = CATION_DB[key];
+            clone.querySelector('.el-d0').value = data.d0;
+            clone.querySelector('.el-q').value = data.q;
+            clone.querySelector('.el-beta').value = data.beta;
+            clone.querySelector('.el-c0').value = 25; // Default 25%
+
+            // Setup Delete
+            clone.querySelector('.delete-btn').onclick = function(e) { 
+                e.target.closest('.element-card').remove(); debouncedUpdate();
+            };
+            
+            list.appendChild(clone);
+            debouncedUpdate();
+        }
+
+        function updateElementParams(selectElem) {
+            const key = selectElem.value;
+            const data = CATION_DB[key];
+            if(!data) return;
+
+            // Find parent card
+            const card = selectElem.closest('.element-card');
+            card.querySelector('.el-d0').value = data.d0;
+            card.querySelector('.el-q').value = data.q;
+            card.querySelector('.el-beta').value = data.beta;
+            
+            // Trigger update
+            debouncedUpdate();
+        }
+
+        function getRandomColor() {
+            const colors = ['#e11d48', '#2563eb', '#16a34a', '#d97706', '#9333ea', '#db2777'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        window.onload = function() {
+            // Default Demo Setup: ONLY NICKEL
+            addElement("Ni"); 
+            
+            setTimeout(triggerCalculation, 500);
+            
+            window.addEventListener('resize', () => {
+                if(currentTab === 'time3d') Plotly.Plots.resize('plotly-time');
+                if(currentTab === 'temp3d') Plotly.Plots.resize('plotly-temp');
+            });
+        };
+    </script>
+</body>
+</html>
