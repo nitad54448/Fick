@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onsager Diffusion v7.5 (Clean UI)</title>
+    <link href="./dist/output.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    
+    <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-800 bg-slate-50 font-sans">
+
+    <div class="bg-white border-b border-gray-200 px-4 flex items-center justify-between shrink-0 h-14 shadow-sm z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-bold shadow-md">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <h1 class="font-bold text-lg text-slate-800 hidden md:block">Onsager Diffusion <span class="text-xs font-normal text-slate-500 ml-1">v7.5 (Coupled)</span></h1>
+        </div>
+        
+        <div id="status-area" class="flex-1 mx-8 flex items-center gap-3 opacity-0 transition-opacity duration-300">
+            <div class="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
+                <div id="header-progress" class="h-full bg-orange-500 w-0 transition-all duration-200"></div>
+            </div>
+            <span id="header-status" class="text-xs font-mono text-gray-400 w-24 text-right">Calculating...</span>
+            <button onclick="terminateWorker()" class="text-xs text-red-500 hover:text-red-700 font-bold uppercase" title="Stop">
+                <i class="fas fa-stop"></i>
+            </button>
+        </div>
+
+        <div class="flex space-x-1 h-full overflow-x-auto mx-4">
+            <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn active h-full flex items-center">
+                <i class="fas fa-chart-line mr-2"></i> Profile
+            </button>
+            <button onclick="switchTab('flux')" id="tab-flux" class="tab-btn h-full flex items-center">
+                <i class="fas fa-exchange-alt mr-2"></i> Fluxes
+            </button>
+            <button onclick="switchTab('time3d')" id="tab-time3d" class="tab-btn h-full flex items-center">
+                <i class="fas fa-cube mr-2"></i> 3D View
+            </button>
+            <button onclick="switchTab('help')" id="tab-help" class="tab-btn h-full flex items-center text-emerald-600">
+                <i class="fas fa-info-circle mr-2"></i> Theory
+            </button>
+        </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <aside class="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] shrink-0 overflow-y-auto">
+            <div class="p-4 space-y-5">
+                
+                <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 shadow-sm">
+                    <div class="flex items-center gap-2 mb-3 border-b border-orange-200 pb-2">
+                        <i class="fas fa-ruler-combined text-orange-600"></i>
+                        <h3 class="text-xs font-bold text-orange-800 uppercase tracking-wider">1. Geometry</h3>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group">
+                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Source Thickness (µm)</label>
+                            <input type="number" id="sourceLength" value="50" min="0.1" step="0.1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Total Length (µm)</label>
+                            <input type="number" id="totalLength" value="250" min="1" step="1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
+                        </div>
+                        <div class="input-group col-span-2">
+                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Grid Points</label>
+                            <input type="number" id="gridPoints" value="100" min="50" max="400" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded border border-slate-200">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2. Conditions</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="input-group">
+                            <label class="text-[10px] text-gray-500 font-bold block">Temp (K)</label>
+                            <input type="number" id="temp" value="1600" min="800" max="2800" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label class="text-[10px] text-gray-500 font-bold block">Time (Hours)</label>
+                            <input type="number" id="time" value="48" min="0.1" step="0.1" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50 p-3 rounded border border-indigo-100">
+                    <h3 class="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-2">3. Matrix (MgO)</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-indigo-600 font-bold block">D₀ (m²/s)</label>
+                            <input type="text" id="targetD0" value="5.0e-11" class="w-full text-xs border border-indigo-200 rounded p-1" onchange="debouncedUpdate()">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-indigo-600 font-bold block">Q (eV)</label>
+                            <input type="number" id="targetQ" value="2.0" step="0.1" class="w-full text-xs border border-indigo-200 rounded p-1" onchange="debouncedUpdate()">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">4. Dopants</h3>
+                        <button onclick="addElement()" class="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded transition shadow-sm font-bold">
+                            <i class="fas fa-plus"></i> ADD
+                        </button>
+                    </div>
+                    <div id="elementsList" class="space-y-3"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-full relative bg-slate-100 overflow-hidden">
+            <div id="loading-overlay" class="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm hidden flex-col items-center justify-center">
+                <div class="bg-white p-6 rounded-xl shadow-xl border border-gray-100 flex flex-col items-center">
+                    <div class="spinner mb-3"></div>
+                    <span class="text-sm font-bold text-slate-700">Calculating Coupled Fluxes...</span>
+                </div>
+            </div>
+
+            <div id="pane-profile" class="tab-pane active relative p-4">
+                <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <div class="flex-1 relative">
+                        <canvas id="diffusionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pane-flux" class="tab-pane relative p-4">
+                 <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <div class="flex-1 relative">
+                        <canvas id="fluxChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pane-time3d" class="tab-pane relative">
+                 <div id="plotly-time" class="w-full h-full"></div>
+            </div>
+
+            <div id="pane-help" class="tab-pane overflow-y-auto p-8 bg-white">
+                <div class="max-w-4xl mx-auto pb-20 help-content">
+                    <h1>Onsager Multi-Component Diffusion</h1>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-sm text-blue-900 shadow-sm rounded-r">
+                        <strong>The Core Concept:</strong> In a multicomponent system, atoms don't move independently. They share the same crystal lattice and compete for the same vacancies. This creates a "coupling" effect where the gradient of one element can push or drag another element.
+                    </div>
+
+                    <h2>1. The Phenomenological Equations</h2>
+                    <p>
+                        In Fickian diffusion, flux is simple: $J = -D \nabla C$. In <strong>Onsager diffusion</strong>, the flux of species $i$ depends on the concentration gradients of <em>all</em> present species ($j = 1 \dots n-1$):
+                    </p>
+
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-200 mb-6 text-center shadow-inner">
+                        <div class="text-xl mb-4">
+                            $$ J_i = - \sum_{j=1}^{n-1} \tilde{D}_{ij} \frac{\partial C_j}{\partial x} $$
+                        </div>
+                        <p class="text-xs text-slate-500 italic">
+                            Where $\tilde{D}_{ij}$ are the interdiffusion coefficients (diagonal & off-diagonal).
+                        </p>
+                    </div>
+
+                    <p>
+                        This means a species can have a <strong>non-zero flux even if its own concentration gradient is zero</strong>, simply because another fast-moving species is dragging it along (Cross-Effect).
+                    </p>
+
+                    <h2>2. The "Darken-Manning" Approximation</h2>
+                    <p>
+                        Calculating the $\tilde{D}_{ij}$ matrix from scratch is difficult. This simulator uses the standard approximation for random alloys/oxides, relating the interdiffusion coefficients to the atomic <strong>Tracer Diffusivities ($D^*$)</strong>.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white p-4 rounded border border-slate-200 shadow-sm">
+                            <h3 class="mt-0 border-0 text-indigo-700">Diagonal Term ($\tilde{D}_{ii}$)</h3>
+                            <p class="mb-2 text-sm">Self-diffusion + Solvent interaction.</p>
+                            <div class="text-center py-2 bg-slate-50 rounded mb-2">
+                                $$ \tilde{D}_{ii} = D^*_i + C_i (D^*_{mat} - D^*_i) $$
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded border border-slate-200 shadow-sm">
+                            <h3 class="mt-0 border-0 text-indigo-700">Cross Term ($\tilde{D}_{ij}$)</h3>
+                            <p class="mb-2 text-sm">Coupling magnitude ($i \neq j$).</p>
+                            <div class="text-center py-2 bg-slate-50 rounded mb-2">
+                                $$ \tilde{D}_{ij} = C_i (D^*_{mat} - D^*_j) $$
+                            </div>
+                        </div>
+                    </div>
+
+                    <p>
+                        <strong>Key Insight:</strong> The coupling depends on the difference between the Matrix diffusivity ($D^*_{mat}$) and the Dopant diffusivity.
+                    </p>
+                    <ul class="list-disc pl-5 mb-6 text-sm text-slate-600">
+                        <li>If $D^*_{mat} \approx D^*_{j}$, the cross-term vanishes ($\tilde{D}_{ij} \approx 0$).</li>
+                        <li>If the Matrix is <strong>much faster</strong> than the Dopants, it creates a strong "Vacancy Wind" that couples all dopants together.</li>
+                    </ul>
+
+                    <h2>3. Numerical Implementation</h2>
+                    <p>
+                        The simulator solves the coupled Partial Differential Equations (PDEs) using an <strong>Explicit Finite Difference Method (FDM)</strong> on a staggered grid.
+                    </p>
+
+                    <div class="overflow-x-auto mb-6">
+                        <table class="param-table">
+                            <thead>
+                                <tr>
+                                    <th>Step</th>
+                                    <th>Action</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>1. Gradient</strong></td>
+                                    <td>$\nabla C$</td>
+                                    <td>Slopes calculated at grid mid-points ($i+1/2$).</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>2. Matrix</strong></td>
+                                    <td>$\tilde{D}_{ij}$</td>
+                                    <td>Local Onsager coefficients computed using local $C_i$.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>3. Flux</strong></td>
+                                    <td>$J_i$</td>
+                                    <td>Summation of Diagonal and Cross-terms.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>4. Update</strong></td>
+                                    <td>$\partial C / \partial t$</td>
+                                    <td>Concentration updated via Continuity Eq: $\frac{\partial C}{\partial t} = -\frac{\partial J}{\partial x}$.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="text-sm bg-yellow-50 p-3 rounded border border-yellow-200 text-yellow-800">
+                        <strong>Stability Note:</strong> Multicomponent diffusion is numerically stiff. The time step $\Delta t$ is dynamically adjusted based on the fastest diffusing species to satisfy the Courant–Friedrichs–Lewy (CFL) condition: $\Delta t < \frac{\Delta x^2}{2 D_{max}}$.
+                    </p>
+
+                    <h2>4. How to Observe "Uphill Diffusion"</h2>
+                    <p>
+                        To see the Onsager effect clearly in this tool:
+                    </p>
+                    <ol class="list-decimal pl-6 text-sm space-y-2 text-slate-700">
+                        <li>Add two dopants, e.g., <strong>Ni</strong> (Fast) and <strong>Cr</strong> (Slow).</li>
+                        <li>Set the Matrix ($D^*_{mat}$) to be very fast or very slow compared to them.</li>
+                        <li>Set high initial concentrations (e.g., Source = 30%).</li>
+                        <li>Look at the <strong>Fluxes Tab</strong>. You might see the flux of Cr go negative (uphill) briefly at the interface, driven by the vacancy wind generated by the fast-moving Ni.</li>
+                    </ol>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <template id="elementTemplate">
+        <div class="element-card bg-white p-3 rounded border border-gray-300 shadow-sm relative group border-l-4 mb-2">
+            <input type="hidden" class="el-color">
+            <button class="delete-btn absolute top-1 right-2 text-gray-300 hover:text-red-500 hidden group-hover:block transition" title="Remove">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="col-span-2">
+                    <label class="text-[10px] text-gray-500 font-bold block">Dopant</label>
+                    <select class="el-name border border-gray-300 rounded text-xs w-full p-1 font-semibold text-slate-700" onchange="updateElementParams(this)">
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-bold block">D*₀</label>
+                    <input type="text" class="el-d0 text-xs border border-gray-300 rounded p-1 w-full" onchange="debouncedUpdate()">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-bold block">Q (eV)</label>
+                    <input type="number" class="el-q text-xs border border-gray-300 rounded p-1 w-full" step="0.1" onchange="debouncedUpdate()">
+                </div>
+                <div class="col-span-2 flex items-center gap-2">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-500 font-bold block">Source %</label>
+                        <input type="number" class="el-c-left text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-500 font-bold block">Matrix %</label>
+                        <input type="number" class="el-c-right text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script id="worker-code" type="javascript/worker">
+        const KB_EV = 8.617333262145e-5; 
+
+        self.onmessage = function(e) {
+            const inputs = e.data;
+            try {
+                const Temp = inputs.temp;
+                const Time_s = inputs.timeHours * 3600;
+                const N = inputs.N;
+                const L_m = inputs.totalLength * 1e-6; 
+                const Source_m = inputs.sourceLength * 1e-6;
+                const dx = L_m / (N - 1);
+                
+                const interfaceNode = Math.round(Source_m / dx);
+
+                // Setup Species
+                const matExp = -inputs.targetQ / (KB_EV * Temp);
+                const D_star_matrix = inputs.targetD0 * Math.exp(matExp);
+
+                const species = inputs.elements.map(el => {
+                    const exp = -el.q / (KB_EV * Temp);
+                    const D_star = el.d0 * Math.exp(exp);
+                    const C = new Float64Array(N);
+                    for(let i=0; i<N; i++) {
+                        C[i] = (i < interfaceNode) ? el.cLeft / 100 : el.cRight / 100;
+                    }
+                    return { ...el, D_star, C, C_new: new Float64Array(N), Flux: new Float64Array(N), history: [] };
+                });
+
+                let maxD = D_star_matrix;
+                species.forEach(s => maxD = Math.max(maxD, s.D_star));
+                if (maxD < 1e-35) maxD = 1e-35;
+
+                let dt = (0.3 * dx * dx) / maxD;
+                let totalSteps = Math.ceil(Time_s / dt);
+
+                if(totalSteps > 1500000) {
+                    totalSteps = 1500000;
+                    dt = Time_s / totalSteps;
+                }
+
+                const saveInterval = Math.max(1, Math.floor(totalSteps / 40));
+                const reportInterval = Math.max(100, Math.floor(totalSteps / 50));
+
+                for (let t = 0; t < totalSteps; t++) {
+                    for (let i = 0; i < N - 1; i++) {
+                        const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
+                        const grads = species.map(s => (s.C[i+1] - s.C[i]) / dx);
+                        
+                        // ONSAGER MATRIX (Darken-Manning)
+                        species.forEach((s_i, idx_i) => {
+                            let flux = 0;
+                            species.forEach((s_j, idx_j) => {
+                                let D_ij = 0;
+                                if (idx_i === idx_j) {
+                                    D_ij = s_i.D_star + C_local[idx_i] * (D_star_matrix - s_i.D_star);
+                                } else {
+                                    D_ij = C_local[idx_i] * (D_star_matrix - s_j.D_star);
+                                }
+                                flux += -1 * D_ij * grads[idx_j];
+                            });
+                            s_i.Flux[i] = flux;
+                        });
+                    }
+
+                    for (let i = 1; i < N - 1; i++) {
+                        species.forEach(s => {
+                            const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
+                            s.C_new[i] = s.C[i] - dt * dJ_dx;
+                        });
+                    }
+                    species.forEach(s => { s.C_new[0] = s.C_new[1]; s.C_new[N-1] = s.C_new[N-2]; });
+                    species.forEach(s => {
+                        const temp = s.C; s.C = s.C_new; s.C_new = temp;
+                        if (inputs.mode === 'history' && t % saveInterval === 0) s.history.push(Float64Array.from(s.C));
+                    });
+                    if (t % reportInterval === 0) self.postMessage({ type: 'progress', percent: Math.round((t / totalSteps) * 100) });
+                }
+
+                const finalMatrix = new Float64Array(N);
+                for(let i=0; i<N; i++) {
+                    let sum = 0;
+                    species.forEach(s => sum += s.C[i]);
+                    finalMatrix[i] = Math.max(0, 1 - sum);
+                }
+
+                self.postMessage({ type: 'complete', species, matrix: finalMatrix, dx, interfaceX: Source_m });
+            } catch (err) {
+                self.postMessage({ type: 'error', message: err.message });
+            }
+        };
+    </script>
+
+    <script>
+        let worker = null;
+        let chartInstance = null;
+        let fluxChartInstance = null;
+        let currentTab = 'profile';
+        let debounceTimer;
+
+        // --- 3D TRANSITION METAL SERIES (Estimated for MgO) ---
+        const CATION_DB = {
+            // --- Aliovalent (High Vacancy Generation -> Generally Faster) ---
+            "Sc": { label: "Sc³⁺ (Scandium)",   d0: "4.0e-10", q: 1.6 }, // 3+
+            "Ti": { label: "Ti⁴⁺ (Titanium)",   d0: "8.0e-10", q: 1.5 }, // 4+ (Very fast)
+            "V":  { label: "V³⁺ (Vanadium)",    d0: "6.0e-10", q: 1.6 }, // 3+/4+/5+
+            "Cr": { label: "Cr³⁺ (Chromium)",   d0: "3.5e-10", q: 1.7 }, // 3+
+            
+            // --- Isovalent (Mg²⁺ Substitutional -> Radius dependent) ---
+            "Mn": { label: "Mn²⁺ (Manganese)",  d0: "1.5e-10", q: 1.8 }, // Large radius
+            "Fe": { label: "Fe²⁺ (Iron)",       d0: "1.2e-9",  q: 1.6 }, // Known to be fast
+            "Co": { label: "Co²⁺ (Cobalt)",     d0: "5.0e-10", q: 1.7 }, // Moderate
+            "Ni": { label: "Ni²⁺ (Nickel)",     d0: "2.5e-10", q: 1.8 }, // Slower (Reference)
+            "Cu": { label: "Cu²⁺ (Copper)",     d0: "3.0e-10", q: 1.7 }, // Jahn-Teller distortions
+            "Zn": { label: "Zn²⁺ (Zinc)",       d0: "8.0e-10", q: 1.6 }  // Similar to Mg
+        };
+
+        function createWorker() {
+            const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
+            return new Worker(window.URL.createObjectURL(blob));
+        }
+
+        function terminateWorker() {
+            if (worker) { worker.terminate(); worker = null; updateStatus(0, "Stopped"); }
+        }
+
+        function updateStatus(percent, text) {
+            const area = document.getElementById('status-area');
+            const bar = document.getElementById('header-progress');
+            const lbl = document.getElementById('header-status');
+            if(text === 'Ready') { area.style.opacity = '0'; } 
+            else { area.style.opacity = '1'; bar.style.width = percent + '%'; lbl.innerText = text || (percent + '%'); }
+        }
+
+        function triggerCalculation() {
+            const inputs = validateInputs();
+            if(!inputs) return;
+            terminateWorker();
+            inputs.mode = (currentTab === 'time3d') ? 'history' : 'snapshot';
+            if(currentTab === 'flux') inputs.timeHours = inputs.timeHours * 0.3;
+            worker = createWorker();
+            worker.onmessage = function(e) {
+                const msg = e.data;
+                if (msg.type === 'progress') { updateStatus(msg.percent, msg.percent + '%'); } 
+                else if (msg.type === 'complete') {
+                    updateStatus(100, 'Done');
+                    setTimeout(() => updateStatus(0, 'Ready'), 1000);
+                    renderResults(msg, inputs);
+                    worker.terminate();
+                } else if (msg.type === 'error') { console.error(msg.message); updateStatus(0, 'Error'); }
+            };
+            updateStatus(0, 'Calculating');
+            worker.postMessage(inputs);
+        }
+
+        function renderResults(res, inputs) {
+            // --- 1. PROFILE CHART ---
+            if (currentTab === 'profile') {
+                const dx = res.dx * 1e6;
+                const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(1));
+                
+                const datasets = res.species.map(s => ({
+                    label: s.fullLabel,
+                    data: Array.from(s.C).map(v => v * 100),
+                    borderColor: s.color, backgroundColor: s.color + '20',
+                    borderWidth: 2, pointRadius: 0, fill: true, order: 2
+                }));
+                
+                datasets.unshift({
+                    label: 'MgO Matrix',
+                    data: Array.from(res.matrix).map(v => v * 100),
+                    borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], pointRadius: 0, fill: false, order: 2
+                });
+                
+                const interfaceXVal = res.interfaceX * 1e6;
+                datasets.push({
+                    label: 'Orig. Interface',
+                    borderColor: '#64748b', borderWidth: 2, borderDash: [6, 4], 
+                    pointRadius: 0, fill: false, showLine: true, type: 'scatter',
+                    data: [{x: interfaceXVal, y: 0}, {x: interfaceXVal, y: 100}], order: 1
+                });
+
+                if(chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(document.getElementById('diffusionChart'), {
+                    type: 'line', data: { labels, datasets },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, animation: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: { 
+                            x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
+                            y: { max: 100, title: {display:true, text:'Concentration (%)'} }
+                        }
+                    }
+                });
+
+            // --- 2. FLUX CHART (UPDATED) ---
+            } else if (currentTab === 'flux') {
+                const dx = res.dx * 1e6;
+                const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(1));
+                
+                // Collect all flux values to determine min/max for the vertical line
+                let allValues = [];
+                const datasets = res.species.map(s => {
+                    const dataArr = Array.from(s.Flux);
+                    allValues.push(...dataArr);
+                    return {
+                        label: "Flux " + s.name,
+                        data: dataArr,
+                        borderColor: s.color, borderWidth: 2, pointRadius: 0, tension: 0.4
+                    };
+                });
+
+                // Calculate dynamic bounds for the interface line so it doesn't break the scale
+                const yMin = Math.min(...allValues);
+                const yMax = Math.max(...allValues);
+                const interfaceXVal = res.interfaceX * 1e6;
+
+                datasets.push({
+                    label: 'Interface', type: 'scatter',
+                    data: [{x: interfaceXVal, y: yMin}, {x: interfaceXVal, y: yMax}],
+                    borderColor: '#64748b', borderWidth: 1, borderDash: [4,4], showLine: true, pointRadius: 0
+                });
+                
+                if(fluxChartInstance) fluxChartInstance.destroy();
+                fluxChartInstance = new Chart(document.getElementById('fluxChart'), {
+                    type: 'line', data: { labels, datasets },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, animation: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: { 
+                            x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
+                            y: { 
+                                title: {display:true, text:'Net Flux (arb. units)'},
+                                ticks: {
+                                    // FORMATTING: Scientific notation with 1 decimal place (e.g., 2.5e-10)
+                                    callback: function(value) { return value.toExponential(1); }
+                                }
+                            } 
+                        }
+                    }
+                });
+
+            // --- 3. 3D CHART (UPDATED) ---
+            } else if (currentTab === 'time3d') {
+                const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
+                
+                const traces = res.species.map(s => {
+                    const zData = s.history.map(row => Array.from(row).map(v => v*100));
+                    const yData = Array.from({length: zData.length}, (_, i) => i * (inputs.timeHours/zData.length));
+                    return {
+                        type: 'surface', 
+                        x: xData, y: yData, z: zData,
+                        name: s.name, 
+                        showscale: false, 
+                        showlegend: true,
+                        opacity: 0.8,
+                        colorscale: [ [0, '#ffffff'], [1, s.color] ]
+                    };
+                });
+
+                Plotly.newPlot('plotly-time', traces, {
+                    margin: {l:0,r:0,b:0,t:30}, 
+                    showlegend: true,
+                    legend: { x: 0, y: 1 },
+                    scene: {
+                        xaxis:{title:'Depth (µm)'}, 
+                        yaxis:{title:'Time (h)'}, 
+                        zaxis:{title:'Conc (%)'}
+                    }
+                });
+            }
+        }
+
+        function validateInputs() {
+            const elements = [];
+            const elCards = document.querySelectorAll('.element-card');
+            elCards.forEach(card => {
+                const nameSelect = card.querySelector('.el-name');
+                elements.push({
+                    name: nameSelect.options[nameSelect.selectedIndex]?.text.split(' ')[0] || "Unk",
+                    fullLabel: nameSelect.options[nameSelect.selectedIndex]?.text || "Unknown",
+                    d0: parseFloat(card.querySelector('.el-d0').value), 
+                    q: parseFloat(card.querySelector('.el-q').value),
+                    cLeft: parseFloat(card.querySelector('.el-c-left').value),
+                    cRight: parseFloat(card.querySelector('.el-c-right').value),
+                    color: card.querySelector('.el-color').value
+                });
+            });
+            if (elements.length === 0) return null;
+            const src = parseFloat(document.getElementById('sourceLength').value);
+            const tot = parseFloat(document.getElementById('totalLength').value);
+            if(src >= tot) { alert("Source length must be smaller than Total length"); return null; }
+            return {
+                temp: parseFloat(document.getElementById('temp').value),
+                timeHours: parseFloat(document.getElementById('time').value),
+                sourceLength: src, totalLength: tot,
+                N: parseInt(document.getElementById('gridPoints').value),
+                targetD0: parseFloat(document.getElementById('targetD0').value),
+                targetQ: parseFloat(document.getElementById('targetQ').value),
+                elements
+            };
+        }
+
+        function debouncedUpdate() { clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.getElementById('pane-' + tab).classList.add('active');
+            if(tab === 'time3d') window.dispatchEvent(new Event('resize'));
+            if(tab !== 'help') triggerCalculation();
+        }
+
+        function addElement(initialKey = null) {
+            const list = document.getElementById('elementsList');
+            if (list.children.length >= 4) { alert("Max 4 dopants"); return; }
+            const template = document.getElementById('elementTemplate');
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector('.element-card');
+            const color = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][list.children.length % 4];
+            card.style.borderLeftColor = color;
+            clone.querySelector('.el-color').value = color;
+            const select = clone.querySelector('.el-name');
+            Object.keys(CATION_DB).forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k; opt.text = CATION_DB[k].label;
+                select.appendChild(opt);
+            });
+            if(initialKey) select.value = initialKey;
+            if(initialKey && CATION_DB[initialKey]) {
+                clone.querySelector('.el-d0').value = CATION_DB[initialKey].d0;
+                clone.querySelector('.el-q').value = CATION_DB[initialKey].q;
+                clone.querySelector('.el-c-left').value = 25;
+                clone.querySelector('.el-c-right').value = 0;
+            }
+            clone.querySelector('.delete-btn').onclick = (e) => { e.target.closest('.element-card').remove(); debouncedUpdate(); };
+            list.appendChild(clone);
+        }
+
+        function updateElementParams(select) {
+            const data = CATION_DB[select.value];
+            const card = select.closest('.element-card');
+            card.querySelector('.el-d0').value = data.d0;
+            card.querySelector('.el-q').value = data.q;
+            debouncedUpdate();
+        }
+
+        window.onload = function() { addElement("Ni"); setTimeout(triggerCalculation, 100); };
+    </script>
+</body>
+</html>
