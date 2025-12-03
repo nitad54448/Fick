@@ -148,113 +148,106 @@
 
             <div id="pane-help" class="tab-pane overflow-y-auto p-8 bg-white">
                 <div class="max-w-4xl mx-auto pb-20 help-content">
-                    <h1>Onsager Multi-Component Diffusion</h1>
+                    <h1>Documentation & Physics Reference</h1>
                     
                     <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-sm text-blue-900 shadow-sm rounded-r">
-                        <strong>The Core Concept:</strong> In a multicomponent system, atoms don't move independently. They share the same crystal lattice and compete for the same vacancies. This creates a "coupling" effect where the gradient of one element can push or drag another element.
+                        <strong>Simulation Model:</strong> This tool solves the 1D Onsager Multi-Component Diffusion equations using an Explicit Finite Difference Method (FDM) on a staggered grid. It accounts for cross-term coupling between species via the vacancy wind effect.
                     </div>
 
-                    <h2>1. The Phenomenological Equations</h2>
-                    <p>
-                        In Fickian diffusion, flux is simple: $J = -D \nabla C$. In <strong>Onsager diffusion</strong>, the flux of species $i$ depends on the concentration gradients of <em>all</em> present species ($j = 1 \dots n-1$):
-                    </p>
-
-                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-200 mb-6 text-center shadow-inner">
-                        <div class="text-xl mb-4">
-                            $$ J_i = - \sum_{j=1}^{n-1} \tilde{D}_{ij} \frac{\partial C_j}{\partial x} $$
-                        </div>
-                        <p class="text-xs text-slate-500 italic">
-                            Where $\tilde{D}_{ij}$ are the interdiffusion coefficients (diagonal & off-diagonal).
-                        </p>
-                    </div>
-
-                    <p>
-                        This means a species can have a <strong>non-zero flux even if its own concentration gradient is zero</strong>, simply because another fast-moving species is dragging it along (Cross-Effect).
-                    </p>
-
-                    <h2>2. The "Darken-Manning" Approximation</h2>
-                    <p>
-                        Calculating the $\tilde{D}_{ij}$ matrix from scratch is difficult. This simulator uses the standard approximation for random alloys/oxides, relating the interdiffusion coefficients to the atomic <strong>Tracer Diffusivities ($D^*$)</strong>.
-                    </p>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="bg-white p-4 rounded border border-slate-200 shadow-sm">
-                            <h3 class="mt-0 border-0 text-indigo-700">Diagonal Term ($\tilde{D}_{ii}$)</h3>
-                            <p class="mb-2 text-sm">Self-diffusion + Solvent interaction.</p>
-                            <div class="text-center py-2 bg-slate-50 rounded mb-2">
-                                $$ \tilde{D}_{ii} = D^*_i + C_i (D^*_{mat} - D^*_i) $$
-                            </div>
-                        </div>
-                        <div class="bg-white p-4 rounded border border-slate-200 shadow-sm">
-                            <h3 class="mt-0 border-0 text-indigo-700">Cross Term ($\tilde{D}_{ij}$)</h3>
-                            <p class="mb-2 text-sm">Coupling magnitude ($i \neq j$).</p>
-                            <div class="text-center py-2 bg-slate-50 rounded mb-2">
-                                $$ \tilde{D}_{ij} = C_i (D^*_{mat} - D^*_j) $$
-                            </div>
-                        </div>
-                    </div>
-
-                    <p>
-                        <strong>Key Insight:</strong> The coupling depends on the difference between the Matrix diffusivity ($D^*_{mat}$) and the Dopant diffusivity.
-                    </p>
-                    <ul class="list-disc pl-5 mb-6 text-sm text-slate-600">
-                        <li>If $D^*_{mat} \approx D^*_{j}$, the cross-term vanishes ($\tilde{D}_{ij} \approx 0$).</li>
-                        <li>If the Matrix is <strong>much faster</strong> than the Dopants, it creates a strong "Vacancy Wind" that couples all dopants together.</li>
-                    </ul>
-
-                    <h2>3. Numerical Implementation</h2>
-                    <p>
-                        The simulator solves the coupled Partial Differential Equations (PDEs) using an <strong>Explicit Finite Difference Method (FDM)</strong> on a staggered grid.
-                    </p>
-
-                    <div class="overflow-x-auto mb-6">
-                        <table class="param-table">
+                    <h2>1. Units & Parameters</h2>
+                    <p>The simulation uses SI units internally, converted for display as follows:</p>
+                    
+                    <div class="overflow-x-auto mb-6 shadow-sm rounded-lg">
+                        <table class="param-table w-full text-left border-collapse">
                             <thead>
                                 <tr>
-                                    <th>Step</th>
-                                    <th>Action</th>
-                                    <th>Description</th>
+                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Parameter</th>
+                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Symbol</th>
+                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Unit</th>
+                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Description</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><strong>1. Gradient</strong></td>
-                                    <td>$\nabla C$</td>
-                                    <td>Slopes calculated at grid mid-points ($i+1/2$).</td>
+                                    <td class="p-2 border-b">Concentration</td>
+                                    <td>$C$</td>
+                                    <td>% (Mole Fraction $\times$ 100)</td>
+                                    <td>Normalized occupancy of cation sites. $\sum C_i = 100\%$.</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>2. Matrix</strong></td>
-                                    <td>$\tilde{D}_{ij}$</td>
-                                    <td>Local Onsager coefficients computed using local $C_i$.</td>
+                                    <td class="p-2 border-b">Tracer Diffusivity</td>
+                                    <td>$D^*$</td>
+                                    <td>$m^2/s$</td>
+                                    <td>The intrinsic rate of random jumps for a specific ion in the lattice.</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>3. Flux</strong></td>
-                                    <td>$J_i$</td>
-                                    <td>Summation of Diagonal and Cross-terms.</td>
+                                    <td class="p-2 border-b">Activation Energy</td>
+                                    <td>$Q$</td>
+                                    <td>$eV$</td>
+                                    <td>Energy barrier for a jump. $D^*(T) = D_0 \exp(-Q/k_BT)$.</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>4. Update</strong></td>
-                                    <td>$\partial C / \partial t$</td>
-                                    <td>Concentration updated via Continuity Eq: $\frac{\partial C}{\partial t} = -\frac{\partial J}{\partial x}$.</td>
+                                    <td class="p-2 border-b">Flux</td>
+                                    <td>$J$</td>
+                                    <td>$m/s \cdot (\%)$</td>
+                                    <td>Net flow rate. Physically represents velocity times concentration.</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 border-b">Depth/Length</td>
+                                    <td>$x$</td>
+                                    <td>$\mu m$</td>
+                                    <td>Micro-meters ($10^{-6} m$).</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <p class="text-sm bg-yellow-50 p-3 rounded border border-yellow-200 text-yellow-800">
-                        <strong>Stability Note:</strong> Multicomponent diffusion is numerically stiff. The time step $\Delta t$ is dynamically adjusted based on the fastest diffusing species to satisfy the Courant–Friedrichs–Lewy (CFL) condition: $\Delta t < \frac{\Delta x^2}{2 D_{max}}$.
+                    <h2>2. Interpreting the Flux Graph</h2>
+                    <p>
+                        The "Fluxes" tab visualizes the instantaneous flow of atoms ($J_i$) across the domain.
+                    </p>
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 text-sm text-yellow-800">
+                        <strong>Important Note on Time:</strong> 
+                        Diffusion systems eventually reach equilibrium (Flux $\to$ 0). To show you the most interesting physics (coupling and uphill diffusion), the Flux graph displays a snapshot at <strong>30% of the Total Time</strong> ($t = 0.3 \times t_{end}$).
+                        <br><br>
+                        If the graph showed the final step ($t_{end}$), the lines might be flat (zero flux) if the system has homogenized.
+                    </div>
+
+                    <h2>3. The Kirkendall Effect</h2>
+                    <p>
+                        Although this simulator uses a fixed coordinate system (the lattice frame), you can deduce the <strong>Kirkendall Effect</strong>—the physical shifting of the interface plane—by analyzing the results:
                     </p>
 
-                    <h2>4. How to Observe "Uphill Diffusion"</h2>
-                    <p>
-                        To see the Onsager effect clearly in this tool:
-                    </p>
-                    <ol class="list-decimal pl-6 text-sm space-y-2 text-slate-700">
-                        <li>Add two dopants, e.g., <strong>Ni</strong> (Fast) and <strong>Cr</strong> (Slow).</li>
-                        <li>Set the Matrix ($D^*_{mat}$) to be very fast or very slow compared to them.</li>
-                        <li>Set high initial concentrations (e.g., Source = 30%).</li>
-                        <li>Look at the <strong>Fluxes Tab</strong>. You might see the flux of Cr go negative (uphill) briefly at the interface, driven by the vacancy wind generated by the fast-moving Ni.</li>
+                    <h3 class="text-indigo-700">How to spot it:</h3>
+                    <ol class="list-decimal pl-6 space-y-3 text-sm text-slate-700">
+                        <li>
+                            <strong>Unequal Fluxes:</strong> Look at the Flux graph at the interface. If the flux of the Dopant moving Right ($J_{in}$) is much larger than the Matrix atoms moving Left ($J_{out}$), there is a net flow of matter to the right.
+                        </li>
+                        <li>
+                            <strong>Vacancy Wind:</strong> This net flow of atoms creates a flow of vacancies in the <em>opposite</em> direction (Left).
+                        </li>
+                        <li>
+                            <strong>Marker Shift:</strong> In a real experiment, inert markers placed at the original interface (dashed line) would drift towards the side of the <strong>faster diffusing species</strong> to conserve lattice planes.
+                        </li>
                     </ol>
+
+                    <div class="mt-4 p-4 bg-slate-100 rounded border border-slate-200">
+                        <strong class="text-slate-800">Rule of Thumb:</strong>
+                        <p class="mb-0 mt-1 text-sm">
+                            If $D^*_{dopant} \gg D^*_{matrix}$: The dopant rushes in faster than matrix fills the gap. The original interface effectively moves <em>into</em> the Source side (markers move left).
+                        </p>
+                    </div>
+
+                    <h2>4. Onsager Coupling (Theory)</h2>
+                    <p>
+                        The flux of species $i$ is not just driven by its own gradient, but coupled to others:
+                    </p>
+                    <div class="bg-white p-4 rounded border border-slate-200 mb-6 text-center shadow-inner">
+                        $$ J_i = -D_{ii} \nabla C_i - \sum_{j \neq i} D_{ij} \nabla C_j $$
+                    </div>
+                    <p>
+                        If you see a species diffusing "uphill" (against its own concentration gradient), it is being dragged by the cross-term $D_{ij} \nabla C_j$ generated by a faster moving species.
+                    </p>
                 </div>
             </div>
 
