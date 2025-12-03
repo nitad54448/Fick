@@ -27,6 +27,8 @@
         </div>
         
         <div id="status-area" class="flex-1 mx-8 flex items-center gap-3 opacity-0 transition-opacity duration-300">
+            
+            
             <div class="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
                 <div id="header-progress" class="h-full bg-orange-500 w-0 transition-all duration-200"></div>
             </div>
@@ -146,110 +148,109 @@
                  <div id="plotly-time" class="w-full h-full"></div>
             </div>
 
+
             <div id="pane-help" class="tab-pane overflow-y-auto p-8 bg-white">
                 <div class="max-w-4xl mx-auto pb-20 help-content">
-                    <h1>Documentation & Physics Reference</h1>
                     
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-sm text-blue-900 shadow-sm rounded-r">
-                        <strong>Simulation Model:</strong> This tool solves the 1D Onsager Multi-Component Diffusion equations using an Explicit Finite Difference Method (FDM) on a staggered grid. It accounts for cross-term coupling between species via the vacancy wind effect.
+                    <div class="border-b border-gray-200 pb-4 mb-6">
+                        <h1 class="text-3xl font-bold text-slate-800">Theory & Model Description</h1>
+                        <p class="text-slate-500 mt-2">Onsager Multi-Component Diffusion Solver (v8.0)</p>
                     </div>
 
-                    <h2>1. Units & Parameters</h2>
-                    <p>The simulation uses SI units internally, converted for display as follows:</p>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-sm text-blue-900 shadow-sm rounded-r">
+                        <strong>Overview:</strong> This simulation solves the diffusion of multiple dopants simultaneously. Unlike simple calculators, it accounts for how the movement of one species (e.g., Ni) physically drags or blocks another (e.g., Mg or Vacancies) through <strong>Lattice Coupling</strong>.
+                    </div>
+
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">1</span>
+                        The Governing Equations
+                    </h2>
                     
-                    <div class="overflow-x-auto mb-6 shadow-sm rounded-lg">
-                        <table class="param-table w-full text-left border-collapse">
-                            <thead>
+                    <p class="text-slate-600 mb-4">
+                        In a multi-component system, the flux of species $i$ ($J_i$) is not just driven by its own concentration gradient ($\nabla C_i$), but also by the gradients of all other species $j$. This is described by the <strong>Onsager formalism</strong>:
+                    </p>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded p-6 mb-6 text-center overflow-x-auto">
+                        $$ J_i = - \underbrace{D_{ii} \frac{\partial C_i}{\partial x}}_{\text{Self-Diffusion}} - \underbrace{\sum_{j \neq i} D_{ij} \frac{\partial C_j}{\partial x}}_{\text{Coupled Drag}} $$
+                    </div>
+
+                    <p class="text-slate-600 mb-4">
+                        This tool implements the <strong>Manning-Darken approximation</strong> for vacancy-mediated diffusion on a lattice. The diffusion coefficients $D_{ij}$ are calculated dynamically at every grid point:
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                        <div class="bg-white border border-gray-200 p-4 rounded shadow-sm">
+                            <h4 class="font-bold text-indigo-600 text-sm mb-2 uppercase">Diagonal Term (Main)</h4>
+                            <p class="text-sm text-gray-700 mb-2">The primary driving force, modified by the matrix response.</p>
+                            <div class="text-center py-2 bg-indigo-50 rounded">
+                                $D_{ii} = D^*_i + C_i (D^*_{matrix} - D^*_i)$
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-4 rounded shadow-sm">
+                            <h4 class="font-bold text-orange-600 text-sm mb-2 uppercase">Off-Diagonal (Cross)</h4>
+                            <p class="text-sm text-gray-700 mb-2">The "Vacancy Wind" effect. Fast atoms create vacancy flows that drag slow atoms.</p>
+                            <div class="text-center py-2 bg-orange-50 rounded">
+                                $D_{ij} = C_i (D^*_{matrix} - D^*_j)$
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded bg-orange-100 text-orange-600 flex items-center justify-center text-sm">2</span>
+                        Comparison: Onsager vs. Fick
+                    </h2>
+
+                    <div class="overflow-hidden rounded-lg border border-gray-200 shadow-sm mb-8">
+                        <table class="w-full text-sm text-left text-gray-600">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                                 <tr>
-                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Parameter</th>
-                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Symbol</th>
-                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Unit</th>
-                                    <th class="bg-slate-100 p-2 border-b font-bold text-slate-700">Description</th>
+                                    <th class="px-6 py-3 w-1/4">Feature</th>
+                                    <th class="px-6 py-3 w-1/3">Simple Fick's Law ($J = -D\nabla C$)</th>
+                                    <th class="px-6 py-3 text-orange-700 bg-orange-50">Onsager / Coupled (This Tool)</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="p-2 border-b">Concentration</td>
-                                    <td>$C$</td>
-                                    <td>% (Mole Fraction $\times$ 100)</td>
-                                    <td>Normalized occupancy of cation sites. $\sum C_i = 100\%$.</td>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr class="bg-white hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-bold text-gray-900">Interaction</td>
+                                    <td class="px-6 py-4">None. Atoms move independently.</td>
+                                    <td class="px-6 py-4 bg-orange-50/30 font-semibold text-gray-900">Highly Coupled.</td>
                                 </tr>
-                                <tr>
-                                    <td class="p-2 border-b">Tracer Diffusivity</td>
-                                    <td>$D^*$</td>
-                                    <td>$m^2/s$</td>
-                                    <td>The intrinsic rate of random jumps for a specific ion in the lattice.</td>
+                                <tr class="bg-white hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-bold text-gray-900">Direction</td>
+                                    <td class="px-6 py-4">Always "Downhill" (High $\to$ Low conc).</td>
+                                    <td class="px-6 py-4 bg-orange-50/30">Can be <strong>"Uphill"</strong> (against gradient).</td>
                                 </tr>
-                                <tr>
-                                    <td class="p-2 border-b">Activation Energy</td>
-                                    <td>$Q$</td>
-                                    <td>$eV$</td>
-                                    <td>Energy barrier for a jump. $D^*(T) = D_0 \exp(-Q/k_BT)$.</td>
+                                <tr class="bg-white hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-bold text-gray-900">Mechanism</td>
+                                    <td class="px-6 py-4">Random Walk.</td>
+                                    <td class="px-6 py-4 bg-orange-50/30"><strong>Vacancy Wind.</strong> A flux of atoms Right causes a flux of vacancies Left, influencing other atoms.</td>
                                 </tr>
-                                <tr>
-                                    <td class="p-2 border-b">Flux</td>
-                                    <td>$J$</td>
-                                    <td>$m/s \cdot (\%)$</td>
-                                    <td>Net flow rate. Physically represents velocity times concentration.</td>
-                                </tr>
-                                <tr>
-                                    <td class="p-2 border-b">Depth/Length</td>
-                                    <td>$x$</td>
-                                    <td>$\mu m$</td>
-                                    <td>Micro-meters ($10^{-6} m$).</td>
+                                <tr class="bg-white hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-bold text-gray-900">Interface</td>
+                                    <td class="px-6 py-4">Stationary.</td>
+                                    <td class="px-6 py-4 bg-orange-50/30"><strong>Kirkendall Shift.</strong> The interface moves if species diffuse at different rates.</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <h2>2. Interpreting the Flux Graph</h2>
-                    <p>
-                        The "Fluxes" tab visualizes the instantaneous flow of atoms ($J_i$) across the domain.
-                    </p>
-                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 text-sm text-yellow-800">
-                        <strong>Important Note on Time:</strong> 
-                        Diffusion systems eventually reach equilibrium (Flux $\to$ 0). To show you the most interesting physics (coupling and uphill diffusion), the Flux graph displays a snapshot at <strong>30% of the Total Time</strong> ($t = 0.3 \times t_{end}$).
-                        <br><br>
-                        If the graph showed the final step ($t_{end}$), the lines might be flat (zero flux) if the system has homogenized.
-                    </div>
-
-                    <h2>3. The Kirkendall Effect</h2>
-                    <p>
-                        Although this simulator uses a fixed coordinate system (the lattice frame), you can deduce the <strong>Kirkendall Effect</strong>—the physical shifting of the interface plane—by analyzing the results:
-                    </p>
-
-                    <h3 class="text-indigo-700">How to spot it:</h3>
-                    <ol class="list-decimal pl-6 space-y-3 text-sm text-slate-700">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">3</span>
+                        What to look for
+                    </h2>
+                    
+                    <ul class="space-y-4 text-slate-700 list-disc pl-5">
                         <li>
-                            <strong>Unequal Fluxes:</strong> Look at the Flux graph at the interface. If the flux of the Dopant moving Right ($J_{in}$) is much larger than the Matrix atoms moving Left ($J_{out}$), there is a net flow of matter to the right.
+                            <strong>Uphill Diffusion:</strong> If you add a fast dopant (e.g., Fe) and a slow dopant (e.g., Ni), you may see the slow dopant pile up or dip strangely near the interface. This is the fast dopant "stealing" the available vacancies.
                         </li>
                         <li>
-                            <strong>Vacancy Wind:</strong> This net flow of atoms creates a flow of vacancies in the <em>opposite</em> direction (Left).
+                            <strong>The "S-Curve":</strong> In Fickian diffusion, profiles are simple Error Functions (smooth curves). In Onsager diffusion, profiles can become asymmetrical or develop kinks due to the concentration-dependence of $D_{ij}$.
                         </li>
-                        <li>
-                            <strong>Marker Shift:</strong> In a real experiment, inert markers placed at the original interface (dashed line) would drift towards the side of the <strong>faster diffusing species</strong> to conserve lattice planes.
-                        </li>
-                    </ol>
+                    </ul>
 
-                    <div class="mt-4 p-4 bg-slate-100 rounded border border-slate-200">
-                        <strong class="text-slate-800">Rule of Thumb:</strong>
-                        <p class="mb-0 mt-1 text-sm">
-                            If $D^*_{dopant} \gg D^*_{matrix}$: The dopant rushes in faster than matrix fills the gap. The original interface effectively moves <em>into</em> the Source side (markers move left).
-                        </p>
-                    </div>
-
-                    <h2>4. Onsager Coupling (Theory)</h2>
-                    <p>
-                        The flux of species $i$ is not just driven by its own gradient, but coupled to others:
-                    </p>
-                    <div class="bg-white p-4 rounded border border-slate-200 mb-6 text-center shadow-inner">
-                        $$ J_i = -D_{ii} \nabla C_i - \sum_{j \neq i} D_{ij} \nabla C_j $$
-                    </div>
-                    <p>
-                        If you see a species diffusing "uphill" (against its own concentration gradient), it is being dragged by the cross-term $D_{ij} \nabla C_j$ generated by a faster moving species.
-                    </p>
                 </div>
             </div>
+
 
         </main>
     </div>
@@ -381,262 +382,368 @@
         };
     </script>
 
-    <script>
-        let worker = null;
-        let chartInstance = null;
-        let fluxChartInstance = null;
-        let currentTab = 'profile';
-        let debounceTimer;
+<script>
+let worker = null;
+    let chartInstance = null;
+    let fluxChartInstance = null;
+    let currentTab = 'profile';
+    let debounceTimer;
 
-        // --- 3D TRANSITION METAL SERIES (Estimated for MgO) ---
-        const CATION_DB = {
-            // --- Aliovalent (High Vacancy Generation -> Generally Faster) ---
-            "Sc": { label: "Sc³⁺ (Scandium)",   d0: "4.0e-10", q: 1.6 }, // 3+
-            "Ti": { label: "Ti⁴⁺ (Titanium)",   d0: "8.0e-10", q: 1.5 }, // 4+ (Very fast)
-            "V":  { label: "V³⁺ (Vanadium)",    d0: "6.0e-10", q: 1.6 }, // 3+/4+/5+
-            "Cr": { label: "Cr³⁺ (Chromium)",   d0: "3.5e-10", q: 1.7 }, // 3+
-            
-            // --- Isovalent (Mg²⁺ Substitutional -> Radius dependent) ---
-            "Mn": { label: "Mn²⁺ (Manganese)",  d0: "1.5e-10", q: 1.8 }, // Large radius
-            "Fe": { label: "Fe²⁺ (Iron)",       d0: "1.2e-9",  q: 1.6 }, // Known to be fast
-            "Co": { label: "Co²⁺ (Cobalt)",     d0: "5.0e-10", q: 1.7 }, // Moderate
-            "Ni": { label: "Ni²⁺ (Nickel)",     d0: "2.5e-10", q: 1.8 }, // Slower (Reference)
-            "Cu": { label: "Cu²⁺ (Copper)",     d0: "3.0e-10", q: 1.7 }, // Jahn-Teller distortions
-            "Zn": { label: "Zn²⁺ (Zinc)",       d0: "8.0e-10", q: 1.6 }  // Similar to Mg
+    // --- GLOBAL STORAGE FOR EXPORT ---
+    let lastResults = null;
+    let lastInputs = null;
+
+    // --- 3D TRANSITION METAL SERIES (Estimated for MgO) ---
+    const CATION_DB = {
+        "Sc": { label: "Sc³⁺ (Scandium)",   d0: "4.0e-10", q: 1.6 },
+        "Ti": { label: "Ti⁴⁺ (Titanium)",   d0: "8.0e-10", q: 1.5 },
+        "V":  { label: "V³⁺ (Vanadium)",    d0: "6.0e-10", q: 1.6 },
+        "Cr": { label: "Cr³⁺ (Chromium)",   d0: "3.5e-10", q: 1.7 },
+        "Mn": { label: "Mn²⁺ (Manganese)",  d0: "1.5e-10", q: 1.8 },
+        "Fe": { label: "Fe²⁺ (Iron)",       d0: "1.2e-9",  q: 1.6 },
+        "Co": { label: "Co²⁺ (Cobalt)",     d0: "5.0e-10", q: 1.7 },
+        "Ni": { label: "Ni²⁺ (Nickel)",     d0: "2.5e-10", q: 1.8 },
+        "Cu": { label: "Cu²⁺ (Copper)",     d0: "3.0e-10", q: 1.7 },
+        "Zn": { label: "Zn²⁺ (Zinc)",       d0: "8.0e-10", q: 1.6 }
+    };
+
+    function createWorker() {
+        const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
+        return new Worker(window.URL.createObjectURL(blob));
+    }
+
+    function terminateWorker() {
+        if (worker) { worker.terminate(); worker = null; updateStatus(0, "Stopped"); }
+    }
+
+    function updateStatus(percent, text) {
+        const area = document.getElementById('status-area');
+        const bar = document.getElementById('header-progress');
+        const lbl = document.getElementById('header-status');
+        if(text === 'Ready') { area.style.opacity = '0'; } 
+        else { area.style.opacity = '1'; bar.style.width = percent + '%'; lbl.innerText = text || (percent + '%'); }
+    }
+
+    function triggerCalculation() {
+        const inputs = validateInputs();
+        if(!inputs) return;
+        terminateWorker();
+        inputs.mode = (currentTab === 'time3d') ? 'history' : 'snapshot';
+        // If viewing flux, we simulate 30% of time to see dynamic flux
+        if(currentTab === 'flux') inputs.timeHours = inputs.timeHours * 0.3;
+        
+        worker = createWorker();
+        worker.onmessage = function(e) {
+            const msg = e.data;
+            if (msg.type === 'progress') { updateStatus(msg.percent, msg.percent + '%'); } 
+            else if (msg.type === 'complete') {
+                updateStatus(100, 'Done');
+                setTimeout(() => updateStatus(0, 'Ready'), 1000);
+                renderResults(msg, inputs);
+                worker.terminate();
+            } else if (msg.type === 'error') { console.error(msg.message); updateStatus(0, 'Error'); }
         };
+        updateStatus(0, 'Calculating');
+        worker.postMessage(inputs);
+    }
 
-        function createWorker() {
-            const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
-            return new Worker(window.URL.createObjectURL(blob));
+    function renderResults(res, inputs) {
+        // SAVE DATA FOR EXPORT
+        lastResults = res;
+        lastInputs = inputs;
+
+        // --- 1. PROFILE CHART ---
+        if (currentTab === 'profile') {
+            const dx = res.dx * 1e6;
+            const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
+            
+            const datasets = res.species.map(s => ({
+                label: s.fullLabel,
+                data: Array.from(s.C).map(v => v * 100),
+                borderColor: s.color, backgroundColor: s.color + '20',
+                borderWidth: 2, pointRadius: 0, fill: true,
+                // MONOTONE: Fixes staircases without wiggles
+                cubicInterpolationMode: 'monotone',
+                tension: 0.4
+            }));
+            
+            datasets.unshift({
+                label: 'MgO Matrix',
+                data: Array.from(res.matrix).map(v => v * 100),
+                borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], 
+                pointRadius: 0, fill: false,
+                cubicInterpolationMode: 'monotone',
+                tension: 0.4
+            });
+            
+            const interfaceXVal = res.interfaceX * 1e6;
+            datasets.push({
+                label: 'Orig. Interface',
+                borderColor: '#64748b', borderWidth: 2, borderDash: [6, 4], 
+                pointRadius: 0, fill: false, showLine: true, type: 'scatter',
+                data: [{x: interfaceXVal, y: 0}, {x: interfaceXVal, y: 100}]
+            });
+
+            if(chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(document.getElementById('diffusionChart'), {
+    type: 'line', data: { labels, datasets },
+    options: { 
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: { 
+            x: { 
+                type: 'linear', 
+                min: 0, 
+                max: inputs.totalLength, 
+                title: {display:true, text:'Depth (µm)'} 
+            },
+            y: { 
+                min: 0,        // <--- ADD THIS LINE (Forces bottom to 0%)
+                max: 100,      // Keeps top at 100%
+                title: {display:true, text:'Concentration (%)'} 
+            }
         }
+    }
+});
 
-        function terminateWorker() {
-            if (worker) { worker.terminate(); worker = null; updateStatus(0, "Stopped"); }
-        }
+        // --- 2. FLUX CHART ---
+        } else if (currentTab === 'flux') {
+            const dx = res.dx * 1e6;
+            const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
+            
+            let allValues = [];
+            const datasets = res.species.map(s => {
+                const dataArr = Array.from(s.Flux);
+                allValues.push(...dataArr);
+                return {
+                    label: "Flux " + s.name,
+                    data: dataArr,
+                    borderColor: s.color, borderWidth: 2, pointRadius: 0,
+                    cubicInterpolationMode: 'monotone',
+                    tension: 0.4
+                };
+            });
 
-        function updateStatus(percent, text) {
-            const area = document.getElementById('status-area');
-            const bar = document.getElementById('header-progress');
-            const lbl = document.getElementById('header-status');
-            if(text === 'Ready') { area.style.opacity = '0'; } 
-            else { area.style.opacity = '1'; bar.style.width = percent + '%'; lbl.innerText = text || (percent + '%'); }
-        }
+            const yMin = Math.min(...allValues);
+            const yMax = Math.max(...allValues);
+            const interfaceXVal = res.interfaceX * 1e6;
 
-        function triggerCalculation() {
-            const inputs = validateInputs();
-            if(!inputs) return;
-            terminateWorker();
-            inputs.mode = (currentTab === 'time3d') ? 'history' : 'snapshot';
-            if(currentTab === 'flux') inputs.timeHours = inputs.timeHours * 0.3;
-            worker = createWorker();
-            worker.onmessage = function(e) {
-                const msg = e.data;
-                if (msg.type === 'progress') { updateStatus(msg.percent, msg.percent + '%'); } 
-                else if (msg.type === 'complete') {
-                    updateStatus(100, 'Done');
-                    setTimeout(() => updateStatus(0, 'Ready'), 1000);
-                    renderResults(msg, inputs);
-                    worker.terminate();
-                } else if (msg.type === 'error') { console.error(msg.message); updateStatus(0, 'Error'); }
-            };
-            updateStatus(0, 'Calculating');
-            worker.postMessage(inputs);
-        }
-
-        function renderResults(res, inputs) {
-            // --- 1. PROFILE CHART ---
-            if (currentTab === 'profile') {
-                const dx = res.dx * 1e6;
-                const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(1));
-                
-                const datasets = res.species.map(s => ({
-                    label: s.fullLabel,
-                    data: Array.from(s.C).map(v => v * 100),
-                    borderColor: s.color, backgroundColor: s.color + '20',
-                    borderWidth: 2, pointRadius: 0, fill: true, order: 2
-                }));
-                
-                datasets.unshift({
-                    label: 'MgO Matrix',
-                    data: Array.from(res.matrix).map(v => v * 100),
-                    borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], pointRadius: 0, fill: false, order: 2
-                });
-                
-                const interfaceXVal = res.interfaceX * 1e6;
-                datasets.push({
-                    label: 'Orig. Interface',
-                    borderColor: '#64748b', borderWidth: 2, borderDash: [6, 4], 
-                    pointRadius: 0, fill: false, showLine: true, type: 'scatter',
-                    data: [{x: interfaceXVal, y: 0}, {x: interfaceXVal, y: 100}], order: 1
-                });
-
-                if(chartInstance) chartInstance.destroy();
-                chartInstance = new Chart(document.getElementById('diffusionChart'), {
-                    type: 'line', data: { labels, datasets },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, animation: false,
-                        interaction: { mode: 'index', intersect: false },
-                        scales: { 
-                            x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
-                            y: { max: 100, title: {display:true, text:'Concentration (%)'} }
-                        }
+            datasets.push({
+                label: 'Interface', type: 'scatter',
+                data: [{x: interfaceXVal, y: yMin}, {x: interfaceXVal, y: yMax}],
+                borderColor: '#64748b', borderWidth: 1, borderDash: [4,4], showLine: true, pointRadius: 0
+            });
+            
+            if(fluxChartInstance) fluxChartInstance.destroy();
+            fluxChartInstance = new Chart(document.getElementById('fluxChart'), {
+                type: 'line', data: { labels, datasets },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, animation: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { 
+                        x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
+                        y: { 
+                            title: {display:true, text:'Net Flux (arb. units)'},
+                            ticks: { callback: function(value) { return value.toExponential(1); } }
+                        } 
                     }
-                });
+                }
+            });
 
-            // --- 2. FLUX CHART (UPDATED) ---
-            } else if (currentTab === 'flux') {
-                const dx = res.dx * 1e6;
-                const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(1));
-                
-                // Collect all flux values to determine min/max for the vertical line
-                let allValues = [];
-                const datasets = res.species.map(s => {
-                    const dataArr = Array.from(s.Flux);
-                    allValues.push(...dataArr);
-                    return {
-                        label: "Flux " + s.name,
-                        data: dataArr,
-                        borderColor: s.color, borderWidth: 2, pointRadius: 0, tension: 0.4
-                    };
-                });
-
-                // Calculate dynamic bounds for the interface line so it doesn't break the scale
-                const yMin = Math.min(...allValues);
-                const yMax = Math.max(...allValues);
-                const interfaceXVal = res.interfaceX * 1e6;
-
-                datasets.push({
-                    label: 'Interface', type: 'scatter',
-                    data: [{x: interfaceXVal, y: yMin}, {x: interfaceXVal, y: yMax}],
-                    borderColor: '#64748b', borderWidth: 1, borderDash: [4,4], showLine: true, pointRadius: 0
-                });
-                
-                if(fluxChartInstance) fluxChartInstance.destroy();
-                fluxChartInstance = new Chart(document.getElementById('fluxChart'), {
-                    type: 'line', data: { labels, datasets },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, animation: false,
-                        interaction: { mode: 'index', intersect: false },
-                        scales: { 
-                            x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
-                            y: { 
-                                title: {display:true, text:'Net Flux (arb. units)'},
-                                ticks: {
-                                    // FORMATTING: Scientific notation with 1 decimal place (e.g., 2.5e-10)
-                                    callback: function(value) { return value.toExponential(1); }
-                                }
-                            } 
-                        }
-                    }
-                });
-
-            // --- 3. 3D CHART (UPDATED) ---
-            } else if (currentTab === 'time3d') {
-                const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
-                
-                const traces = res.species.map(s => {
-                    const zData = s.history.map(row => Array.from(row).map(v => v*100));
-                    const yData = Array.from({length: zData.length}, (_, i) => i * (inputs.timeHours/zData.length));
-                    return {
-                        type: 'surface', 
-                        x: xData, y: yData, z: zData,
-                        name: s.name, 
-                        showscale: false, 
-                        showlegend: true,
-                        opacity: 0.8,
-                        colorscale: [ [0, '#ffffff'], [1, s.color] ]
-                    };
-                });
-
-                Plotly.newPlot('plotly-time', traces, {
-                    margin: {l:0,r:0,b:0,t:30}, 
+        // --- 3. 3D VIEW ---
+        } else if (currentTab === 'time3d') {
+            const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
+            
+            const traces = res.species.map(s => {
+                const zData = s.history.map(row => Array.from(row).map(v => v*100));
+                const yData = Array.from({length: zData.length}, (_, i) => i * (inputs.timeHours/zData.length));
+                return {
+                    type: 'surface', 
+                    x: xData, y: yData, z: zData,
+                    name: s.name, 
+                    showscale: false, 
                     showlegend: true,
-                    legend: { x: 0, y: 1 },
-                    scene: {
-                        xaxis:{title:'Depth (µm)'}, 
-                        yaxis:{title:'Time (h)'}, 
-                        zaxis:{title:'Conc (%)'}
-                    }
-                });
-            }
-        }
-
-        function validateInputs() {
-            const elements = [];
-            const elCards = document.querySelectorAll('.element-card');
-            elCards.forEach(card => {
-                const nameSelect = card.querySelector('.el-name');
-                elements.push({
-                    name: nameSelect.options[nameSelect.selectedIndex]?.text.split(' ')[0] || "Unk",
-                    fullLabel: nameSelect.options[nameSelect.selectedIndex]?.text || "Unknown",
-                    d0: parseFloat(card.querySelector('.el-d0').value), 
-                    q: parseFloat(card.querySelector('.el-q').value),
-                    cLeft: parseFloat(card.querySelector('.el-c-left').value),
-                    cRight: parseFloat(card.querySelector('.el-c-right').value),
-                    color: card.querySelector('.el-color').value
-                });
+                    opacity: 0.8,
+                    colorscale: [ [0, '#ffffff'], [1, s.color] ]
+                };
             });
-            if (elements.length === 0) return null;
-            const src = parseFloat(document.getElementById('sourceLength').value);
-            const tot = parseFloat(document.getElementById('totalLength').value);
-            if(src >= tot) { alert("Source length must be smaller than Total length"); return null; }
-            return {
-                temp: parseFloat(document.getElementById('temp').value),
-                timeHours: parseFloat(document.getElementById('time').value),
-                sourceLength: src, totalLength: tot,
-                N: parseInt(document.getElementById('gridPoints').value),
-                targetD0: parseFloat(document.getElementById('targetD0').value),
-                targetQ: parseFloat(document.getElementById('targetQ').value),
-                elements
-            };
-        }
 
-        function debouncedUpdate() { clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            document.getElementById('pane-' + tab).classList.add('active');
-            if(tab === 'time3d') window.dispatchEvent(new Event('resize'));
-            if(tab !== 'help') triggerCalculation();
-        }
-
-        function addElement(initialKey = null) {
-            const list = document.getElementById('elementsList');
-            if (list.children.length >= 4) { alert("Max 4 dopants"); return; }
-            const template = document.getElementById('elementTemplate');
-            const clone = template.content.cloneNode(true);
-            const card = clone.querySelector('.element-card');
-            const color = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][list.children.length % 4];
-            card.style.borderLeftColor = color;
-            clone.querySelector('.el-color').value = color;
-            const select = clone.querySelector('.el-name');
-            Object.keys(CATION_DB).forEach(k => {
-                const opt = document.createElement('option');
-                opt.value = k; opt.text = CATION_DB[k].label;
-                select.appendChild(opt);
+            Plotly.newPlot('plotly-time', traces, {
+                margin: {l:0,r:0,b:0,t:30}, 
+                showlegend: true,
+                legend: { x: 0, y: 1 },
+                scene: {
+                    xaxis:{title:'Depth (µm)'}, 
+                    yaxis:{title:'Time (h)'}, 
+                    zaxis:{title:'Conc (%)'}
+                }
             });
-            if(initialKey) select.value = initialKey;
-            if(initialKey && CATION_DB[initialKey]) {
-                clone.querySelector('.el-d0').value = CATION_DB[initialKey].d0;
-                clone.querySelector('.el-q').value = CATION_DB[initialKey].q;
-                clone.querySelector('.el-c-left').value = 25;
-                clone.querySelector('.el-c-right').value = 0;
-            }
-            clone.querySelector('.delete-btn').onclick = (e) => { e.target.closest('.element-card').remove(); debouncedUpdate(); };
-            list.appendChild(clone);
+        }
+    }
+
+    // --- DOWNLOAD CSV FUNCTION ---
+    function downloadData() {
+        if (!lastResults || !lastInputs) {
+            alert("No data to download. Please run a calculation first.");
+            return;
         }
 
-        function updateElementParams(select) {
-            const data = CATION_DB[select.value];
-            const card = select.closest('.element-card');
-            card.querySelector('.el-d0').value = data.d0;
-            card.querySelector('.el-q').value = data.q;
-            debouncedUpdate();
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Header: Parameters
+        csvContent += "--- SIMULATION PARAMETERS ---\n";
+        csvContent += `Temperature (K),${lastInputs.temp}\n`;
+        csvContent += `Time (Hours),${lastInputs.timeHours}\n`;
+        csvContent += `Source Length (um),${lastInputs.sourceLength}\n`; // Added
+        csvContent += `Total Length (um),${lastInputs.totalLength}\n`;   // Added
+        csvContent += `Matrix D0 (m2/s),${lastInputs.targetD0}\n`;
+        csvContent += `Matrix Q (eV),${lastInputs.targetQ}\n`;
+        csvContent += `Grid Points,${lastInputs.N}\n`;
+        csvContent += "\n";
+
+        // Header: Dopant Info
+        csvContent += "--- SPECIES INFO ---\n";
+        csvContent += "Name,D0,Q,C_Left,C_Right\n";
+        lastInputs.elements.forEach(el => {
+            csvContent += `${el.name},${el.d0},${el.q},${el.cLeft},${el.cRight}\n`;
+        });
+        csvContent += "\n";
+
+        // Data Body
+        csvContent += "--- CALCULATION RESULTS ---\n";
+        let headerRow = ["Depth (um)", "Matrix Conc (%)"];
+        lastResults.species.forEach(s => {
+            headerRow.push(`${s.name} Conc (%)`);
+            headerRow.push(`${s.name} Flux (J)`);
+        });
+        csvContent += headerRow.join(",") + "\n";
+
+        const N = lastInputs.N;
+        const dx_um = lastResults.dx * 1e6;
+
+        for (let i = 0; i < N; i++) {
+            let row = [];
+            row.push((i * dx_um).toFixed(4));
+            row.push((lastResults.matrix[i] * 100).toFixed(4));
+
+            lastResults.species.forEach(s => {
+                row.push((s.C[i] * 100).toFixed(4));
+                row.push((s.Flux[i]).toExponential(4));
+            });
+            csvContent += row.join(",") + "\n";
         }
 
-        window.onload = function() { addElement("Ni"); setTimeout(triggerCalculation, 100); };
-    </script>
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `onsager_diffusion_${lastInputs.temp}K_${lastInputs.timeHours}h.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function validateInputs() {
+        const elements = [];
+        const elCards = document.querySelectorAll('.element-card');
+        elCards.forEach(card => {
+            const nameSelect = card.querySelector('.el-name');
+            elements.push({
+                name: nameSelect.options[nameSelect.selectedIndex]?.text.split(' ')[0] || "Unk",
+                fullLabel: nameSelect.options[nameSelect.selectedIndex]?.text || "Unknown",
+                d0: parseFloat(card.querySelector('.el-d0').value), 
+                q: parseFloat(card.querySelector('.el-q').value),
+                cLeft: parseFloat(card.querySelector('.el-c-left').value),
+                cRight: parseFloat(card.querySelector('.el-c-right').value),
+                color: card.querySelector('.el-color').value
+            });
+        });
+        if (elements.length === 0) return null;
+        const src = parseFloat(document.getElementById('sourceLength').value);
+        const tot = parseFloat(document.getElementById('totalLength').value);
+        if(src >= tot) { alert("Source length must be smaller than Total length"); return null; }
+        return {
+            temp: parseFloat(document.getElementById('temp').value),
+            timeHours: parseFloat(document.getElementById('time').value),
+            sourceLength: src, totalLength: tot,
+            N: parseInt(document.getElementById('gridPoints').value),
+            targetD0: parseFloat(document.getElementById('targetD0').value),
+            targetQ: parseFloat(document.getElementById('targetQ').value),
+            elements
+        };
+    }
+
+    function debouncedUpdate() { clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById('pane-' + tab).classList.add('active');
+        if(tab === 'time3d') window.dispatchEvent(new Event('resize'));
+        if(tab !== 'help') triggerCalculation();
+    }
+
+
+    function addElement(initialKey = null) {
+        const list = document.getElementById('elementsList');
+        if (list.children.length >= 4) { alert("Max 4 dopants"); return; }
+        
+        const template = document.getElementById('elementTemplate');
+        const clone = template.content.cloneNode(true);
+        const card = clone.querySelector('.element-card');
+        
+        // 1. Assign Color
+        const color = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][list.children.length % 4];
+        card.style.borderLeftColor = color;
+        clone.querySelector('.el-color').value = color;
+        
+        // 2. Populate Dropdown
+        const select = clone.querySelector('.el-name');
+        const keys = Object.keys(CATION_DB);
+        keys.forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = k; opt.text = CATION_DB[k].label;
+            select.appendChild(opt);
+        });
+
+        // 3. Determine Selection (Use argument or default to first item)
+        const selectedKey = initialKey || keys[0]; 
+        select.value = selectedKey;
+
+        // 4. Apply Physics Parameters (D0, Q) for the selection
+        const data = CATION_DB[selectedKey];
+        clone.querySelector('.el-d0').value = data.d0;
+        clone.querySelector('.el-q').value = data.q;
+
+        // 5. --- APPLY USER DEFAULTS (25% / 0%) ---
+        clone.querySelector('.el-c-left').value = 25; 
+        clone.querySelector('.el-c-right').value = 0;
+
+        // 6. Attach Listeners
+        clone.querySelector('.delete-btn').onclick = (e) => { 
+            e.target.closest('.element-card').remove(); 
+            debouncedUpdate(); 
+        };
+        
+        list.appendChild(clone);
+        
+        // Only trigger calculation if this was a manual button click (not page load)
+        if(!initialKey) debouncedUpdate();
+    }
+
+    function updateElementParams(select) {
+        const data = CATION_DB[select.value];
+        const card = select.closest('.element-card');
+        card.querySelector('.el-d0').value = data.d0;
+        card.querySelector('.el-q').value = data.q;
+        debouncedUpdate();
+    }
+
+    window.onload = function() { addElement("Ni"); setTimeout(triggerCalculation, 100); };
+
+</script>
+
+
 </body>
 </html>
