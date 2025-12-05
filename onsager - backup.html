@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onsager Diffusion v8.0 (3D Flux)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Onsager Diffusion v7.5 (Clean UI)</title>
+    <link href="./dist/output.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -15,23 +15,6 @@
     };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    
-    <style>
-        /* Custom scrollbar for cleanliness */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .tab-btn.active { background-color: #eff6ff; color: #2563eb; border-bottom: 2px solid #2563eb; }
-        .tab-btn { color: #64748b; padding: 0 1rem; transition: all 0.2s; font-weight: 600; font-size: 0.875rem; }
-        .tab-pane { display: none; height: 100%; width: 100%; }
-        .tab-pane.active { display: block; }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-slate-800 bg-slate-50 font-sans">
 
@@ -40,10 +23,12 @@
             <div class="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-bold shadow-md">
                 <i class="fas fa-project-diagram"></i>
             </div>
-            <h1 class="font-bold text-lg text-slate-800 hidden md:block">Onsager Diffusion <span class="text-xs font-normal text-slate-500 ml-1">v8.0 (3D Flux)</span></h1>
+            <h1 class="font-bold text-lg text-slate-800 hidden md:block">Onsager Diffusion <span class="text-xs font-normal text-slate-500 ml-1">v7.5 (Coupled)</span></h1>
         </div>
         
         <div id="status-area" class="flex-1 mx-8 flex items-center gap-3 opacity-0 transition-opacity duration-300">
+            
+            
             <div class="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
                 <div id="header-progress" class="h-full bg-orange-500 w-0 transition-all duration-200"></div>
             </div>
@@ -58,10 +43,10 @@
                 <i class="fas fa-chart-line mr-2"></i> Profile
             </button>
             <button onclick="switchTab('flux')" id="tab-flux" class="tab-btn h-full flex items-center">
-                <i class="fas fa-water mr-2"></i> 3D Flux
+                <i class="fas fa-exchange-alt mr-2"></i> Fluxes
             </button>
             <button onclick="switchTab('time3d')" id="tab-time3d" class="tab-btn h-full flex items-center">
-                <i class="fas fa-cube mr-2"></i> 3D Conc
+                <i class="fas fa-cube mr-2"></i> 3D View
             </button>
             <button onclick="switchTab('help')" id="tab-help" class="tab-btn h-full flex items-center text-emerald-600">
                 <i class="fas fa-info-circle mr-2"></i> Theory
@@ -81,7 +66,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div class="input-group">
-                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Source Lenght (µm)</label>
+                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Source Thickness (µm)</label>
                             <input type="number" id="sourceLength" value="50" min="0.1" step="0.1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
                         </div>
                         <div class="input-group">
@@ -131,15 +116,18 @@
                         </button>
                     </div>
                     <div id="elementsList" class="space-y-3"></div>
-                    <button onclick="downloadData()" class="mt-4 w-full text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded">
-                        <i class="fas fa-download mr-1"></i> Download CSV
-                    </button>
                 </div>
             </div>
         </aside>
 
         <main class="flex-1 flex flex-col h-full relative bg-slate-100 overflow-hidden">
-            
+            <div id="loading-overlay" class="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm hidden flex-col items-center justify-center">
+                <div class="bg-white p-6 rounded-xl shadow-xl border border-gray-100 flex flex-col items-center">
+                    <div class="spinner mb-3"></div>
+                    <span class="text-sm font-bold text-slate-700">Calculating Coupled Fluxes...</span>
+                </div>
+            </div>
+
             <div id="pane-profile" class="tab-pane active relative p-4">
                 <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
                     <div class="flex-1 relative">
@@ -148,8 +136,12 @@
                 </div>
             </div>
 
-            <div id="pane-flux" class="tab-pane relative">
-                 <div id="plotly-flux" class="w-full h-full"></div>
+            <div id="pane-flux" class="tab-pane relative p-4">
+                 <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <div class="flex-1 relative">
+                        <canvas id="fluxChart"></canvas>
+                    </div>
+                </div>
             </div>
 
             <div id="pane-time3d" class="tab-pane relative">
@@ -161,21 +153,12 @@
                 <div class="max-w-4xl mx-auto pb-20 help-content">
                     
                     <div class="border-b border-gray-200 pb-4 mb-6">
-                        <h1 class="text-3xl font-bold text-slate-800">Documentation & Theory</h1>
-                        <p class="text-slate-500 mt-2">Onsager Multi-Component Diffusion Solver (v8.1)</p>
+                        <h1 class="text-3xl font-bold text-slate-800">Theory & Model Description</h1>
+                        <p class="text-slate-500 mt-2">Onsager Multi-Component Diffusion Solver (v8.0)</p>
                     </div>
 
-                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-8 shadow-sm rounded-r">
-                        <div class="flex items-start">
-                            <div class="shrink-0 text-amber-600 mt-1"><i class="fas fa-exclamation-triangle"></i></div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wide">Important: Default Parameters</h3>
-                                <p class="text-sm text-amber-900 mt-1">
-                                    The default values ($D_0, Q$) pre-loaded in this tool are approximations for cations in <strong>Magnesium Oxide (MgO)</strong>. 
-                                    If you simulate a different matrix (e.g., Alumina, Steel, Geology), you <strong>must</strong> manually update the $D_0$ and $Q$ values for both the matrix and the dopants to match your specific material system.
-                                </p>
-                            </div>
-                        </div>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-sm text-blue-900 shadow-sm rounded-r">
+                        <strong>Overview:</strong> This simulation solves the diffusion of multiple dopants simultaneously. Unlike simple calculators, it accounts for how the movement of one species (e.g., Ni) physically drags or blocks another (e.g., Mg or Vacancies) through <strong>Lattice Coupling</strong>.
                     </div>
 
                     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -184,10 +167,10 @@
                     </h2>
                     
                     <p class="text-slate-600 mb-4">
-                        In a multi-component system, the flux of species $i$ ($J_i$) is driven by its own concentration gradient ($\nabla C_i$) <strong>AND</strong> the gradients of all other species $j$. This is the <strong>Onsager formalism</strong>:
+                        In a multi-component system, the flux of species $i$ ($J_i$) is not just driven by its own concentration gradient ($\nabla C_i$), but also by the gradients of all other species $j$. This is described by the <strong>Onsager formalism</strong>:
                     </p>
 
-                    <div class="bg-slate-50 border border-slate-200 rounded p-6 mb-6 text-center overflow-x-auto shadow-inner">
+                    <div class="bg-slate-50 border border-slate-200 rounded p-6 mb-6 text-center overflow-x-auto">
                         $$ J_i = - \underbrace{D_{ii} \frac{\partial C_i}{\partial x}}_{\text{Self-Diffusion}} - \underbrace{\sum_{j \neq i} D_{ij} \frac{\partial C_j}{\partial x}}_{\text{Coupled Drag}} $$
                     </div>
 
@@ -196,86 +179,24 @@
                     </p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <div class="bg-white border border-indigo-200 p-4 rounded shadow-sm relative overflow-hidden">
-                            <div class="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-bl-full -mr-8 -mt-8"></div>
-                            <h4 class="font-bold text-indigo-700 text-sm mb-2 uppercase tracking-wide relative z-10">Diagonal Term ($D_{ii}$)</h4>
-                            <p class="text-xs text-slate-600 mb-3 relative z-10">
-                                The primary driving force. It is the tracer diffusion of the species, modified by the "drift" of the surrounding matrix.
-                            </p>
-                            <div class="text-center py-3 bg-indigo-50 rounded font-mono text-sm text-indigo-900">
+                        <div class="bg-white border border-gray-200 p-4 rounded shadow-sm">
+                            <h4 class="font-bold text-indigo-600 text-sm mb-2 uppercase">Diagonal Term (Main)</h4>
+                            <p class="text-sm text-gray-700 mb-2">The primary driving force, modified by the matrix response.</p>
+                            <div class="text-center py-2 bg-indigo-50 rounded">
                                 $D_{ii} = D^*_i + C_i (D^*_{matrix} - D^*_i)$
                             </div>
                         </div>
-
-                        <div class="bg-white border border-orange-200 p-4 rounded shadow-sm relative overflow-hidden">
-                            <div class="absolute top-0 right-0 w-16 h-16 bg-orange-50 rounded-bl-full -mr-8 -mt-8"></div>
-                            <h4 class="font-bold text-orange-700 text-sm mb-2 uppercase tracking-wide relative z-10">Off-Diagonal Term ($D_{ij}$)</h4>
-                            <p class="text-xs text-slate-600 mb-3 relative z-10">
-                                The "Vacancy Wind" effect. A flux of fast atoms in one direction creates a vacancy wind in the opposite direction, dragging other atoms with it.
-                            </p>
-                            <div class="text-center py-3 bg-orange-50 rounded font-mono text-sm text-orange-900">
+                        <div class="bg-white border border-gray-200 p-4 rounded shadow-sm">
+                            <h4 class="font-bold text-orange-600 text-sm mb-2 uppercase">Off-Diagonal (Cross)</h4>
+                            <p class="text-sm text-gray-700 mb-2">The "Vacancy Wind" effect. Fast atoms create vacancy flows that drag slow atoms.</p>
+                            <div class="text-center py-2 bg-orange-50 rounded">
                                 $D_{ij} = C_i (D^*_{matrix} - D^*_j)$
                             </div>
                         </div>
                     </div>
 
                     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded bg-slate-100 text-slate-600 flex items-center justify-center text-sm">2</span>
-                        Numerical Algorithm
-                    </h2>
-                    <div class="prose prose-sm text-slate-600 bg-slate-50 p-4 rounded border border-slate-200 mb-8">
-                        <p>This tool solves the partial differential equations using the <strong>Finite Difference Method (FDM)</strong>:</p>
-                        <ul class="list-disc pl-4 space-y-1 mt-2">
-                            <li><strong>Spatial Discretization:</strong> The domain is divided into $N$ nodes. Gradients are approximated using central differences.</li>
-                            <li><strong>Time Integration:</strong> An <em>Explicit Forward Euler</em> scheme is used to advance the system in time.</li>
-                            <li><strong>Stability:</strong> The time step $\Delta t$ is calculated dynamically to satisfy the Courant–Friedrichs–Lewy (CFL) condition to prevent numerical explosion:
-                            $$ \Delta t < \frac{\Delta x^2}{2 \cdot D_{max}} $$
-                            </li>
-                        </ul>
-                    </div>
-
-                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">3</span>
-                        Interpreting the Graphs
-                    </h2>
-
-                    <div class="space-y-4 mb-8">
-                        <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4">
-                            <div class="shrink-0 w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-lg self-center md:self-start">
-                                <i class="fas fa-water"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-800">3D Flux View (New)</h4>
-                                <p class="text-sm text-slate-600 mt-1">
-                                    Visualizes the net flow of atoms $J(x,t)$.
-                                </p>
-                                <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-4">
-                                    <li><strong>The "Wall" at T=0:</strong> A massive spike at the start represents the initial contact between source and matrix.</li>
-                                    <li><strong>Equilibrium:</strong> As time passes (Y-axis), the surface should collapse toward zero as gradients flatten.</li>
-                                    <li><strong>Sign:</strong> Positive = Flow Right; Negative = Flow Left.</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4">
-                            <div class="shrink-0 w-12 h-12 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center text-lg self-center md:self-start">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-800">Concentration Profile</h4>
-                                <p class="text-sm text-slate-600 mt-1">
-                                    The final snapshot of atomic distribution.
-                                </p>
-                                <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-4">
-                                    <li><strong>Uphill Diffusion:</strong> Look for "bumps" or "dips" near the interface (e.g., a slow element piling up). This is the fast element "stealing" vacancies.</li>
-                                    <li><strong>Kirkendall Shift:</strong> Asymmetry in the profiles indicates the interface plane is moving.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <span class="w-8 h-8 rounded bg-orange-100 text-orange-600 flex items-center justify-center text-sm">4</span>
+                        <span class="w-8 h-8 rounded bg-orange-100 text-orange-600 flex items-center justify-center text-sm">2</span>
                         Comparison: Onsager vs. Fick
                     </h2>
 
@@ -284,33 +205,51 @@
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                                 <tr>
                                     <th class="px-6 py-3 w-1/4">Feature</th>
-                                    <th class="px-6 py-3 w-1/3">Simple Fick's Law</th>
-                                    <th class="px-6 py-3 text-orange-700 bg-orange-50">Onsager (This Tool)</th>
+                                    <th class="px-6 py-3 w-1/3">Simple Fick's Law ($J = -D\nabla C$)</th>
+                                    <th class="px-6 py-3 text-orange-700 bg-orange-50">Onsager / Coupled (This Tool)</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
                                 <tr class="bg-white hover:bg-gray-50">
                                     <td class="px-6 py-4 font-bold text-gray-900">Interaction</td>
-                                    <td class="px-6 py-4">None. Independent motion.</td>
-                                    <td class="px-6 py-4 bg-orange-50/30 font-semibold text-gray-900">Vacancy Wind Coupling.</td>
+                                    <td class="px-6 py-4">None. Atoms move independently.</td>
+                                    <td class="px-6 py-4 bg-orange-50/30 font-semibold text-gray-900">Highly Coupled.</td>
                                 </tr>
                                 <tr class="bg-white hover:bg-gray-50">
                                     <td class="px-6 py-4 font-bold text-gray-900">Direction</td>
-                                    <td class="px-6 py-4">Always High $\to$ Low.</td>
+                                    <td class="px-6 py-4">Always "Downhill" (High $\to$ Low conc).</td>
                                     <td class="px-6 py-4 bg-orange-50/30">Can be <strong>"Uphill"</strong> (against gradient).</td>
+                                </tr>
+                                <tr class="bg-white hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-bold text-gray-900">Mechanism</td>
+                                    <td class="px-6 py-4">Random Walk.</td>
+                                    <td class="px-6 py-4 bg-orange-50/30"><strong>Vacancy Wind.</strong> A flux of atoms Right causes a flux of vacancies Left, influencing other atoms.</td>
                                 </tr>
                                 <tr class="bg-white hover:bg-gray-50">
                                     <td class="px-6 py-4 font-bold text-gray-900">Interface</td>
                                     <td class="px-6 py-4">Stationary.</td>
-                                    <td class="px-6 py-4 bg-orange-50/30"><strong>Kirkendall Shift</strong> (Moving interface).</td>
+                                    <td class="px-6 py-4 bg-orange-50/30"><strong>Kirkendall Shift.</strong> The interface moves if species diffuse at different rates.</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">3</span>
+                        What to look for
+                    </h2>
+                    
+                    <ul class="space-y-4 text-slate-700 list-disc pl-5">
+                        <li>
+                            <strong>Uphill Diffusion:</strong> If you add a fast dopant (e.g., Fe) and a slow dopant (e.g., Ni), you may see the slow dopant pile up or dip strangely near the interface. This is the fast dopant "stealing" the available vacancies.
+                        </li>
+                        <li>
+                            <strong>The "S-Curve":</strong> In Fickian diffusion, profiles are simple Error Functions (smooth curves). In Onsager diffusion, profiles can become asymmetrical or develop kinks due to the concentration-dependence of $D_{ij}$.
+                        </li>
+                    </ul>
+
                 </div>
             </div>
-
 
 
         </main>
@@ -369,7 +308,6 @@
                 const matExp = -inputs.targetQ / (KB_EV * Temp);
                 const D_star_matrix = inputs.targetD0 * Math.exp(matExp);
 
-                // Initialize species
                 const species = inputs.elements.map(el => {
                     const exp = -el.q / (KB_EV * Temp);
                     const D_star = el.d0 * Math.exp(exp);
@@ -377,15 +315,7 @@
                     for(let i=0; i<N; i++) {
                         C[i] = (i < interfaceNode) ? el.cLeft / 100 : el.cRight / 100;
                     }
-                    return { 
-                        ...el, 
-                        D_star, 
-                        C, 
-                        C_new: new Float64Array(N), 
-                        Flux: new Float64Array(N), 
-                        history: [],
-                        fluxHistory: [] 
-                    };
+                    return { ...el, D_star, C, C_new: new Float64Array(N), Flux: new Float64Array(N), history: [] };
                 });
 
                 let maxD = D_star_matrix;
@@ -400,7 +330,6 @@
                     dt = Time_s / totalSteps;
                 }
 
-                // Optimization: Save fewer frames for 3D view to prevent lag
                 const saveInterval = Math.max(1, Math.floor(totalSteps / 40));
                 const reportInterval = Math.max(100, Math.floor(totalSteps / 50));
 
@@ -434,12 +363,7 @@
                     species.forEach(s => { s.C_new[0] = s.C_new[1]; s.C_new[N-1] = s.C_new[N-2]; });
                     species.forEach(s => {
                         const temp = s.C; s.C = s.C_new; s.C_new = temp;
-                        
-                        // Save both Concentration AND Flux history
-                        if (inputs.mode === 'history' && t % saveInterval === 0) {
-                            s.history.push(Float64Array.from(s.C));
-                            s.fluxHistory.push(Float64Array.from(s.Flux));
-                        }
+                        if (inputs.mode === 'history' && t % saveInterval === 0) s.history.push(Float64Array.from(s.C));
                     });
                     if (t % reportInterval === 0) self.postMessage({ type: 'progress', percent: Math.round((t / totalSteps) * 100) });
                 }
@@ -459,8 +383,9 @@
     </script>
 
 <script>
-    let worker = null;
+let worker = null;
     let chartInstance = null;
+    let fluxChartInstance = null;
     let currentTab = 'profile';
     let debounceTimer;
 
@@ -503,9 +428,9 @@
         const inputs = validateInputs();
         if(!inputs) return;
         terminateWorker();
-        
-        // Enable 'history' mode for both Flux and Time3D tabs
-        inputs.mode = (currentTab === 'time3d' || currentTab === 'flux') ? 'history' : 'snapshot';
+        inputs.mode = (currentTab === 'time3d') ? 'history' : 'snapshot';
+        // If viewing flux, we simulate 30% of time to see dynamic flux
+        if(currentTab === 'flux') inputs.timeHours = inputs.timeHours * 0.3;
         
         worker = createWorker();
         worker.onmessage = function(e) {
@@ -523,10 +448,11 @@
     }
 
     function renderResults(res, inputs) {
+        // SAVE DATA FOR EXPORT
         lastResults = res;
         lastInputs = inputs;
 
-        // --- 1. PROFILE CHART (2D) ---
+        // --- 1. PROFILE CHART ---
         if (currentTab === 'profile') {
             const dx = res.dx * 1e6;
             const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
@@ -536,14 +462,18 @@
                 data: Array.from(s.C).map(v => v * 100),
                 borderColor: s.color, backgroundColor: s.color + '20',
                 borderWidth: 2, pointRadius: 0, fill: true,
-                cubicInterpolationMode: 'monotone', tension: 0.4
+                // MONOTONE: Fixes staircases without wiggles
+                cubicInterpolationMode: 'monotone',
+                tension: 0.4
             }));
             
             datasets.unshift({
                 label: 'MgO Matrix',
                 data: Array.from(res.matrix).map(v => v * 100),
                 borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], 
-                pointRadius: 0, fill: false, cubicInterpolationMode: 'monotone', tension: 0.4
+                pointRadius: 0, fill: false,
+                cubicInterpolationMode: 'monotone',
+                tension: 0.4
             });
             
             const interfaceXVal = res.interfaceX * 1e6;
@@ -557,49 +487,71 @@
             if(chartInstance) chartInstance.destroy();
 
             chartInstance = new Chart(document.getElementById('diffusionChart'), {
+    type: 'line', data: { labels, datasets },
+    options: { 
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: { 
+            x: { 
+                type: 'linear', 
+                min: 0, 
+                max: inputs.totalLength, 
+                title: {display:true, text:'Depth (µm)'} 
+            },
+            y: { 
+                min: 0,        // <--- ADD THIS LINE (Forces bottom to 0%)
+                max: 100,      // Keeps top at 100%
+                title: {display:true, text:'Concentration (%)'} 
+            }
+        }
+    }
+});
+
+        // --- 2. FLUX CHART ---
+        } else if (currentTab === 'flux') {
+            const dx = res.dx * 1e6;
+            const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
+            
+            let allValues = [];
+            const datasets = res.species.map(s => {
+                const dataArr = Array.from(s.Flux);
+                allValues.push(...dataArr);
+                return {
+                    label: "Flux " + s.name,
+                    data: dataArr,
+                    borderColor: s.color, borderWidth: 2, pointRadius: 0,
+                    cubicInterpolationMode: 'monotone',
+                    tension: 0.4
+                };
+            });
+
+            const yMin = Math.min(...allValues);
+            const yMax = Math.max(...allValues);
+            const interfaceXVal = res.interfaceX * 1e6;
+
+            datasets.push({
+                label: 'Interface', type: 'scatter',
+                data: [{x: interfaceXVal, y: yMin}, {x: interfaceXVal, y: yMax}],
+                borderColor: '#64748b', borderWidth: 1, borderDash: [4,4], showLine: true, pointRadius: 0
+            });
+            
+            if(fluxChartInstance) fluxChartInstance.destroy();
+            fluxChartInstance = new Chart(document.getElementById('fluxChart'), {
                 type: 'line', data: { labels, datasets },
                 options: { 
                     responsive: true, maintainAspectRatio: false, animation: false,
                     interaction: { mode: 'index', intersect: false },
                     scales: { 
                         x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
-                        y: { min: 0, max: 100, title: {display:true, text:'Concentration (%)'} }
+                        y: { 
+                            title: {display:true, text:'Net Flux (arb. units)'},
+                            ticks: { callback: function(value) { return value.toExponential(1); } }
+                        } 
                     }
                 }
             });
 
-        // --- 2. 3D FLUX CHART (NEW) ---
-        } else if (currentTab === 'flux') {
-            const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
-            
-            const traces = res.species.map(s => {
-                // Use fluxHistory for Z data
-                const zData = s.fluxHistory.map(row => Array.from(row));
-                const yData = Array.from({length: zData.length}, (_, i) => i * (inputs.timeHours/zData.length));
-                return {
-                    type: 'surface', 
-                    x: xData, y: yData, z: zData,
-                    name: s.name, 
-                    showscale: false, 
-                    showlegend: true,
-                    opacity: 0.9,
-                    colorscale: [ [0, '#ffffff'], [1, s.color] ]
-                };
-            });
-
-            Plotly.newPlot('plotly-flux', traces, {
-                margin: {l:0,r:0,b:0,t:30}, 
-                showlegend: true,
-                legend: { x: 0, y: 1 },
-                scene: {
-                    xaxis:{title:'Depth (µm)'}, 
-                    yaxis:{title:'Time (h)'}, 
-                    zaxis:{title:'Flux (J)'},
-                    camera: { eye: {x: 1.5, y: 1.5, z: 1.5} }
-                }
-            });
-
-        // --- 3. 3D CONCENTRATION CHART ---
+        // --- 3. 3D VIEW ---
         } else if (currentTab === 'time3d') {
             const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
             
@@ -630,30 +582,62 @@
         }
     }
 
+    // --- DOWNLOAD CSV FUNCTION ---
     function downloadData() {
-        if (!lastResults || !lastInputs) { alert("No data to download."); return; }
+        if (!lastResults || !lastInputs) {
+            alert("No data to download. Please run a calculation first.");
+            return;
+        }
+
         let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Header: Parameters
         csvContent += "--- SIMULATION PARAMETERS ---\n";
-        csvContent += `Temperature (K),${lastInputs.temp}\nTime (Hours),${lastInputs.timeHours}\nSource Length (um),${lastInputs.sourceLength}\nTotal Length (um),${lastInputs.totalLength}\nMatrix D0 (m2/s),${lastInputs.targetD0}\nMatrix Q (eV),${lastInputs.targetQ}\nGrid Points,${lastInputs.N}\n\n`;
-        csvContent += "--- SPECIES INFO ---\nName,D0,Q,C_Left,Matrix\n";
-        lastInputs.elements.forEach(el => { csvContent += `${el.name},${el.d0},${el.q},${el.cLeft},${el.cRight}\n`; });
-        csvContent += "\n--- CALCULATION RESULTS ---\n";
+        csvContent += `Temperature (K),${lastInputs.temp}\n`;
+        csvContent += `Time (Hours),${lastInputs.timeHours}\n`;
+        csvContent += `Source Length (um),${lastInputs.sourceLength}\n`; // Added
+        csvContent += `Total Length (um),${lastInputs.totalLength}\n`;   // Added
+        csvContent += `Matrix D0 (m2/s),${lastInputs.targetD0}\n`;
+        csvContent += `Matrix Q (eV),${lastInputs.targetQ}\n`;
+        csvContent += `Grid Points,${lastInputs.N}\n`;
+        csvContent += "\n";
+
+        // Header: Dopant Info
+        csvContent += "--- SPECIES INFO ---\n";
+        csvContent += "Name,D0,Q,C_Left,C_Right\n";
+        lastInputs.elements.forEach(el => {
+            csvContent += `${el.name},${el.d0},${el.q},${el.cLeft},${el.cRight}\n`;
+        });
+        csvContent += "\n";
+
+        // Data Body
+        csvContent += "--- CALCULATION RESULTS ---\n";
         let headerRow = ["Depth (um)", "Matrix Conc (%)"];
-        lastResults.species.forEach(s => { headerRow.push(`${s.name} Conc (%)`); headerRow.push(`${s.name} Flux (J)`); });
+        lastResults.species.forEach(s => {
+            headerRow.push(`${s.name} Conc (%)`);
+            headerRow.push(`${s.name} Flux (J)`);
+        });
         csvContent += headerRow.join(",") + "\n";
+
         const N = lastInputs.N;
         const dx_um = lastResults.dx * 1e6;
+
         for (let i = 0; i < N; i++) {
             let row = [];
             row.push((i * dx_um).toFixed(4));
             row.push((lastResults.matrix[i] * 100).toFixed(4));
-            lastResults.species.forEach(s => { row.push((s.C[i] * 100).toFixed(4)); row.push((s.Flux[i]).toExponential(4)); });
+
+            lastResults.species.forEach(s => {
+                row.push((s.C[i] * 100).toFixed(4));
+                row.push((s.Flux[i]).toExponential(4));
+            });
             csvContent += row.join(",") + "\n";
         }
+
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `onsager_diffusion.csv`);
+        link.setAttribute("download", `onsager_diffusion_${lastInputs.temp}K_${lastInputs.timeHours}h.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -661,7 +645,8 @@
 
     function validateInputs() {
         const elements = [];
-        document.querySelectorAll('.element-card').forEach(card => {
+        const elCards = document.querySelectorAll('.element-card');
+        elCards.forEach(card => {
             const nameSelect = card.querySelector('.el-name');
             elements.push({
                 name: nameSelect.options[nameSelect.selectedIndex]?.text.split(' ')[0] || "Unk",
@@ -695,31 +680,55 @@
         document.getElementById('tab-' + tab).classList.add('active');
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         document.getElementById('pane-' + tab).classList.add('active');
-        if(tab === 'time3d' || tab === 'flux') window.dispatchEvent(new Event('resize'));
+        if(tab === 'time3d') window.dispatchEvent(new Event('resize'));
         if(tab !== 'help') triggerCalculation();
     }
+
 
     function addElement(initialKey = null) {
         const list = document.getElementById('elementsList');
         if (list.children.length >= 4) { alert("Max 4 dopants"); return; }
+        
         const template = document.getElementById('elementTemplate');
         const clone = template.content.cloneNode(true);
         const card = clone.querySelector('.element-card');
+        
+        // 1. Assign Color
         const color = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][list.children.length % 4];
         card.style.borderLeftColor = color;
         clone.querySelector('.el-color').value = color;
+        
+        // 2. Populate Dropdown
         const select = clone.querySelector('.el-name');
         const keys = Object.keys(CATION_DB);
-        keys.forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.text = CATION_DB[k].label; select.appendChild(opt); });
+        keys.forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = k; opt.text = CATION_DB[k].label;
+            select.appendChild(opt);
+        });
+
+        // 3. Determine Selection (Use argument or default to first item)
         const selectedKey = initialKey || keys[0]; 
         select.value = selectedKey;
+
+        // 4. Apply Physics Parameters (D0, Q) for the selection
         const data = CATION_DB[selectedKey];
         clone.querySelector('.el-d0').value = data.d0;
         clone.querySelector('.el-q').value = data.q;
+
+        // 5. --- APPLY USER DEFAULTS (25% / 0%) ---
         clone.querySelector('.el-c-left').value = 25; 
         clone.querySelector('.el-c-right').value = 0;
-        clone.querySelector('.delete-btn').onclick = (e) => { e.target.closest('.element-card').remove(); debouncedUpdate(); };
+
+        // 6. Attach Listeners
+        clone.querySelector('.delete-btn').onclick = (e) => { 
+            e.target.closest('.element-card').remove(); 
+            debouncedUpdate(); 
+        };
+        
         list.appendChild(clone);
+        
+        // Only trigger calculation if this was a manual button click (not page load)
         if(!initialKey) debouncedUpdate();
     }
 
@@ -732,7 +741,9 @@
     }
 
     window.onload = function() { addElement("Ni"); setTimeout(triggerCalculation, 100); };
+
 </script>
+
 
 </body>
 </html>
