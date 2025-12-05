@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThermoMigrate v3.4 (Days Timeline)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    
+    <!-- MathJax for Physics Formulas -->
+    <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .tab-btn { color: #64748b; padding: 0 1rem; transition: all 0.2s; font-weight: 600; font-size: 0.8rem; border-bottom: 2px solid transparent; white-space: nowrap; }
+        .tab-btn:hover { color: #1e293b; background-color: #f8fafc; }
+        .tab-btn.active { background-color: #f0fdf4; color: #15803d; border-bottom-color: #15803d; }
+        
+        /* Updated Tab Pane Logic */
+        .tab-pane { display: none; width: 100%; animation: fadeIn 0.3s ease-out; }
+        .tab-pane.active { display: flex; flex-direction: column; gap: 1rem; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .plot-container-2d { min-height: 300px; position: relative; }
+        .plot-container-3d { min-height: 500px; border: 1px solid #e2e8f0; border-radius: 0.5rem; background: white; padding: 10px; }
+        
+        /* Prose overrides for compact theory section */
+        .prose h2 { margin-top: 1.5em; margin-bottom: 0.5em; }
+        .prose h3 { margin-top: 1.2em; margin-bottom: 0.5em; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-800 bg-slate-50 font-sans">
+
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200 px-4 flex items-center justify-between shrink-0 h-14 shadow-sm z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold shadow-md">
+                <i class="fas fa-atom"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-slate-800 leading-tight">ThermoMigrate <span class="text-xs font-normal text-slate-500 ml-1">v3.4</span></h1>
+                <p class="text-[10px] text-slate-400 font-mono leading-none">PbSe Thermocouple Evolution</p>
+            </div>
+        </div>
+        
+        <div id="status-area" class="flex-1 mx-8 flex items-center gap-3 opacity-0 transition-opacity duration-300">
+            <div class="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
+                <div id="header-progress" class="h-full bg-indigo-500 w-0 transition-all duration-200"></div>
+            </div>
+            <span id="header-status" class="text-xs font-mono text-gray-400 w-24 text-right">Processing...</span>
+        </div>
+
+        <div class="flex space-x-1 h-full overflow-x-auto mx-4 no-scrollbar">
+            <button onclick="switchTab('conc')" id="tab-conc" class="tab-btn active h-full flex items-center">
+                <i class="fas fa-chart-area mr-2"></i> Conc (C)
+            </button>
+            <button onclick="switchTab('zt')" id="tab-zt" class="tab-btn h-full flex items-center">
+                <i class="fas fa-bolt mr-2"></i> ZT
+            </button>
+            <button onclick="switchTab('seebeck')" id="tab-seebeck" class="tab-btn h-full flex items-center">
+                <i class="fas fa-wave-square mr-2"></i> Seebeck (S)
+            </button>
+            <button onclick="switchTab('sigma')" id="tab-sigma" class="tab-btn h-full flex items-center">
+                <i class="fas fa-bolt mr-2"></i> Sigma (σ)
+            </button>
+            <button onclick="switchTab('theory')" id="tab-theory" class="tab-btn h-full flex items-center text-blue-600">
+                <i class="fas fa-book mr-2"></i> Theory
+            </button>
+        </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- Sidebar Controls -->
+        <aside class="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] shrink-0 overflow-y-auto">
+            <div class="p-4 space-y-5">
+                
+                <!-- 1. Geometry & Thermal -->
+                <div class="bg-red-50 p-4 rounded-lg border border-red-100 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-blue-500"></div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fas fa-thermometer-half text-red-600"></i>
+                        <h3 class="text-xs font-bold text-red-800 uppercase tracking-wider">1. Thermal Gradient</h3>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="input-group">
+                            <label class="text-[10px] text-red-700 font-bold block mb-1">T_Hot (Left) [K]</label>
+                            <input type="number" id="tHot" value="800" min="300" max="1500" class="w-full text-sm border border-red-200 rounded p-1.5 font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-200 outline-none" onchange="debouncedUpdate()">
+                        </div>
+                        <div class="input-group">
+                            <label class="text-[10px] text-blue-700 font-bold block mb-1">T_Cold (Right) [K]</label>
+                            <input type="number" id="tCold" value="400" min="200" max="1000" class="w-full text-sm border border-blue-200 rounded p-1.5 font-bold text-blue-700 bg-white focus:ring-2 focus:ring-blue-200 outline-none" onchange="debouncedUpdate()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="text-[10px] text-slate-600 font-bold block mb-1">Leg Length (mm)</label>
+                        <div class="relative">
+                            <input type="number" id="legLength" value="10" min="1" step="0.5" class="w-full text-sm border border-slate-300 rounded p-1.5 font-semibold" onchange="debouncedUpdate()">
+                            <span class="absolute right-2 top-1.5 text-xs text-slate-400">mm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Timeline -->
+                <div class="bg-slate-50 p-3 rounded border border-slate-200">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2. Timeline</h3>
+                    <div class="input-group">
+                        <label class="text-[10px] text-gray-500 font-bold block">Duration (Days)</label>
+                        <input type="number" id="timeValue" value="30" min="0.01" max="365" step="0.01" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
+                    </div>
+                </div>
+
+                <!-- 3. Material / Dopant -->
+                <div class="bg-emerald-50 p-3 rounded border border-emerald-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold text-emerald-800 uppercase tracking-wider">3. Dopant (PbSe)</h3>
+                        <select id="presetSelect" class="text-[10px] bg-white border border-emerald-200 rounded px-2 py-1 text-emerald-700 font-bold cursor-pointer hover:bg-emerald-100" onchange="loadPreset()">
+                            <option value="custom">Custom</option>
+                            <option value="Na" selected>Na (p-type)</option>
+                            <option value="Ag">Ag (Fast)</option>
+                            <option value="Cl">Cl (n-type)</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[10px] text-emerald-700 font-bold block mb-1">Initial Conc. ($C_0$) [cm⁻³]</label>
+                            <input type="text" id="c0" value="1e19" class="w-full text-xs font-mono border border-emerald-200 rounded p-1.5 bg-white" onchange="debouncedUpdate()">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] text-emerald-700 font-bold block">D₀ (m²/s)</label>
+                                <input type="text" id="d0" value="2.3e-7" class="w-full text-xs border border-emerald-200 rounded p-1" onchange="debouncedUpdate()">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-emerald-700 font-bold block">Ea (eV)</label>
+                                <input type="number" id="ea" value="0.6" step="0.05" class="w-full text-xs border border-emerald-200 rounded p-1" onchange="debouncedUpdate()">
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-emerald-200">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[10px] text-purple-700 font-bold">Heat of Transport Q* (eV)</label>
+                            </div>
+                            <input type="number" id="qStar" value="0.2" step="0.05" class="w-full text-xs border border-purple-200 rounded p-1 font-bold text-purple-800 bg-purple-50" onchange="debouncedUpdate()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-4">
+                    <button onclick="downloadData()" class="w-full text-xs bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded shadow-md transition-all">
+                        <i class="fas fa-file-csv mr-2"></i> Export Data
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-full relative bg-slate-100 overflow-y-auto overflow-x-hidden p-6">
+            
+            <!-- PANEL 1: CONCENTRATION -->
+            <div id="pane-conc" class="tab-pane active">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4 flex justify-between">
+                        <span><i class="fas fa-chart-line mr-2 text-indigo-500"></i> Final Concentration Profile (2D)</span>
+                        <span class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500">t = Final</span>
+                    </h2>
+                    <div class="plot-container-2d relative">
+                        <canvas id="chartConc"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4">
+                        <i class="fas fa-cube mr-2 text-indigo-500"></i> Concentration Evolution (3D)
+                    </h2>
+                    <div id="plotlyConc" class="plot-container-3d"></div>
+                </div>
+            </div>
+
+            <!-- PANEL 2: ZT -->
+            <div id="pane-zt" class="tab-pane">
+                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4 flex justify-between">
+                        <span><i class="fas fa-bolt mr-2 text-amber-500"></i> Final Figure of Merit zT (2D)</span>
+                        <span id="avg-zt-display" class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded font-mono">Avg ZT: -</span>
+                    </h2>
+                    <div class="plot-container-2d relative">
+                        <canvas id="chartZT"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4">
+                        <i class="fas fa-layer-group mr-2 text-amber-500"></i> ZT Evolution (3D)
+                    </h2>
+                    <div id="plotlyZT" class="plot-container-3d"></div>
+                </div>
+            </div>
+
+            <!-- PANEL 3: SEEBECK -->
+            <div id="pane-seebeck" class="tab-pane">
+                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4">
+                        <i class="fas fa-wave-square mr-2 text-purple-500"></i> Final Seebeck Coefficient (2D)
+                    </h2>
+                    <div class="plot-container-2d relative">
+                        <canvas id="chartS"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4">
+                        <i class="fas fa-layer-group mr-2 text-purple-500"></i> Seebeck Evolution (3D)
+                    </h2>
+                    <div id="plotlyS" class="plot-container-3d"></div>
+                </div>
+            </div>
+
+            <!-- PANEL 4: CONDUCTIVITY -->
+            <div id="pane-sigma" class="tab-pane">
+                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4">
+                        <i class="fas fa-bolt mr-2 text-blue-500"></i> Final Conductivity (2D)
+                    </h2>
+                    <div class="plot-container-2d relative">
+                        <canvas id="chartSigma"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase mb-4">
+                        <i class="fas fa-layer-group mr-2 text-blue-500"></i> Conductivity Evolution (3D)
+                    </h2>
+                    <div id="plotlySigma" class="plot-container-3d"></div>
+                </div>
+            </div>
+
+            <!-- PANEL 5: THEORY (UPDATED) -->
+            <div id="pane-theory" class="tab-pane bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+                <div class="max-w-4xl mx-auto pb-20 prose prose-slate">
+                    <h1 class="text-3xl font-bold text-slate-800 mb-6">Physics & Model Documentation</h1>
+                    
+                    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-8 rounded-r">
+                        <p class="text-sm text-indigo-900 m-0">
+                            <strong>Simulation Goal:</strong> This tool simulates the coupled diffusion of dopants in a thermoelectric leg under a steep temperature gradient, predicting the degradation of efficiency ($zT$) over time due to the Soret effect (Thermomigration).
+                        </p>
+                    </div>
+
+                    <!-- Section 1 -->
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">1. Transport Physics</h2>
+                    <p>The evolution of the dopant concentration $C(x,t)$ is governed by the continuity equation $\frac{\partial C}{\partial t} = - \nabla \cdot J$. The total flux $J$ is derived from the phenomenological equations of irreversible thermodynamics, combining Fickian diffusion and the Soret effect:</p>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 my-6">
+                        <div class="text-center font-mono text-lg text-slate-800 mb-4">
+                            $$ J = \underbrace{-D \frac{\partial C}{\partial x}}_{\text{Fick's Law}} \quad \underbrace{- \frac{D C Q^*}{k_B T^2} \frac{\partial T}{\partial x}}_{\text{Soret Effect}} $$
+                        </div>
+                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600 list-none pl-0">
+                            <li class="flex gap-2"><span class="font-bold w-12 text-right">D</span> <span>Diffusion Coefficient ($m^2/s$)</span></li>
+                            <li class="flex gap-2"><span class="font-bold w-12 text-right">C</span> <span>Concentration ($cm^{-3}$)</span></li>
+                            <li class="flex gap-2"><span class="font-bold w-12 text-right">Q*</span> <span>Heat of Transport ($eV$)</span></li>
+                            <li class="flex gap-2"><span class="font-bold w-12 text-right">k_B</span> <span>Boltzmann Constant</span></li>
+                        </ul>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-slate-700">Temperature Dependence</h3>
+                    <p>Since the temperature varies from $T_{hot}$ to $T_{cold}$, the diffusivity $D$ varies exponentially along the leg length $L$. We use an Arrhenius relationship:</p>
+                    <div class="text-center my-4">$$ D(T) = D_0 \exp\left(-\frac{E_a}{k_B T}\right) $$</div>
+                    <p class="text-sm text-slate-500">where $E_a$ is the activation energy and $D_0$ is the pre-exponential factor.</p>
+
+                    <!-- Section 2 -->
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">2. Material Model (PbSe)</h2>
+                    <p>To evaluate the thermoelectric performance, we map the local concentration $C(x)$ and temperature $T(x)$ to transport properties using a semi-empirical Single Parabolic Band (SPB) model tailored for p-type PbSe.</p>
+
+                    <div class="overflow-x-auto my-6">
+                        <table class="w-full text-sm text-left text-slate-600 border border-slate-200 rounded-lg">
+                            <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                                <tr>
+                                    <th class="px-4 py-3">Property</th>
+                                    <th class="px-4 py-3">Model Equation</th>
+                                    <th class="px-4 py-3">Physical Justification</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="px-4 py-3 font-bold">Mobility ($\mu$)</td>
+                                    <td class="px-4 py-3">$\mu \approx 1000 (\frac{T}{300})^{-2.5}$</td>
+                                    <td class="px-4 py-3">Dominated by acoustic phonon scattering ($\propto T^{-2.5}$).</td>
+                                </tr>
+                                <tr class="bg-slate-50 border-b">
+                                    <td class="px-4 py-3 font-bold">Conductivity ($\sigma$)</td>
+                                    <td class="px-4 py-3">$\sigma = n e \mu$</td>
+                                    <td class="px-4 py-3">Drude model approximation ($e$ = elem. charge).</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-4 py-3 font-bold">Seebeck ($S$)</td>
+                                    <td class="px-4 py-3">$S \propto \log(n) \cdot T$</td>
+                                    <td class="px-4 py-3">Pisarenko relation simplified. Decreases with doping, increases with T.</td>
+                                </tr>
+                                <tr class="bg-slate-50 border-b">
+                                    <td class="px-4 py-3 font-bold">Thermal Cond. ($\kappa$)</td>
+                                    <td class="px-4 py-3">$\kappa_{lat} + L \sigma T$</td>
+                                    <td class="px-4 py-3">Lattice ($\propto T^{-1}$) + Electronic (Wiedemann-Franz, $L=2.4 \cdot 10^{-8}$).</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>Finally, the Figure of Merit ($zT$) is calculated as: $$ zT = \frac{S^2 \sigma}{\kappa} T $$</p>
+
+                    <!-- Section 3 -->
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">3. Numerical Methods</h2>
+                    <p>The simulation uses a <strong>Finite Difference Method (FDM)</strong> with an explicit forward Euler time-stepping scheme.</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600">
+                        <li><strong>Grid:</strong> The spatial domain $L$ is discretized into $N$ nodes (default 70-80).</li>
+                        <li><strong>Staggered Flux:</strong> Flux $J_{i+1/2}$ is calculated between nodes to ensure mass conservation.</li>
+                        <li><strong>Time Step ($\Delta t$):</strong> Calculated dynamically to satisfy the Courant–Friedrichs–Lewy (CFL) stability condition:
+                            $$ \Delta t < 0.4 \frac{\Delta x^2}{D_{max}} $$
+                        </li>
+                        <li><strong>Boundary Conditions:</strong> Zero Flux ($J=0$) at $x=0, L$ (Closed system / Reflective).</li>
+                    </ul>
+
+                    <!-- Section 4 -->
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">4. Limitations & Approximations</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-amber-50 p-4 rounded border border-amber-200">
+                            <h4 class="font-bold text-amber-800 mb-2">Physics</h4>
+                            <ul class="list-disc pl-4 text-sm text-amber-900 space-y-1">
+                                <li><strong>1D Approximation:</strong> Ignores radial gradients or side-wall heat loss.</li>
+                                <li><strong>Linear T-Profile:</strong> Assumes constant thermal conductivity for the temperature solution itself.</li>
+                                <li><strong>Dilute Limit:</strong> Assumes dopants do not interact with each other (no activity coefficients).</li>
+                            </ul>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded border border-blue-200">
+                            <h4 class="font-bold text-blue-800 mb-2">Material Parameters</h4>
+                            <ul class="list-disc pl-4 text-sm text-blue-900 space-y-1">
+                                <li><strong>Constant Q*:</strong> The Heat of Transport is assumed temperature-independent.</li>
+                                <li><strong>Parabolic Bands:</strong> The property model ignores band non-parabolicity and multi-band effects (e.g. L-band convergence in PbTe/PbSe).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Web Worker Code -->
+    <script id="worker-code" type="javascript/worker">
+        const KB_EV = 8.617333262145e-5; 
+        const KB_J = 1.380649e-23;
+        const E_CHARGE = 1.60217663e-19;
+
+        // --- PHYSICS MODEL ---
+        function getProperties(n_cm3, T) {
+            // Ensure n_cm3 is within realistic bounds for the log calculation
+            let n_safe = n_cm3;
+            if (n_safe < 1e16) n_safe = 1e16;
+            if (n_safe > 1e22) n_safe = 1e22;
+
+            const T_norm = T / 300;
+            const logN = Math.log10(n_safe);
+            
+            // Mobility Model (Acoustic Phonon Scattering dominant)
+            const mu = 800 * Math.pow(T_norm, -2.5); // cm2/Vs
+            
+            // Conductivity (S/cm)
+            const sigma = n_safe * 1.602e-19 * mu; 
+            
+            // Seebeck Model (Empirical Pisarenko fit for PbSe)
+            // Base S at 300K depending on logN
+            // At 1e18 -> ~400uV/K. At 1e20 -> ~140uV/K
+            let S_base = 400 - 130 * (logN - 18); 
+            // Temperature dependence (Linear approx)
+            const S_uV = S_base * (1 + 0.0015 * (T - 300));
+            const S = S_uV * 1e-6; // V/K
+
+            // Thermal Conductivity
+            const k_lat = 1.3 / T_norm; // W/mK
+            const L = 2.4e-8; // Lorenz number
+            const k_elec = L * (sigma * 100) * T; // sigma*100 for S/m
+            const k_tot = k_lat + k_elec;
+
+            // ZT
+            const ZT = (S * S * (sigma * 100) / k_tot) * T;
+
+            return { S: S_uV, sigma: sigma, k: k_tot, ZT: Math.max(0, ZT) };
+        }
+
+        self.onmessage = function(e) {
+            const p = e.data; 
+            
+            // 1. DYNAMIC GRID SCALING
+            // For very long times, we slightly coarsen the grid to keep simulation interactive
+            let N = 70; // Default grid
+            if(p.duration_s > 1e8) N = 50; // > ~3 years
+            
+            const L_m = p.length_mm * 1e-3;
+            const dx = L_m / (N - 1);
+            const x = new Float64Array(N).map((_, i) => i * dx);
+
+            // 2. Temp Profile
+            const T = new Float64Array(N);
+            const dT_dx = (p.tCold - p.tHot) / L_m; 
+            for(let i=0; i<N; i++) T[i] = p.tHot + (p.tCold - p.tHot) * (i / (N-1));
+
+            // 3. Concentration Init
+            const C = new Float64Array(N).fill(p.c0); 
+            const C_new = new Float64Array(N);
+
+            // 4. Time Stepping & Stability
+            const maxD = p.d0 * Math.exp(-p.ea / (KB_EV * p.tHot));
+            // Stability: dt < 0.5 * dx^2 / D
+            // We use 0.4 safety factor
+            let dt = 0.4 * (dx * dx) / (maxD + 1e-30);
+            
+            // Safety cap for dt to ensure we don't jump too fast physically
+            // But if diffusion is super slow, dt can be large.
+            
+            let steps = Math.ceil(p.duration_s / dt);
+            
+            // HARD LIMIT on Steps to prevent browser freeze
+            // If steps > 5,000,000, we must increase dt (and risk some error) or stop.
+            // We'll scale dt to fit in 4M steps.
+            const MAX_STEPS = 4000000;
+            if (steps > MAX_STEPS) {
+                dt = p.duration_s / MAX_STEPS;
+                steps = MAX_STEPS;
+                // Note: This technically violates CFL for explicit Euler if dt gets too big.
+                // However, for diffusion, usually D is so small that this condition is rarely hit
+                // unless time is geological.
+            }
+
+            // 5. History Saving
+            // We want ~40 frames for the 3D plot
+            const historyInterval = Math.max(1, Math.floor(steps / 40));
+            
+            // Structures for 3D plots
+            const hist_C = [];
+            const hist_S = [];
+            const hist_ZT = [];
+            const hist_Sig = [];
+            const timePoints = [];
+
+            // Pre-calc D array (Time independent part)
+            const D = new Float64Array(N);
+            for(let i=0; i<N; i++) D[i] = p.d0 * Math.exp(-p.ea / (KB_EV * T[i]));
+
+            // Pre-calc Soret Pre-factors
+            const SoretFac = new Float64Array(N);
+            for(let i=0; i<N; i++) {
+                // Term: (Q* / (kB * T^2)) * dT/dx
+                SoretFac[i] = (p.qStar / (KB_EV * T[i] * T[i])) * dT_dx;
+            }
+
+            // --- SIMULATION LOOP ---
+            let t_accum = 0;
+            
+            for (let t = 0; t <= steps; t++) {
+                
+                // Flux Calculation (J at i+1/2)
+                const Flux = new Float64Array(N-1); 
+                for(let i=0; i < N-1; i++) {
+                    const C_avg = 0.5 * (C[i] + C[i+1]);
+                    const D_avg = 0.5 * (D[i] + D[i+1]);
+                    const Soret_avg = 0.5 * (SoretFac[i] + SoretFac[i+1]);
+                    
+                    const dC_dx = (C[i+1] - C[i]) / dx;
+                    
+                    const J_soret = -1 * D_avg * C_avg * Soret_avg;
+                    const J_fick = -1 * D_avg * dC_dx;
+                    
+                    Flux[i] = J_fick + J_soret;
+                }
+
+                // Update C
+                for(let i=1; i < N-1; i++) C_new[i] = C[i] - (dt/dx) * (Flux[i] - Flux[i-1]);
+                
+                // Boundary Conditions (Zero Flux)
+                C_new[0] = C[0] - (dt/dx) * (Flux[0] - 0); 
+                C_new[N-1] = C[N-1] - (dt/dx) * (0 - Flux[N-2]);
+                
+                // Swap
+                for(let i=0; i<N; i++) C[i] = C_new[i];
+                t_accum += dt;
+
+                // SAVE FRAMES
+                if (t % historyInterval === 0 || t === steps) {
+                    const row_C = Float64Array.from(C);
+                    const row_S = new Float64Array(N);
+                    const row_ZT = new Float64Array(N);
+                    const row_Sig = new Float64Array(N);
+                    
+                    for(let k=0; k<N; k++) {
+                        const props = getProperties(C[k], T[k]);
+                        row_S[k] = props.S;
+                        row_ZT[k] = props.ZT;
+                        row_Sig[k] = props.sigma;
+                    }
+                    
+                    hist_C.push(row_C);
+                    hist_S.push(row_S);
+                    hist_ZT.push(row_ZT);
+                    hist_Sig.push(row_Sig);
+                    timePoints.push(t_accum);
+                }
+
+                // Report Progress
+                if (t % 50000 === 0) {
+                    const pct = Math.round((t/steps)*100);
+                    self.postMessage({ type: 'progress', percent: pct });
+                }
+            }
+
+            self.postMessage({ 
+                type: 'complete', 
+                x, T, 
+                hist_C, hist_S, hist_ZT, hist_Sig, timePoints,
+                params: p
+            });
+        };
+    </script>
+
+    <script>
+        const PRESETS = {
+            'Na': { d0: "2.3e-7", ea: 0.60, qStar: 0.20, c0: "1e19" }, 
+            'Ag': { d0: "5.0e-7", ea: 0.45, qStar: 0.15, c0: "5e18" }, 
+            'Cl': { d0: "1.0e-8", ea: 0.80, qStar: -0.10, c0: "2e19" }, 
+            'custom': { d0: "1.0e-7", ea: 0.5, qStar: 0.0, c0: "1e19" }
+        };
+
+        let worker = null;
+        let chartConc = null, chartZT = null, chartS = null, chartSigma = null;
+        let debounceTimer;
+
+        // --- UTILS ---
+        function loadPreset() {
+            const key = document.getElementById('presetSelect').value;
+            const data = PRESETS[key];
+            if(data) {
+                document.getElementById('d0').value = data.d0;
+                document.getElementById('ea').value = data.ea;
+                document.getElementById('qStar').value = data.qStar;
+                document.getElementById('c0').value = data.c0;
+                debouncedUpdate();
+            }
+        }
+
+        function switchTab(id) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            
+            document.querySelectorAll('.tab-pane').forEach(p => {
+                p.classList.remove('active');
+                p.style.display = 'none'; // Ensure strictly hidden
+            });
+            
+            const activePane = document.getElementById('pane-' + id);
+            activePane.classList.add('active');
+            activePane.style.display = 'flex'; // Ensure strictly shown
+            
+            // Trigger resize for plots
+            window.dispatchEvent(new Event('resize'));
+            // Specifically resize Plotly
+            const plots = ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'];
+            plots.forEach(pid => {
+                try { Plotly.Plots.resize(pid); } catch(e){}
+            });
+        }
+
+        function debouncedUpdate() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(triggerSimulation, 600);
+        }
+
+        function downloadData() {
+            alert("Export feature would go here (CSV generation of history arrays).");
+        }
+
+        // --- MAIN SIMULATION ---
+        function triggerSimulation() {
+            if(worker) worker.terminate();
+
+            // Modified calculation to use Days directly
+            const durationInput = parseFloat(document.getElementById('timeValue').value);
+            // Conversion: Days -> Seconds (1 Day = 86400 Seconds)
+            const durationSeconds = durationInput * 86400;
+
+            const params = {
+                tHot: parseFloat(document.getElementById('tHot').value),
+                tCold: parseFloat(document.getElementById('tCold').value),
+                length_mm: parseFloat(document.getElementById('legLength').value),
+                duration_s: durationSeconds,
+                d0: parseFloat(document.getElementById('d0').value),
+                ea: parseFloat(document.getElementById('ea').value),
+                qStar: parseFloat(document.getElementById('qStar').value),
+                c0: parseFloat(document.getElementById('c0').value)
+            };
+
+            document.getElementById('status-area').style.opacity = 1;
+            document.getElementById('header-status').innerText = "Calculating...";
+            
+            const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
+            worker = new Worker(window.URL.createObjectURL(blob));
+            
+            worker.onmessage = (e) => {
+                if(e.data.type === 'progress') {
+                    document.getElementById('header-progress').style.width = e.data.percent + "%";
+                }
+                else if(e.data.type === 'complete') {
+                    document.getElementById('header-progress').style.width = "100%";
+                    setTimeout(() => document.getElementById('status-area').style.opacity = 0, 800);
+                    renderAll(e.data);
+                }
+            };
+            
+            worker.postMessage(params);
+        }
+
+        function renderAll(data) {
+            const { x, T, hist_C, hist_S, hist_ZT, hist_Sig, timePoints, params } = data;
+            const labels = x.map(val => (val*1000).toFixed(1)); // mm
+
+            // Final Snapshots (Last row of history)
+            const final_C = hist_C[hist_C.length-1];
+            const final_S = hist_S[hist_S.length-1];
+            const final_ZT = hist_ZT[hist_ZT.length-1];
+            const final_Sig = hist_Sig[hist_Sig.length-1];
+
+            // Avg ZT Display
+            const avgZT = final_ZT.reduce((a,b)=>a+b, 0) / final_ZT.length;
+            document.getElementById('avg-zt-display').innerText = `Avg ZT: ${avgZT.toFixed(2)}`;
+
+            // --- 2D CHARTS ---
+            update2DChart('chartConc', labels, [
+                { label: 'Concentration (cm⁻³)', data: final_C, borderColor: '#4f46e5', yAxisID: 'y' },
+                { label: 'Temperature (K)', data: T, borderColor: '#ef4444', yAxisID: 'y1', borderDash:[5,5] }
+            ], 'Conc (cm⁻³)', 'Temp (K)');
+
+            update2DChart('chartZT', labels, [
+                { label: 'Figure of Merit (ZT)', data: final_ZT, borderColor: '#d97706', yAxisID: 'y' }
+            ], 'ZT', '');
+
+            update2DChart('chartS', labels, [
+                { label: 'Seebeck (µV/K)', data: final_S, borderColor: '#9333ea', yAxisID: 'y' }
+            ], 'Seebeck (µV/K)', '');
+
+            update2DChart('chartSigma', labels, [
+                { label: 'Conductivity (S/cm)', data: final_Sig, borderColor: '#2563eb', yAxisID: 'y' }
+            ], 'Sigma (S/cm)', '');
+
+            // --- 3D PLOTS ---
+            // Prepare Axis Data
+            const xPlot = x.map(v => v*1000);
+            
+            // Format time for Y axis
+            let tDiv = 3600; let tUnit = 'h';
+            if(timePoints[timePoints.length-1] > 3e7) { tDiv=3.15e7; tUnit='y'; }
+            else if(timePoints[timePoints.length-1] > 1e5) { tDiv=86400; tUnit='d'; }
+            const yPlot = timePoints.map(t => t/tDiv);
+
+            update3DPlot('plotlyConc', xPlot, yPlot, hist_C, 'Concentration', 'Viridis', tUnit);
+            update3DPlot('plotlyZT', xPlot, yPlot, hist_ZT, 'ZT', 'Plasma', tUnit);
+            update3DPlot('plotlyS', xPlot, yPlot, hist_S, 'Seebeck (µV/K)', 'Picnic', tUnit);
+            update3DPlot('plotlySigma', xPlot, yPlot, hist_Sig, 'Sigma (S/cm)', 'Jet', tUnit);
+        }
+
+        // --- CHART HELPERS ---
+        const charts = {}; // Store instances
+
+        function update2DChart(canvasId, labels, datasets, yLeft, yRight) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            if(charts[canvasId]) charts[canvasId].destroy();
+
+            const yScales = {
+                x: { title: { display:true, text:'Position (mm)' } },
+                y: { type:'linear', display:true, position:'left', title:{display:!!yLeft, text:yLeft} }
+            };
+            if(yRight) {
+                yScales.y1 = { type:'linear', display:true, position:'right', grid:{display:false}, title:{display:true, text:yRight} };
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets.map(d => ({ ...d, borderWidth:2, pointRadius:0, fill:false })) },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: yScales,
+                    interaction: { mode:'index', intersect:false }
+                }
+            });
+        }
+
+        function update3DPlot(divId, xData, yData, zData, zLabel, colorscale, timeUnit) {
+            // Convert array of TypedArrays to Array of Arrays
+            const zArr = zData.map(row => Array.from(row));
+            
+            const data = [{
+                type: 'surface',
+                x: xData,
+                y: yData,
+                z: zArr,
+                colorscale: colorscale,
+                showscale: false, // HIDDEN COLOR BAR
+                contours: {
+                    z: { show:true, usecolormap: true, highlightcolor:"#42f462", project:{z: true} }
+                }
+            }];
+
+            const layout = {
+                title: false,
+                autosize: true,
+                // Margins updated to prevent overlap with mode bar
+                margin: {l:50, r:20, b:50, t:50},
+                scene: {
+                    xaxis: {title: 'Pos (mm)'},
+                    yaxis: {title: `Time (${timeUnit})`},
+                    zaxis: {title: zLabel},
+                    camera: { eye: {x: -1.7, y: -1.7, z: 1.2} }
+                }
+            };
+            
+            const config = { displaylogo: false, responsive: true };
+            
+            Plotly.react(divId, data, layout, config);
+        }
+
+        window.onload = function() { triggerSimulation(); }
+        window.onresize = function() { 
+            Object.values(charts).forEach(c => c.resize());
+            ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'].forEach(id => {
+                try { Plotly.Plots.resize(id); } catch(e){}
+            });
+        }
+    </script>
+</body>
+</html>
