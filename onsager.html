@@ -841,6 +841,98 @@
             </div>
         </div>
 
+
+
+
+
+
+
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge" style="background: #e0e7ff; color: #4338ca;">7</span> 
+                Advanced Topics & Extensions</h2>
+
+            <div class="theory-box box-indigo">
+                <h4 class="sub-heading text-indigo">Limitations of This Model</h4>
+                <p style="margin-bottom: 12px;">
+                    This solver is a powerful tool, but it makes several simplifying assumptions:
+                </p>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>1D Geometry:</strong> Real diffusion couples have grain boundaries, surface roughness, 
+                        and lateral variations. This model assumes infinite planar geometry.</li>
+                    <li><strong>No Grain Boundaries:</strong> GBs are "fast paths" (D_GB ≫ D_bulk). For nanocrystalline 
+                        materials or short annealing times, GB diffusion dominates.</li>
+                    <li><strong>Constant D₀ and Q:</strong> In reality, diffusion coefficients can depend on composition 
+                        (especially in concentrated alloys). This is the "concentration-dependent D" problem.</li>
+                    <li><strong>Regular Solution Model Only:</strong> More complex thermodynamics (sub-regular, associated 
+                        solutions, compound formation) require different Ω(C) functions.</li>
+                    <li><strong>No Point Defect Equilibria:</strong> The model doesn't track vacancy concentration 
+                        explicitly—it's "folded into" the Manning equations. For very non-stoichiometric oxides 
+                        (e.g., Fe₁₋ₓO, TiO₂₋ₓ), defect chemistry matters.</li>
+                    <li><strong>Isothermal:</strong> No temperature gradients. Real furnaces have T variations that 
+                        affect local diffusion rates.</li>
+                </ul>
+            </div>
+
+            <div class="help-grid" style="margin-top: 20px;">
+                <div class="theory-card card-slate">
+                    <h4><i class="fas fa-graduation-cap"></i> Further Reading</h4>
+                    <ul style="font-size: 12px; line-height: 1.6; margin-top: 8px;">
+                        <li><strong>Onsager (1931):</strong> "Reciprocal Relations in Irreversible Processes" – 
+                            The foundational paper on coupled transport.</li>
+                        <li><strong>Darken (1948):</strong> "Diffusion, Mobility and Their Interrelation" – 
+                            Connects tracer diffusion to chemical diffusion.</li>
+                        <li><strong>Manning (1968):</strong> "Diffusion Kinetics for Atoms in Crystals" – 
+                            Vacancy wind theory in detail.</li>
+                        <li><strong>Balluffi, Allen, Carter (2005):</strong> "Kinetics of Materials" – 
+                            Modern textbook covering all aspects of diffusion.</li>
+                        <li><strong>CALPHAD Database:</strong> Thermodynamic assessments for specific oxide systems 
+                            (searchable online).</li>
+                    </ul>
+                </div>
+
+                <div class="theory-card card-indigo">
+                    <h4><i class="fas fa-code-branch"></i> Future Extensions</h4>
+                    <ul style="font-size: 12px; line-height: 1.6; margin-top: 8px;">
+                        <li>2D/3D geometry (grain boundary networks, thin films with corners)</li>
+                        <li>Grain boundary diffusion (Fick-Heitjans model)</li>
+                        <li>Concentration-dependent D₀(C) and Q(C)</li>
+                        <li>Multi-sublattice models (oxides with multiple cation sites)</li>
+                        <li>Coupled diffusion + phase transformation (nucleation & growth)</li>
+                        <li>Defect chemistry solver (Kröger-Vink notation, equilibrium constants)</li>
+                        <li>Fitting module: auto-extract D₀, Q, Ω from experimental profiles</li>
+                        <li>Stress-assisted diffusion (elasto-diffusion coupling)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-section" style="border-top: 2px solid var(--border-color); padding-top: 24px;">
+            <h2 class="help-title" style="color: #059669;">
+                <i class="fas fa-question-circle"></i> Questions & Support
+            </h2>
+            <div class="theory-box" style="background: #d1fae5; border-left: 4px solid #059669;">
+                <p style="line-height: 1.8; color: #065f46;">
+                    This tool was developed for educational purposes in solid-state diffusion by Nita Dragoe from Univ Paris-Saclay. 
+                    It implements peer-reviewed models from the materials science literature and has been validated 
+                    against analytical solutions (error functions, Matano-Boltzmann analysis) for ideal systems.<br><br>
+                    
+                    <strong>Citing This Tool:</strong> If you use this simulator in published research, please cite 
+                    the underlying theory (Onsager, Manning-Darken) and mention "Onsager Diffusion Solver v8.4" 
+                    in your methods section.<br><br>
+                    
+                    <strong>Feedback:</strong> For bug reports or questions about specific open an issue on the project repository.<br><br>
+                    
+                    <strong>Disclaimer:</strong> Results are only as good as the input parameters. Always validate 
+                    simulations against experimental data before drawing conclusions about real material systems.
+                </p>
+            </div>
+        </div>
+
+
+
+
+
+
     </div>
 </div>
 
