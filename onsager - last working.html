@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Onsager Diffusion v8.0 (3D Flux)</title>
-    <link href="./dist/output.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -82,11 +82,11 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div class="input-group">
                             <label class="text-[10px] text-orange-700 font-bold block mb-1">Source Lenght (µm)</label>
-                            <input type="number" id="sourceLength" value="5" min="0.1" step="0.1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
+                            <input type="number" id="sourceLength" value="50" min="0.1" step="0.1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
                         </div>
                         <div class="input-group">
                             <label class="text-[10px] text-orange-700 font-bold block mb-1">Total Length (µm)</label>
-                            <input type="number" id="totalLength" value="20" min="1" step="1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
+                            <input type="number" id="totalLength" value="250" min="1" step="1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
                         </div>
                         <div class="input-group col-span-2">
                             <label class="text-[10px] text-orange-700 font-bold block mb-1">Grid Points</label>
@@ -100,11 +100,11 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div class="input-group">
                             <label class="text-[10px] text-gray-500 font-bold block">Temp (K)</label>
-                            <input type="number" id="temp" value="1050" min="600" max="2800" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
+                            <input type="number" id="temp" value="1600" min="800" max="2800" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
                         </div>
                         <div class="input-group">
                             <label class="text-[10px] text-gray-500 font-bold block">Time (Hours)</label>
-                            <input type="number" id="time" value="72" min="0.1" step="0.1" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
+                            <input type="number" id="time" value="48" min="0.1" step="0.1" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
                         </div>
                     </div>
                 </div>
@@ -157,13 +157,12 @@
             </div>
 
 
-
-            <div id="pane-help" class="tab-pane overflow-y-auto p-8 bg-white">
+<div id="pane-help" class="tab-pane overflow-y-auto p-8 bg-white">
     <div class="max-w-4xl mx-auto pb-20 help-content">
         
         <div class="border-b border-gray-200 pb-4 mb-6">
             <h1 class="text-3xl font-bold text-slate-800">Documentation & Theory</h1>
-            <p class="text-slate-500 mt-2">Onsager Multi-Component Diffusion Solver (v8.4)</p>
+            <p class="text-slate-500 mt-2">Onsager Multi-Component Diffusion Solver (v8.3)</p>
         </div>
 
         <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-8 shadow-sm rounded-r">
@@ -172,7 +171,8 @@
                 <div class="ml-3">
                     <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wide">Parameter Warning</h3>
                     <p class="text-sm text-amber-900 mt-1">
-                        Default values ($D_0, Q$) are approximations for <strong>MgO</strong>. For other systems you must update these values. This tool assumes that D0 and Q do not change with concentration.
+                        Default values ($D_0, Q$) are for <strong>MgO</strong>. For other systems (Steel, Geology), update these values. 
+                        Note: This tool assumes a dilute solution limit (Activity coefficient $\gamma \approx 1$).
                     </p>
                 </div>
             </div>
@@ -184,7 +184,7 @@
         </h2>
         
         <p class="text-slate-600 mb-4">
-            This tool solves the transport equations using concentration gradients, which leads to an <strong>asymmetric</strong> diffusion matrix.
+            A common point of confusion is the symmetry of the interaction matrix. This tool uses concentration gradients, leading to an <strong>asymmetric</strong> diffusion matrix.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -195,7 +195,7 @@
                 </div>
                 <p class="text-xs text-slate-500">
                     Driven by Chemical Potential ($\mu$).<br>
-                    <strong>Symmetric ($L_{ij} = L_{ji}$)</strong> due to microscopic time reversibility (Onsager Reciprocal Relations).
+                    <strong>Symmetric ($L_{ij} = L_{ji}$)</strong> due to microscopic time reversibility.
                 </p>
             </div>
 
@@ -206,7 +206,7 @@
                 </div>
                 <p class="text-xs text-indigo-800">
                     Driven by Concentration ($C$).<br>
-                    <strong>Asymmetric ($D_{ij} \neq D_{ji}$)</strong> because it combines the symmetric $L$ matrix with the thermodynamic properties of the material ($D = L \cdot \frac{\partial \mu}{\partial C}$).
+                    <strong>Asymmetric ($D_{ij} \neq D_{ji}$)</strong> because $D = L \cdot \frac{\partial \mu}{\partial C}$.
                 </p>
             </div>
         </div>
@@ -217,7 +217,7 @@
         </h2>
 
         <p class="text-slate-600 mb-4">
-            This tool calculates the $D_{ij}$ terms dynamically at every grid point using the Manning-Darken formalism for vacancy-mediated diffusion. The asymmetry arises physically from the <strong>Vacancy Wind Effect</strong>.
+            This tool calculates $D_{ij}$ using the Manning-Darken formalism for vacancy-mediated diffusion. The asymmetry arises physically from the <strong>Vacancy Wind Effect</strong>.
         </p>
 
         <div class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8 shadow-sm">
@@ -241,7 +241,7 @@
                         <td class="px-4 py-3 font-mono text-orange-600 font-bold">Off-Diagonal ($D_{ij}$)</td>
                         <td class="px-4 py-3 font-mono text-xs">$$C_i (D^*_{matrix} - D^*_j)$$</td>
                         <td class="px-4 py-3 text-slate-600 text-xs">
-                            <strong>Vacancy Wind:</strong> If species $j$ is fast ($D^*_j$ high), it creates a vacancy wind that drags species $i$. This is asymmetric because $C_i \neq C_j$.
+                            <strong>Vacancy Wind:</strong> If species $j$ is fast, it creates a vacancy wind that drags species $i$. This is asymmetric because $C_i \neq C_j$.
                         </td>
                     </tr>
                 </tbody>
@@ -255,27 +255,23 @@
         
         <div class="prose prose-sm text-slate-600 bg-slate-50 p-5 rounded border border-slate-200 mb-8">
             <p class="mb-2">
-                The coupled Partial Differential Equations (PDEs) are solved by using an Explicit Finite Difference Method. 
-                Because the equations are coupled (the motion of one element depends on all others), simple stability checks fail.
+                We solve the coupled PDEs using an Explicit Finite Difference Method. 
+                Because the equations are coupled, simple stability checks fail.
             </p>
             
-            <h4 class="font-bold text-slate-800 mt-4">Robust Stability: Spectral Radius Control</h4>
+            <h4 class="font-bold text-slate-800 mt-4">New: Spectral Radius Control</h4>
             <p>
-                To ensure the simulation does not "explode", the timestep $\Delta t$ is calculated by using <strong>Gershgorin's Circle Theorem</strong> to estimate the maximum Eigenvalue ($\lambda_{max}$) of the diffusion matrix at every step:
+                To prevent numerical explosions, we dynamically calculate the timestep $\Delta t$ using <strong>Gershgorin's Circle Theorem</strong> to estimate the maximum Eigenvalue ($\lambda_{max}$) of the diffusion matrix:
             </p>
             
             <div class="my-4 bg-white p-3 rounded border border-slate-300 text-center font-mono text-slate-800">
-                $$ \Delta t \leq \frac{\Delta x^2}{2 \cdot \lambda_{max}} \quad \text{where} \quad \lambda_{max} \approx \max_i \sum_j |D_{ij} \cdot \Phi_i| $$
+                $$ \Delta t \leq \frac{\Delta x^2}{2 \cdot \lambda_{max}} \quad \text{where} \quad \lambda_{max} \approx \max_i \sum_j |D_{ij}| $$
             </div>
-
-            <p>
-                This ensures that even if you pair a very fast dopant with a very slow one (strong coupling) or use non-ideal thermodynamics, the solver remains mathematically rigorous.
-            </p>
         </div>
 
         <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
             <span class="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-sm">4</span>
-            Visualizing data
+            Visualizing the Physics
         </h2>
 
         <div class="space-y-4 mb-8">
@@ -286,27 +282,11 @@
                 <div>
                     <h4 class="font-bold text-slate-800">3D Flux View (Surface Plot)</h4>
                     <p class="text-sm text-slate-600 mt-1">
-                        Visualizes the net flow of atoms $J(x,t)$. 
+                        Visualizes the net flow $J(x,t)$. 
                     </p>
                     <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-4">
                         <li><strong>The "Wall":</strong> A massive flux spike at T=0 where gradients are infinite.</li>
-                        <li><strong>Coupling Signs:</strong> If a slow element moves "uphill" (negative flux against its own gradient), it creates a dip in the surface, visually proving the Onsager cross-terms are active.</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4">
-                <div class="shrink-0 w-12 h-12 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center text-lg self-center md:self-start">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <div>
-                    <h4 class="font-bold text-slate-800">Concentration Profile (2D)</h4>
-                    <p class="text-sm text-slate-600 mt-1">
-                        The classic "Diffusion Profile".
-                    </p>
-                    <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-4">
-                        <li><strong>Uphill Diffusion:</strong> Look for "bumps" near the interface. This is the fast element "stealing" vacancies from the slow element.</li>
-                        <li><strong>Kirkendall Shift:</strong> Asymmetry in the profiles indicates the lattice plane is physically moving to compensate for unequal flux.</li>
+                        <li><strong>Coupling:</strong> If a slow element moves "uphill" (negative flux), it creates a dip in the surface.</li>
                     </ul>
                 </div>
             </div>
@@ -314,156 +294,49 @@
 
         <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
             <span class="w-8 h-8 rounded bg-rose-100 text-rose-600 flex items-center justify-center text-sm">5</span>
-            Non-Ideal Thermodynamics ($\Omega \neq 0$)
+            Non-Ideal Systems (Gamma $\neq$ 1)
         </h2>
 
-        <div class="bg-rose-50 border border-rose-100 p-6 rounded mb-8">
+        <div class="bg-rose-50 border border-rose-100 p-5 rounded mb-8">
             <p class="text-slate-700 text-sm mb-4">
-                Fick's Law assumes a "Dilute Solution" (Ideal Gas behavior, $\gamma=1$). In real alloys, atoms interact chemically. We model this using the <strong>Regular Solution Model</strong> via the Interaction Parameter $\Omega$ (Omega).
+                This simulation assumes a <strong>Dilute Solution</strong> ($\gamma \approx 1$), meaning entropy is the only driver. 
+                In concentrated alloys, Enthalpic interactions (repulsion/attraction) modify the flux via the <strong>Thermodynamic Factor ($\Phi$)</strong>:
             </p>
 
-            <h4 class="font-bold text-rose-800 text-sm mb-2 uppercase tracking-wide">1. The Thermodynamic Factor ($\Phi$)</h4>
-            <p class="text-sm text-slate-600 mb-3">
-                Flux is driven by the gradient of Chemical Potential ($\mu$), not just concentration. We calculate a correction factor $\Phi$ at every grid point:
-            </p>
             <div class="text-center bg-white p-3 rounded border border-rose-200 mb-4 font-mono text-rose-900 text-sm">
-                $$ \Phi = 1 - \frac{2 \Omega C (1-C)}{k_B T} $$
-                <div class="text-xs text-slate-400 mt-1">Then, $J_{actual} = J_{onsager} \times \Phi$</div>
+                $$ D_{actual} = D_{onsager} \cdot \underbrace{\left( 1 + \frac{\partial \ln \gamma}{\partial \ln C} \right)}_{\Phi} $$
             </div>
 
-            <h4 class="font-bold text-rose-800 text-sm mb-2 uppercase tracking-wide">2. The Meaning of Omega ($\Omega$)</h4>
-            <p class="text-sm text-slate-600 mb-4">
-                The parameter $\Omega$ describes the enthalpy of mixing between the Dopant and the Matrix.
-            </p>
-
-            <div class="space-y-3">
-                <div class="bg-white p-4 rounded shadow-sm border-l-4 border-indigo-500">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-indigo-700 text-sm">Case A: Ordering ($\Omega < 0$)</span>
-                        <span class="font-mono text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">$\Phi > 1$</span>
-                    </div>
-                    <p class="text-xs text-slate-600">
-                        The dopant atoms are attracted to the matrix atoms. 
-                        <br><strong>Effect:</strong> The thermodynamic driving force is increased. Diffusion appears <strong>faster</strong> or gradients become steeper as atoms rush to mix.
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                <div class="bg-white p-3 rounded shadow-sm border border-rose-100">
+                    <div class="font-bold text-rose-600 text-xs uppercase mb-1">Repulsion</div>
+                    <div class="font-mono text-lg font-bold text-slate-800 mb-1">$\Phi > 1$</div>
+                    <p class="text-[10px] text-slate-500 leading-tight">
+                        Atoms hate each other.<br>Diffusion <strong>Accelerates</strong>.
                     </p>
                 </div>
-
-                <div class="bg-white p-4 rounded shadow-sm border-l-4 border-amber-500">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-amber-700 text-sm">Case B: Clustering ($\Omega > 0$)</span>
-                        <span class="font-mono text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded">$0 < \Phi < 1$</span>
-                    </div>
-                    <p class="text-xs text-slate-600">
-                        The dopant atoms repel the matrix.
-                        <br><strong>Effect:</strong> The driving force is reduced. Diffusion is <strong>suppressed</strong> (sluggish).
+                <div class="bg-white p-3 rounded shadow-sm border border-rose-100">
+                    <div class="font-bold text-indigo-600 text-xs uppercase mb-1">Attraction</div>
+                    <div class="font-mono text-lg font-bold text-slate-800 mb-1">$0 < \Phi < 1$</div>
+                    <p class="text-[10px] text-slate-500 leading-tight">
+                        Atoms order/clump.<br>Diffusion <strong>Slows Down</strong>.
                     </p>
                 </div>
-
-                <div class="bg-white p-4 rounded shadow-sm border-l-4 border-rose-600">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-rose-700 text-sm">Case C: Spinodal Decomposition ($\Omega \gg 0$)</span>
-                        <span class="font-mono text-xs bg-rose-50 text-rose-700 px-2 py-1 rounded">$\Phi < 0$</span>
-                    </div>
-                    <p class="text-xs text-slate-600">
-                        If repulsion is very high and Temperature is low ($2\Omega > 4 k_B T$), the system becomes unstable.
-                        <br><strong>Effect:</strong> <strong>Negative Diffusion</strong>. Atoms flow from Low Concentration $\to$ High Concentration. The material spontaneously un-mixes (phase separation).
+                <div class="bg-white p-3 rounded shadow-sm border border-rose-100">
+                    <div class="font-bold text-slate-600 text-xs uppercase mb-1">Spinodal</div>
+                    <div class="font-mono text-lg font-bold text-slate-800 mb-1">$\Phi < 0$</div>
+                    <p class="text-[10px] text-slate-500 leading-tight">
+                        Phase Separation.<br><strong>Negative Diffusion</strong> (Unmixing).
                     </p>
                 </div>
             </div>
-        </div>
-
-        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="w-8 h-8 rounded bg-cyan-100 text-cyan-600 flex items-center justify-center text-sm">6</span>
-            Reference Values for MgO Matrix
-        </h2>
-
-        <div class="bg-cyan-50 border-l-4 border-cyan-500 p-5 rounded mb-8 shadow-sm">
-            <p class="text-sm text-slate-700 mb-4">
-                The values below are compiled from experimental thermodynamic assessments of oxide solid solutions.
-                <br><span class="text-xs text-slate-500">Note: $1 \text{ kJ/mol} \approx 0.0104 \text{ eV}$.</span>
-            </p>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-cyan-100 text-cyan-900 font-bold uppercase border-b border-cyan-200">
-                        <tr>
-                            <th class="px-3 py-2">Dopant (Oxide)</th>
-                            <th class="px-3 py-2">$\Omega$ (eV)</th>
-                            <th class="px-3 py-2">Behavior</th>
-                            <th class="px-3 py-2">Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-cyan-100 bg-white">
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">NiO (Ni²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.00</td>
-                            <td class="px-3 py-2">Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Complete solid solution.</td>
-                        </tr>
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">CoO (Co²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.05</td>
-                            <td class="px-3 py-2">Near Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Very slight repulsion ($\approx 5$ kJ/mol).</td>
-                        </tr>
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">FeO (Fe²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.04</td>
-                            <td class="px-3 py-2">Near Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Mixes well at high Temp.</td>
-                        </tr>
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">MnO (Mn²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.04</td>
-                            <td class="px-3 py-2">Near Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Similar radius to Mg²⁺.</td>
-                        </tr>
-
-
-                        <tr class="hover:bg-cyan-50/50">
-    <td class="px-3 py-2 font-bold text-slate-700">CuO (Cu²⁺)</td>
-    <td class="px-3 py-2 font-mono text-amber-600">0.21</td>
-    <td class="px-3 py-2">Repulsive</td>
-    <td class="px-3 py-2 text-slate-500">
-        Jahn-Teller ion. Distorts the local MgO lattice, reducing solubility.
-    </td>
-</tr>
-
-<tr class="hover:bg-cyan-50/50">
-    <td class="px-3 py-2 font-bold text-slate-700">ZnO (Zn²⁺)</td>
-    <td class="px-3 py-2 font-mono text-amber-600">0.18</td>
-    <td class="px-3 py-2">Repulsive</td>
-    <td class="px-3 py-2 text-slate-500">
-        Structural mismatch. Zn prefers tetrahedral coord (Wurtzite) vs Mg octahedral (Rock Salt).
-    </td>
-</tr>
-
-
-                        <tr class="bg-slate-50 hover:bg-slate-100 border-t border-slate-200">
-                            <td class="px-3 py-2 font-bold text-slate-700">Cr₂O₃ (Cr³⁺)</td>
-                            <td class="px-3 py-2 font-mono text-purple-600">> 0.80</td>
-                            <td class="px-3 py-2">Solubility Limit</td>
-                            <td class="px-3 py-2 text-slate-500">Forms Spinel (MgCr₂O₄). Treats MgO as matrix.</td>
-                        </tr>
-                        <tr class="bg-slate-50 hover:bg-slate-100">
-                            <td class="px-3 py-2 font-bold text-slate-700">Al₂O₃ (Al³⁺)</td>
-                            <td class="px-3 py-2 font-mono text-purple-600">> 1.00</td>
-                            <td class="px-3 py-2">Solubility Limit</td>
-                            <td class="px-3 py-2 text-slate-500">Very low solubility in Periclase.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <p class="text-[10px] text-slate-400 mt-2 italic">
-                * For 3+ ions (Cr, Al, Fe³⁺), the "Regular Solution" model is an approximation. A high positive $\Omega$ effectively simulates their low solubility limit.
+            <p class="text-xs text-rose-800 mt-4 italic">
+                * Note: Spinodal decomposition ($\Phi < 0$) causes standard Fickian solvers to crash or oscillate.
             </p>
         </div>
-
-
 
     </div>
 </div>
-
 
 
 
@@ -471,238 +344,181 @@
     </div>
 
     <template id="elementTemplate">
-    <div class="element-card bg-white p-3 rounded border border-gray-300 shadow-sm relative group border-l-4 mb-2">
-        <input type="hidden" class="el-color">
-        <button class="delete-btn absolute top-1 right-2 text-gray-300 hover:text-red-500 hidden group-hover:block transition" title="Remove">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="grid grid-cols-3 gap-2 mb-2"> <div class="col-span-3">
-                <label class="text-[10px] text-gray-500 font-bold block">Dopant</label>
-                <select class="el-name border border-gray-300 rounded text-xs w-full p-1 font-semibold text-slate-700" onchange="updateElementParams(this)">
-                </select>
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 font-bold block">D*₀</label>
-                <input type="text" class="el-d0 text-xs border border-gray-300 rounded p-1 w-full" onchange="debouncedUpdate()">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 font-bold block">Q (eV)</label>
-                <input type="number" class="el-q text-xs border border-gray-300 rounded p-1 w-full" step="0.1" onchange="debouncedUpdate()">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 font-bold block text-rose-600">Ω (eV)</label>
-                <input type="number" class="el-omega text-xs border border-rose-200 bg-rose-50 rounded p-1 w-full font-bold text-rose-800" value="0" step="0.01" onchange="debouncedUpdate()">
-            </div>
-            <div class="col-span-1.5"> <label class="text-[10px] text-gray-500 font-bold block">Source %</label>
-                <input type="number" class="el-c-left text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
-            </div>
-            <div class="col-span-1.5"> <label class="text-[10px] text-gray-500 font-bold block">Matrix %</label>
-                <input type="number" class="el-c-right text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
+        <div class="element-card bg-white p-3 rounded border border-gray-300 shadow-sm relative group border-l-4 mb-2">
+            <input type="hidden" class="el-color">
+            <button class="delete-btn absolute top-1 right-2 text-gray-300 hover:text-red-500 hidden group-hover:block transition" title="Remove">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="col-span-2">
+                    <label class="text-[10px] text-gray-500 font-bold block">Dopant</label>
+                    <select class="el-name border border-gray-300 rounded text-xs w-full p-1 font-semibold text-slate-700" onchange="updateElementParams(this)">
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-bold block">D*₀</label>
+                    <input type="text" class="el-d0 text-xs border border-gray-300 rounded p-1 w-full" onchange="debouncedUpdate()">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-bold block">Q (eV)</label>
+                    <input type="number" class="el-q text-xs border border-gray-300 rounded p-1 w-full" step="0.1" onchange="debouncedUpdate()">
+                </div>
+                <div class="col-span-2 flex items-center gap-2">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-500 font-bold block">Source %</label>
+                        <input type="number" class="el-c-left text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-500 font-bold block">Matrix %</label>
+                        <input type="number" class="el-c-right text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</template>
+    </template>
 
+    <script id="worker-code" type="javascript/worker">
+        const KB_EV = 8.617333262145e-5; 
 
-<script id="worker-code" type="javascript/worker">
-    const KB_EV = 8.617333262145e-5; 
-
-    self.onmessage = function(e) {
-        const inputs = e.data;
-        try {
-            // --- 1. SETUP PARAMETERS ---
-            const Temp = inputs.temp;
-            const kBT = KB_EV * Temp;
-            const Time_s = inputs.timeHours * 3600;
-            const N = inputs.N;
-            const L_m = inputs.totalLength * 1e-6; 
-            const Source_m = inputs.sourceLength * 1e-6;
-            const dx = L_m / (N - 1);
-            
-            const interfaceNode = Math.round(Source_m / dx);
-
-            // Matrix Properties
-            const matExp = -inputs.targetQ / (kBT);
-            const D_star_matrix = inputs.targetD0 * Math.exp(matExp);
-
-            // Initialize Species
-            const species = inputs.elements.map(el => {
-                const exp = -el.q / (kBT);
-                const D_star = el.d0 * Math.exp(exp);
-                const C = new Float64Array(N);
+        self.onmessage = function(e) {
+            const inputs = e.data;
+            try {
+                const Temp = inputs.temp;
+                const Time_s = inputs.timeHours * 3600;
+                const N = inputs.N;
+                const L_m = inputs.totalLength * 1e-6; 
+                const Source_m = inputs.sourceLength * 1e-6;
+                const dx = L_m / (N - 1);
                 
-                // Initial Step Profile
-                for(let i=0; i<N; i++) {
-                    C[i] = (i < interfaceNode) ? el.cLeft / 100 : el.cRight / 100;
+                const interfaceNode = Math.round(Source_m / dx);
+
+                // Setup Species
+                const matExp = -inputs.targetQ / (KB_EV * Temp);
+                const D_star_matrix = inputs.targetD0 * Math.exp(matExp);
+
+                // Initialize species
+                const species = inputs.elements.map(el => {
+                    const exp = -el.q / (KB_EV * Temp);
+                    const D_star = el.d0 * Math.exp(exp);
+                    const C = new Float64Array(N);
+                    for(let i=0; i<N; i++) {
+                        C[i] = (i < interfaceNode) ? el.cLeft / 100 : el.cRight / 100;
+                    }
+                    return { 
+                        ...el, 
+                        D_star, 
+                        C, 
+                        C_new: new Float64Array(N), 
+                        Flux: new Float64Array(N), 
+                        history: [],
+                        fluxHistory: [] 
+                    };
+                });
+
+                let maxD = getSpectralRadius(species, D_star_matrix, N);
+
+                 let dt = (0.4 * dx * dx) / maxD;
+                let totalSteps = Math.ceil(Time_s / dt);
+
+                if(totalSteps > 1500000) {
+                    totalSteps = 1500000;
+                    dt = Time_s / totalSteps;
                 }
 
-                return { 
-                    ...el, 
-                    D_star, 
-                    omega: el.omega || 0, // Default to 0 if undefined
-                    C, 
-                    C_new: new Float64Array(N), 
-                    Flux: new Float64Array(N), 
-                    history: [],
-                    fluxHistory: [] 
-                };
-            });
+                // Optimization: Save fewer frames for 3D view to prevent lag
+                const saveInterval = Math.max(1, Math.floor(totalSteps / 40));
+                const reportInterval = Math.max(100, Math.floor(totalSteps / 50));
 
-            // --- 2. TIME INTEGRATION LOOP ---
-            
-            // Initial Time Step Guess
-            let maxD_initial = getSpectralRadius(species, D_star_matrix, N);
-            let dt = (0.4 * dx * dx) / maxD_initial;
-            let current_time = 0;
-            
-            // Loop counters
-            let step = 0;
-            
-            // Optimization: Save intervals
-            const estimatedSteps = Math.ceil(Time_s / dt);
-            const saveInterval = Math.max(1, Math.floor(estimatedSteps / 40)); 
-            const reportInterval = Math.max(100, Math.floor(estimatedSteps / 50));
-
-            while (current_time < Time_s) {
-                
-                // A. Dynamic Stability Check (Recalculate dt every 100 steps to adjust for changing gradients)
-                if (step % 100 === 0) {
-                    const maxEigenvalue = getSpectralRadius(species, D_star_matrix, N);
-                    // CFL Condition: dt <= dx^2 / (2 * D)
-                    // We use 0.4 for safety margin
-                    dt = (0.4 * dx * dx) / maxEigenvalue;
-                }
-
-                // Ensure we don't overshoot the final time
-                if (current_time + dt > Time_s) dt = Time_s - current_time;
-
-                // B. Flux Calculation (Fick's 1st Law + Onsager + Thermodynamics)
-                for (let i = 0; i < N - 1; i++) {
-                    // Local properties at the interface between node i and i+1
-                    const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
-                    const grads = species.map(s => (s.C[i+1] - s.C[i]) / dx);
-                    
-                    species.forEach((s_i, idx_i) => {
-                        let flux_onsager = 0;
+                for (let t = 0; t < totalSteps; t++) {
+                    for (let i = 0; i < N - 1; i++) {
+                        const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
+                        const grads = species.map(s => (s.C[i+1] - s.C[i]) / dx);
                         
-                        // 1. Calculate Onsager Matrix Terms (D_ij)
-                        species.forEach((s_j, idx_j) => {
-                            let D_ij = 0;
-                            if (idx_i === idx_j) {
-                                // Diagonal: Self-Diffusion + Matrix Drag
-                                D_ij = s_i.D_star + C_local[idx_i] * (D_star_matrix - s_i.D_star);
-                            } else {
-                                // Off-Diagonal: Vacancy Wind Effect (Cross-term)
-                                D_ij = C_local[idx_i] * (D_star_matrix - s_j.D_star);
-                            }
-                            flux_onsager += -1 * D_ij * grads[idx_j];
+                        // ONSAGER MATRIX (Darken-Manning)
+                        species.forEach((s_i, idx_i) => {
+                            let flux = 0;
+                            species.forEach((s_j, idx_j) => {
+                                let D_ij = 0;
+                                if (idx_i === idx_j) {
+                                    D_ij = s_i.D_star + C_local[idx_i] * (D_star_matrix - s_i.D_star);
+                                } else {
+                                    D_ij = C_local[idx_i] * (D_star_matrix - s_j.D_star);
+                                }
+                                flux += -1 * D_ij * grads[idx_j];
+                            });
+                            s_i.Flux[i] = flux;
                         });
+                    }
 
-                        // 2. Calculate Thermodynamic Factor (Phi)
-                        // Regular Solution Model: Phi = 1 - [2 * Omega * C * (1-C) / kT]
-                        // Note: If Omega is 0 (Ideal), Phi = 1.
-                        const conc = C_local[idx_i];
-                        const term = (2 * s_i.omega * conc * (1 - conc)) / kBT;
-                        const Phi = 1 - term;
-
-                        // 3. Apply Correction
-                        s_i.Flux[i] = flux_onsager * Phi;
-                    });
-                }
-
-                // C. Conservation of Mass (Fick's 2nd Law)
-                for (let i = 1; i < N - 1; i++) {
+                    for (let i = 1; i < N - 1; i++) {
+                        species.forEach(s => {
+                            const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
+                            s.C_new[i] = s.C[i] - dt * dJ_dx;
+                        });
+                    }
+                    species.forEach(s => { s.C_new[0] = s.C_new[1]; s.C_new[N-1] = s.C_new[N-2]; });
                     species.forEach(s => {
-                        const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
-                        s.C_new[i] = s.C[i] - dt * dJ_dx;
+                        const temp = s.C; s.C = s.C_new; s.C_new = temp;
+                        
+                        // Save both Concentration AND Flux history
+                        if (inputs.mode === 'history' && t % saveInterval === 0) {
+                            s.history.push(Float64Array.from(s.C));
+                            s.fluxHistory.push(Float64Array.from(s.Flux));
+                        }
                     });
+                    if (t % reportInterval === 0) self.postMessage({ type: 'progress', percent: Math.round((t / totalSteps) * 100) });
                 }
 
-                // D. Boundary Conditions (No Flux / Reflective)
-                species.forEach(s => { 
-                    s.C_new[0] = s.C_new[1]; 
-                    s.C_new[N-1] = s.C_new[N-2]; 
-                });
-
-                // E. Update & History
-                species.forEach(s => {
-                    // Swap Arrays
-                    const temp = s.C; s.C = s.C_new; s.C_new = temp;
-                    
-                    if (inputs.mode === 'history' && step % saveInterval === 0) {
-                        s.history.push(Float64Array.from(s.C));
-                        s.fluxHistory.push(Float64Array.from(s.Flux));
-                    }
-                });
-
-                current_time += dt;
-                step++;
-
-                if (step % reportInterval === 0) {
-                    const percent = Math.min(100, Math.round((current_time / Time_s) * 100));
-                    self.postMessage({ type: 'progress', percent: percent });
+                const finalMatrix = new Float64Array(N);
+                for(let i=0; i<N; i++) {
+                    let sum = 0;
+                    species.forEach(s => sum += s.C[i]);
+                    finalMatrix[i] = Math.max(0, 1 - sum);
                 }
+
+                self.postMessage({ type: 'complete', species, matrix: finalMatrix, dx, interfaceX: Source_m });
+            } catch (err) {
+                self.postMessage({ type: 'error', message: err.message });
             }
+        };
 
-            // --- 3. FINALIZE ---
-            const finalMatrix = new Float64Array(N);
-            for(let i=0; i<N; i++) {
-                let sum = 0;
-                species.forEach(s => sum += s.C[i]);
-                finalMatrix[i] = Math.max(0, 1 - sum);
-            }
+function getSpectralRadius(species, D_star_matrix, N) {
+    let maxEigenvalue = 0;
 
-            self.postMessage({ type: 'complete', species, matrix: finalMatrix, dx, interfaceX: Source_m });
-        } catch (err) {
-            self.postMessage({ type: 'error', message: err.message + " (Check Omega/Stability)" });
-        }
-    };
-
-    /**
-     * Calculates the Spectral Radius (Max Eigenvalue) of the Diffusion Matrix
-     * Uses Gershgorin Circle Theorem for a safe upper bound.
-     * Essential for stability in coupled multi-component systems.
-     */
-    function getSpectralRadius(species, D_star_matrix, N) {
-        let maxEigenvalue = 0;
-
-        // Scan grid (sparse scan for performance, scanning every 5th point is usually sufficient)
-        // But for safety in this version, we scan the full grid.
-        for (let x = 0; x < N; x++) {
-            
-            // For each species row i
-            for (let i = 0; i < species.length; i++) {
-                let rowSum = 0;
-                const C_i = species[i].C[x];
-                
-                // Sum absolute values of all interaction terms
-                for (let j = 0; j < species.length; j++) {
-                    let D_ij = 0;
-                    if (i === j) {
-                        D_ij = species[i].D_star + C_i * (D_star_matrix - species[i].D_star);
-                    } else {
-                        D_ij = C_i * (D_star_matrix - species[j].D_star);
-                    }
-                    rowSum += Math.abs(D_ij);
-                }
-                
-                // Apply Gamma correction roughly to the max Eigenvalue for safety
-                // If Phi is large (>1), we need smaller timesteps.
-                // If Phi is negative (Spinodal), we technically can't be stable with Explicit Euler, 
-                // but we take abs() to prevent crash.
-                let phi_est = 1.0;
-                if (species[i].omega !== 0) {
-                   // Worst case estimation for phi
-                   phi_est = Math.max(1, Math.abs(1 - (2 * species[i].omega * 0.25) / (KB_EV * 2000))); 
-                }
-
-                if (rowSum * phi_est > maxEigenvalue) maxEigenvalue = rowSum * phi_est;
-            }
-        }
+    // We scan the grid to find the point with the highest diffusion activity
+    for (let x = 0; x < N; x++) {
         
-        return Math.max(maxEigenvalue, 1e-35);
+        // Check every species (This represents the Rows of the D matrix)
+        for (let i = 0; i < species.length; i++) {
+            let rowSum = 0;
+            const C_i = species[i].C[x];
+            
+            // Sum the interaction with all other species (The Columns)
+            for (let j = 0; j < species.length; j++) {
+                let D_ij = 0;
+                
+                if (i === j) {
+                    // Diagonal: Self-Diffusion + Matrix Drag
+                    D_ij = species[i].D_star + C_i * (D_star_matrix - species[i].D_star);
+                } else {
+                    // Off-Diagonal: Vacancy Wind Effect
+                    D_ij = C_i * (D_star_matrix - species[j].D_star);
+                }
+                
+                // Gershgorin bound: Sum of absolute values in the row
+                rowSum += Math.abs(D_ij);
+            }
+
+            if (rowSum > maxEigenvalue) maxEigenvalue = rowSum;
+        }
     }
-</script>
+    
+    // Safety floor to prevent divide-by-zero
+    return Math.max(maxEigenvalue, 1e-35);
+}
+
+    </script>
+
 
 
 
@@ -880,61 +696,32 @@
 
     function downloadData() {
         if (!lastResults || !lastInputs) { alert("No data to download."); return; }
-        
         let csvContent = "data:text/csv;charset=utf-8,";
-        
-        // 1. Simulation Parameters
         csvContent += "--- SIMULATION PARAMETERS ---\n";
-        csvContent += `Temperature (K),${lastInputs.temp}\n`;
-        csvContent += `Time (Hours),${lastInputs.timeHours}\n`;
-        csvContent += `Source Length (um),${lastInputs.sourceLength}\n`;
-        csvContent += `Total Length (um),${lastInputs.totalLength}\n`;
-        csvContent += `Matrix D0 (m2/s),${lastInputs.targetD0}\n`;
-        csvContent += `Matrix Q (eV),${lastInputs.targetQ}\n`;
-        csvContent += `Grid Points,${lastInputs.N}\n\n`;
-        
-        // 2. Species Info (Updated to include Omega)
-        csvContent += "--- SPECIES INFO ---\n";
-        csvContent += "Name,D0,Q,Omega (eV),C_Source (%),C_Matrix (%)\n"; // <--- Header Updated
-        
-        lastInputs.elements.forEach(el => { 
-            // <--- Row Updated to include el.omega
-            csvContent += `${el.name},${el.d0},${el.q},${el.omega},${el.cLeft},${el.cRight}\n`; 
-        });
-        
+        csvContent += `Temperature (K),${lastInputs.temp}\nTime (Hours),${lastInputs.timeHours}\nSource Length (um),${lastInputs.sourceLength}\nTotal Length (um),${lastInputs.totalLength}\nMatrix D0 (m2/s),${lastInputs.targetD0}\nMatrix Q (eV),${lastInputs.targetQ}\nGrid Points,${lastInputs.N}\n\n`;
+        csvContent += "--- SPECIES INFO ---\nName,D0,Q,C_Left,Matrix\n";
+        lastInputs.elements.forEach(el => { csvContent += `${el.name},${el.d0},${el.q},${el.cLeft},${el.cRight}\n`; });
         csvContent += "\n--- CALCULATION RESULTS ---\n";
-        
-        // 3. Calculation Data (Remains the same)
         let headerRow = ["Depth (um)", "Matrix Conc (%)"];
-        lastResults.species.forEach(s => { 
-            headerRow.push(`${s.name} Conc (%)`); 
-            headerRow.push(`${s.name} Flux (J)`); 
-        });
+        lastResults.species.forEach(s => { headerRow.push(`${s.name} Conc (%)`); headerRow.push(`${s.name} Flux (J)`); });
         csvContent += headerRow.join(",") + "\n";
-        
         const N = lastInputs.N;
         const dx_um = lastResults.dx * 1e6;
-        
         for (let i = 0; i < N; i++) {
             let row = [];
             row.push((i * dx_um).toFixed(4));
             row.push((lastResults.matrix[i] * 100).toFixed(4));
-            lastResults.species.forEach(s => { 
-                row.push((s.C[i] * 100).toFixed(4)); 
-                row.push((s.Flux[i]).toExponential(4)); 
-            });
+            lastResults.species.forEach(s => { row.push((s.C[i] * 100).toFixed(4)); row.push((s.Flux[i]).toExponential(4)); });
             csvContent += row.join(",") + "\n";
         }
-        
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `onsager_diffusion_v8.4.csv`);
+        link.setAttribute("download", `onsager_diffusion.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
-
 
     function validateInputs() {
         const elements = [];
@@ -945,7 +732,6 @@
                 fullLabel: nameSelect.options[nameSelect.selectedIndex]?.text || "Unknown",
                 d0: parseFloat(card.querySelector('.el-d0').value), 
                 q: parseFloat(card.querySelector('.el-q').value),
-                omega: parseFloat(card.querySelector('.el-omega').value) || 0,
                 cLeft: parseFloat(card.querySelector('.el-c-left').value),
                 cRight: parseFloat(card.querySelector('.el-c-right').value),
                 color: card.querySelector('.el-color').value
