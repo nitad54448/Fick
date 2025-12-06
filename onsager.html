@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onsager Diffusion v8.0 (3D Flux)</title>
-    <link href="./dist/output.css" rel="stylesheet">
+    <title>Onsager Diffusion v8.0 (3D Flux) - Standalone</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -17,492 +17,865 @@
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <style>
-        /* Custom scrollbar for cleanliness */
+        :root {
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --primary: #ea580c; /* Orange */
+            --primary-light: #fff7ed;
+            --accent: #4f46e5; /* Indigo */
+            --accent-light: #eef2ff;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        .app-header {
+            height: 56px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon {
+            width: 32px; height: 32px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .brand h1 { font-size: 18px; margin: 0; font-weight: 700; }
+        .brand span { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 5px; }
+
+        /* Status Bar */
+        .status-area {
+            flex: 1;
+            margin: 0 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .progress-track {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.2s;
+        }
+        .status-text { font-family: monospace; font-size: 12px; color: var(--text-muted); min-width: 60px; text-align: right; }
+        .stop-btn { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 14px; }
+
+        /* Tabs */
+        .nav-tabs { display: flex; height: 100%; gap: 4px; }
+        .tab-btn {
+            background: none;
+            border: none;
+            height: 100%;
+            padding: 0 16px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tab-btn:hover { background-color: var(--bg-color); }
+        .tab-btn.active {
+            background-color: var(--accent-light);
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .tab-btn.help-btn { color: #059669; }
+
+        /* --- Main Layout --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 20px;
+            flex-shrink: 0;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.02);
+            z-index: 5;
+        }
+
+        /* Panels in Sidebar */
+        .control-panel {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            background: #fafafa;
+        }
+        .panel-orange { background: var(--primary-light); border-color: #fed7aa; }
+        .panel-indigo { background: var(--accent-light); border-color: #c7d2fe; }
+        .panel-header {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 8px;
+        }
+        .panel-title {
+            font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0;
+            color: var(--text-muted);
+        }
+        .text-orange { color: #9a3412; }
+        .text-indigo { color: #3730a3; }
+
+        /* Form Elements */
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .col-span-2 { grid-column: span 2; }
+        
+        .input-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 6px;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            background: white;
+        }
+        .input-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+
+        /* Element Card (Dopants) */
+        .element-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-left-width: 4px;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .element-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .grid-full { grid-column: 1 / -1; }
+        .delete-btn {
+            position: absolute; top: 4px; right: 4px;
+            border: none; background: none; color: #cbd5e1;
+            cursor: pointer; display: none;
+        }
+        .element-card:hover .delete-btn { display: block; }
+        .delete-btn:hover { color: var(--danger); }
+
+        /* Buttons */
+        .btn {
+            border: none; border-radius: 4px; padding: 6px 12px;
+            font-size: 11px; font-weight: 700; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            transition: background 0.2s;
+        }
+        .btn-add { background: var(--accent); color: white; }
+        .btn-add:hover { background: #4338ca; }
+        .btn-download { width: 100%; background: #e2e8f0; color: #475569; margin-top: 16px; padding: 10px; }
+        .btn-download:hover { background: #cbd5e1; }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            background: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+        }
+        .tab-pane {
+            display: none;
+            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
+        }
+        .tab-pane.active { display: block; }
+
+        /* Charts */
+        .chart-wrapper {
+            background: white;
+            margin: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            height: calc(100% - 32px);
+            padding: 16px;
+            position: relative;
+        }
+        #plotly-flux, #plotly-time { width: 100%; height: 100%; }
+
+        /* Help Section styling */
+        .help-container {
+            padding: 32px;
+            max-width: 800px;
+            margin: 0 auto;
+            overflow-y: auto;
+            height: 100%;
+            background: white;
+        }
+        .help-header { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; }
+        .help-header h1 { margin: 0; font-size: 24px; color: var(--text-main); }
+        .help-section { margin-bottom: 32px; }
+        .help-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .step-badge {
+            width: 24px; height: 24px; background: var(--accent-light); color: var(--accent);
+            border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+        .alert-box {
+            background: #fffbeb; border-left: 4px solid #f59e0b;
+            padding: 16px; border-radius: 0 4px 4px 0; margin-bottom: 24px; display: flex; gap: 12px;
+        }
+        .equation-box {
+            background: white; border: 1px solid var(--border-color);
+            padding: 12px; text-align: center; border-radius: 4px; margin: 12px 0;
+        }
+        
+
+        /* --- Help Section Specifics --- */
+
+/* Badge Colors */
+.step-badge.icon-orange { background: #ffedd5; color: #c2410c; }
+.step-badge.icon-emerald { background: #d1fae5; color: #059669; }
+.step-badge.icon-blue { background: #dbeafe; color: #2563eb; }
+.step-badge.icon-rose { background: #ffe4e6; color: #e11d48; }
+.step-badge.icon-cyan { background: #cffafe; color: #0891b2; }
+
+/* Grid for Cards */
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+/* Theory Cards */
+.theory-card {
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+.theory-card.card-slate { background: #f8fafc; border-color: #e2e8f0; }
+.theory-card.card-indigo { background: #eef2ff; border-color: #c7d2fe; }
+
+.theory-card h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+/* Boxes */
+.theory-box {
+    padding: 20px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    margin-bottom: 24px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.theory-box.box-slate { background: #f8fafc; border-color: #e2e8f0; }
+.theory-box.box-rose { background: #fff1f2; border-color: #fecdd3; }
+.theory-box.box-cyan { background: #ecfeff; border-left: 4px solid #06b6d4; }
+
+/* Math Displays */
+.math-box {
+    background: white;
+    padding: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    text-align: center;
+    font-size: 13px;
+}
+.math-block {
+    background: white;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    text-align: center;
+    margin: 16px 0;
+}
+
+/* Typography Helpers */
+.help-text { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+.small-note { font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.4; }
+.tiny-italic { font-size: 10px; color: #94a3b8; margin-top: 8px; font-style: italic; }
+.sub-heading { font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0; color: var(--text-main); }
+.font-mono { font-family: monospace; font-size: 12px; }
+.font-bold { font-weight: 700; }
+
+/* Colors */
+.text-indigo { color: #4338ca; }
+.text-orange { color: #ea580c; }
+.text-rose { color: #be123c; }
+.text-amber { color: #b45309; }
+.text-emerald { color: #059669; }
+.text-purple { color: #7e22ce; }
+.text-muted { color: #64748b; }
+
+/* Table Updates */
+.theory-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.theory-table th { background: #f1f5f9; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+.theory-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.theory-table tr.header-cyan th { background: #cffafe; color: #155e75; border-bottom-color: #22d3ee; }
+.theory-table tr.row-highlight { background: #fff7ed; } /* Orange tint */
+.theory-table tr.sep-top td { border-top: 2px solid #e2e8f0; background: #f8fafc; }
+
+/* Features (Visualizing) */
+.feature-list { display: flex; flex-direction: column; gap: 16px; }
+.feature-item {
+    background: white;
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 8px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+@media (min-width: 768px) {
+    .feature-list { flex-direction: row; }
+}
+
+.icon-circle {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.icon-circle.bg-blue { background: #eff6ff; color: #3b82f6; }
+.icon-circle.bg-purple { background: #f3e8ff; color: #a855f7; }
+
+.feature-item h4 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text-main); }
+.feature-item ul { margin: 8px 0 0 0; padding-left: 20px; font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+/* Case Studies (Omega) */
+.case-study-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.case-box {
+    background: white;
+    padding: 12px;
+    border-left: 4px solid;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.case-box.border-indigo { border-left-color: #6366f1; }
+.case-box.border-amber { border-left-color: #f59e0b; }
+.case-box.border-rose { border-left-color: #e11d48; }
+
+.case-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.case-title { font-weight: 700; font-size: 13px; }
+.case-badge { font-family: monospace; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.case-badge.bg-indigo { background: #e0e7ff; color: #3730a3; }
+.case-badge.bg-amber { background: #fef3c7; color: #92400e; }
+.case-badge.bg-rose { background: #ffe4e6; color: #be123c; }
+
+/* Alert Box fix from previous turn if needed */
+.alert-box {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    padding: 16px;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
+}
+.alert-icon { color: #d97706; flex-shrink: 0; margin-top: 2px; }
+.alert-box h3 { margin: 0 0 4px 0; font-size: 14px; text-transform: uppercase; color: #92400e; }
+.alert-box p { margin: 0; font-size: 13px; color: #78350f; }
+
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #ecfeff; color: #0e7490; padding: 8px; text-align: left; font-weight: 700; border-bottom: 1px solid #cffafe; }
+        td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); }
+        tr:hover { background: #f8fafc; }
+
+        /* Scrollbars */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .tab-btn.active { background-color: #eff6ff; color: #2563eb; border-bottom: 2px solid #2563eb; }
-        .tab-btn { color: #64748b; padding: 0 1rem; transition: all 0.2s; font-weight: 600; font-size: 0.875rem; }
-        .tab-pane { display: none; height: 100%; width: 100%; }
-        .tab-pane.active { display: block; }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%;
-            animation: spin 1s linear infinite;
+        
+        @media (max-width: 768px) {
+            .app-header h1 { display: none; }
+            .sidebar { position: absolute; height: 100%; transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar.open { transform: translateX(0); }
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden text-slate-800 bg-slate-50 font-sans">
+<body>
 
-    <div class="bg-white border-b border-gray-200 px-4 flex items-center justify-between shrink-0 h-14 shadow-sm z-20">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-bold shadow-md">
+    <header class="app-header">
+        <div class="brand">
+            <div class="brand-icon">
                 <i class="fas fa-project-diagram"></i>
             </div>
-            <h1 class="font-bold text-lg text-slate-800 hidden md:block">Onsager Diffusion <span class="text-xs font-normal text-slate-500 ml-1">v8.0 (3D Flux)</span></h1>
+            <div>
+                <h1>Onsager Diffusion <span>v8.0 (3D Flux)</span></h1>
+            </div>
         </div>
         
-        <div id="status-area" class="flex-1 mx-8 flex items-center gap-3 opacity-0 transition-opacity duration-300">
-            <div class="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
-                <div id="header-progress" class="h-full bg-orange-500 w-0 transition-all duration-200"></div>
+        <div id="status-area" class="status-area">
+            <div class="progress-track">
+                <div id="header-progress" class="progress-bar"></div>
             </div>
-            <span id="header-status" class="text-xs font-mono text-gray-400 w-24 text-right">Calculating...</span>
-            <button onclick="terminateWorker()" class="text-xs text-red-500 hover:text-red-700 font-bold uppercase" title="Stop">
+            <span id="header-status" class="status-text">Calculating...</span>
+            <button onclick="terminateWorker()" class="stop-btn" title="Stop">
                 <i class="fas fa-stop"></i>
             </button>
         </div>
 
-        <div class="flex space-x-1 h-full overflow-x-auto mx-4">
-            <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn active h-full flex items-center">
-                <i class="fas fa-chart-line mr-2"></i> Profile
+        <nav class="nav-tabs">
+            <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn active">
+                <i class="fas fa-chart-line"></i> Profile
             </button>
-            <button onclick="switchTab('flux')" id="tab-flux" class="tab-btn h-full flex items-center">
-                <i class="fas fa-water mr-2"></i> 3D Flux
+            <button onclick="switchTab('flux')" id="tab-flux" class="tab-btn">
+                <i class="fas fa-water"></i> 3D Flux
             </button>
-            <button onclick="switchTab('time3d')" id="tab-time3d" class="tab-btn h-full flex items-center">
-                <i class="fas fa-cube mr-2"></i> 3D Conc
+            <button onclick="switchTab('time3d')" id="tab-time3d" class="tab-btn">
+                <i class="fas fa-cube"></i> 3D Conc
             </button>
-            <button onclick="switchTab('help')" id="tab-help" class="tab-btn h-full flex items-center text-emerald-600">
-                <i class="fas fa-info-circle mr-2"></i> Theory
+            <button onclick="switchTab('help')" id="tab-help" class="tab-btn help-btn">
+                <i class="fas fa-info-circle"></i> Theory
             </button>
-        </div>
-    </div>
+        </nav>
+    </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="main-container">
         
-        <aside class="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] shrink-0 overflow-y-auto">
-            <div class="p-4 space-y-5">
-                
-                <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 shadow-sm">
-                    <div class="flex items-center gap-2 mb-3 border-b border-orange-200 pb-2">
-                        <i class="fas fa-ruler-combined text-orange-600"></i>
-                        <h3 class="text-xs font-bold text-orange-800 uppercase tracking-wider">1. Geometry</h3>
+        <aside class="sidebar">
+            
+            <div class="control-panel panel-orange">
+                <div class="panel-header text-orange">
+                    <i class="fas fa-ruler-combined"></i>
+                    <h3 class="panel-title">1. Geometry</h3>
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>Source Length (µm)</label>
+                        <input type="number" id="sourceLength" value="5" min="0.1" step="0.1" onchange="debouncedUpdate()">
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="input-group">
-                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Source Lenght (µm)</label>
-                            <input type="number" id="sourceLength" value="5" min="0.1" step="0.1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Total Length (µm)</label>
-                            <input type="number" id="totalLength" value="20" min="1" step="1" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white text-orange-900 focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
-                        </div>
-                        <div class="input-group col-span-2">
-                            <label class="text-[10px] text-orange-700 font-bold block mb-1">Grid Points</label>
-                            <input type="number" id="gridPoints" value="100" min="50" max="400" class="w-full text-sm border border-orange-300 rounded p-1.5 font-semibold bg-white focus:ring-2 focus:ring-orange-200 outline-none" onchange="debouncedUpdate()">
-                        </div>
+                    <div class="input-group">
+                        <label>Total Length (µm)</label>
+                        <input type="number" id="totalLength" value="20" min="1" step="1" onchange="debouncedUpdate()">
+                    </div>
+                    <div class="input-group col-span-2">
+                        <label>Grid Points</label>
+                        <input type="number" id="gridPoints" value="100" min="50" max="400" onchange="debouncedUpdate()">
                     </div>
                 </div>
+            </div>
 
-                <div class="bg-slate-50 p-3 rounded border border-slate-200">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2. Conditions</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="input-group">
-                            <label class="text-[10px] text-gray-500 font-bold block">Temp (K)</label>
-                            <input type="number" id="temp" value="1050" min="600" max="2800" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label class="text-[10px] text-gray-500 font-bold block">Time (Hours)</label>
-                            <input type="number" id="time" value="72" min="0.1" step="0.1" class="w-full text-sm border border-gray-300 rounded p-1" onchange="debouncedUpdate()">
-                        </div>
+            <div class="control-panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">2. Conditions</h3>
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>Temp (K)</label>
+                        <input type="number" id="temp" value="1050" min="600" max="2800" onchange="debouncedUpdate()">
+                    </div>
+                    <div class="input-group">
+                        <label>Time (Hours)</label>
+                        <input type="number" id="time" value="72" min="0.1" step="0.1" onchange="debouncedUpdate()">
                     </div>
                 </div>
+            </div>
 
-                <div class="bg-indigo-50 p-3 rounded border border-indigo-100">
-                    <h3 class="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-2">3. Matrix (MgO)</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-[10px] text-indigo-600 font-bold block">D₀ (m²/s)</label>
-                            <input type="text" id="targetD0" value="5.0e-11" class="w-full text-xs border border-indigo-200 rounded p-1" onchange="debouncedUpdate()">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-indigo-600 font-bold block">Q (eV)</label>
-                            <input type="number" id="targetQ" value="2.0" step="0.1" class="w-full text-xs border border-indigo-200 rounded p-1" onchange="debouncedUpdate()">
-                        </div>
+            <div class="control-panel panel-indigo">
+                <div class="panel-header text-indigo">
+                    <h3 class="panel-title">3. Matrix (MgO)</h3>
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>D₀ (m²/s)</label>
+                        <input type="text" id="targetD0" value="5.0e-11" onchange="debouncedUpdate()">
+                    </div>
+                    <div class="input-group">
+                        <label>Q (eV)</label>
+                        <input type="number" id="targetQ" value="2.0" step="0.1" onchange="debouncedUpdate()">
                     </div>
                 </div>
+            </div>
 
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">4. Dopants</h3>
-                        <button onclick="addElement()" class="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded transition shadow-sm font-bold">
-                            <i class="fas fa-plus"></i> ADD
-                        </button>
-                    </div>
-                    <div id="elementsList" class="space-y-3"></div>
-                    <button onclick="downloadData()" class="mt-4 w-full text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded">
-                        <i class="fas fa-download mr-1"></i> Download CSV
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 class="panel-title">4. Dopants</h3>
+                    <button onclick="addElement()" class="btn btn-add">
+                        <i class="fas fa-plus"></i> ADD
                     </button>
                 </div>
+                <div id="elementsList"></div>
+                
+                <button onclick="downloadData()" class="btn btn-download">
+                    <i class="fas fa-download"></i> Download CSV
+                </button>
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col h-full relative bg-slate-100 overflow-hidden">
+        <main class="content-area">
             
-            <div id="pane-profile" class="tab-pane active relative p-4">
-                <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
-                    <div class="flex-1 relative">
-                        <canvas id="diffusionChart"></canvas>
-                    </div>
+            <div id="pane-profile" class="tab-pane active">
+                <div class="chart-wrapper">
+                    <canvas id="diffusionChart"></canvas>
                 </div>
             </div>
 
-            <div id="pane-flux" class="tab-pane relative">
-                 <div id="plotly-flux" class="w-full h-full"></div>
+            <div id="pane-flux" class="tab-pane">
+                 <div id="plotly-flux"></div>
             </div>
 
-            <div id="pane-time3d" class="tab-pane relative">
-                 <div id="plotly-time" class="w-full h-full"></div>
+            <div id="pane-time3d" class="tab-pane">
+                 <div id="plotly-time"></div>
             </div>
 
 
-
-            <div id="pane-help" class="tab-pane overflow-y-auto p-8 bg-white">
-    <div class="max-w-4xl mx-auto pb-20 help-content">
+            <div id="pane-help" class="tab-pane">
+    <div class="help-container">
         
-        <div class="border-b border-gray-200 pb-4 mb-6">
-            <h1 class="text-3xl font-bold text-slate-800">Documentation & Theory</h1>
-            <p class="text-slate-500 mt-2">Onsager Multi-Component Diffusion Solver (v8.4)</p>
+        <div class="help-header">
+            <h1>Documentation & Theory</h1>
+            <p>Onsager Multi-Component Diffusion Solver (v8.4)</p>
         </div>
 
-        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-8 shadow-sm rounded-r">
-            <div class="flex items-start">
-                <div class="shrink-0 text-amber-600 mt-1"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="ml-3">
-                    <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wide">Parameter Warning</h3>
-                    <p class="text-sm text-amber-900 mt-1">
-                        Default values ($D_0, Q$) are approximations for <strong>MgO</strong>. For other systems you must update these values. This tool assumes that D0 and Q do not change with concentration.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="w-8 h-8 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">1</span>
-            Thermodynamics: The $L$ vs. $D$ Matrix
-        </h2>
-        
-        <p class="text-slate-600 mb-4">
-            This tool solves the transport equations using concentration gradients, which leads to an <strong>asymmetric</strong> diffusion matrix.
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div class="bg-slate-50 p-4 rounded border border-slate-200">
-                <h4 class="font-bold text-slate-700 mb-2">The Onsager Matrix ($L$)</h4>
-                <div class="text-center bg-white p-2 rounded border border-slate-100 mb-3 text-sm">
-                    $$ J_i = - \sum_{j} L_{ij} \nabla \mu_j $$
-                </div>
-                <p class="text-xs text-slate-500">
-                    Driven by Chemical Potential ($\mu$).<br>
-                    <strong>Symmetric ($L_{ij} = L_{ji}$)</strong> due to microscopic time reversibility (Onsager Reciprocal Relations).
-                </p>
-            </div>
-
-            <div class="bg-indigo-50 p-4 rounded border border-indigo-200">
-                <h4 class="font-bold text-indigo-700 mb-2">The Diffusion Matrix ($D$)</h4>
-                <div class="text-center bg-white p-2 rounded border border-indigo-100 mb-3 text-sm">
-                    $$ J_i = - \sum_{j} D_{ij} \nabla C_j $$
-                </div>
-                <p class="text-xs text-indigo-800">
-                    Driven by Concentration ($C$).<br>
-                    <strong>Asymmetric ($D_{ij} \neq D_{ji}$)</strong> because it combines the symmetric $L$ matrix with the thermodynamic properties of the material ($D = L \cdot \frac{\partial \mu}{\partial C}$).
+        <div class="alert-box">
+            <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div>
+                <h3>Parameter Warning</h3>
+                <p>
+                    Default values ($D_0, Q$) are approximations for <strong>MgO</strong>. For other systems you must update these values. This tool assumes that D0 and Q do not change with concentration.
                 </p>
             </div>
         </div>
 
-        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="w-8 h-8 rounded bg-orange-100 text-orange-600 flex items-center justify-center text-sm">2</span>
-            The Manning-Darken Approximation
-        </h2>
-
-        <p class="text-slate-600 mb-4">
-            This tool calculates the $D_{ij}$ terms dynamically at every grid point using the Manning-Darken formalism for vacancy-mediated diffusion. The asymmetry arises physically from the <strong>Vacancy Wind Effect</strong>.
-        </p>
-
-        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8 shadow-sm">
-            <table class="w-full text-sm text-left">
-                <thead class="bg-gray-50 text-gray-700 border-b">
-                    <tr>
-                        <th class="px-4 py-2">Term</th>
-                        <th class="px-4 py-2">Formula</th>
-                        <th class="px-4 py-2">Physical Meaning</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr>
-                        <td class="px-4 py-3 font-mono text-indigo-600 font-bold">Diagonal ($D_{ii}$)</td>
-                        <td class="px-4 py-3 font-mono text-xs">$$D^*_i + C_i (D^*_{matrix} - D^*_i)$$</td>
-                        <td class="px-4 py-3 text-slate-600 text-xs">
-                            Tracer diffusion modified by the net flow of the matrix.
-                        </td>
-                    </tr>
-                    <tr class="bg-orange-50/30">
-                        <td class="px-4 py-3 font-mono text-orange-600 font-bold">Off-Diagonal ($D_{ij}$)</td>
-                        <td class="px-4 py-3 font-mono text-xs">$$C_i (D^*_{matrix} - D^*_j)$$</td>
-                        <td class="px-4 py-3 text-slate-600 text-xs">
-                            <strong>Vacancy Wind:</strong> If species $j$ is fast ($D^*_j$ high), it creates a vacancy wind that drags species $i$. This is asymmetric because $C_i \neq C_j$.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="w-8 h-8 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">3</span>
-            Numerical Algorithm & Stability
-        </h2>
-        
-        <div class="prose prose-sm text-slate-600 bg-slate-50 p-5 rounded border border-slate-200 mb-8">
-            <p class="mb-2">
-                The coupled Partial Differential Equations (PDEs) are solved by using an Explicit Finite Difference Method. 
-                Because the equations are coupled (the motion of one element depends on all others), simple stability checks fail.
-            </p>
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge">1</span> Thermodynamics: The $L$ vs. $D$ Matrix</h2>
             
-            <h4 class="font-bold text-slate-800 mt-4">Robust Stability: Spectral Radius Control</h4>
-            <p>
-                To ensure the simulation does not "explode", the timestep $\Delta t$ is calculated by using <strong>Gershgorin's Circle Theorem</strong> to estimate the maximum Eigenvalue ($\lambda_{max}$) of the diffusion matrix at every step:
-            </p>
-            
-            <div class="my-4 bg-white p-3 rounded border border-slate-300 text-center font-mono text-slate-800">
-                $$ \Delta t \leq \frac{\Delta x^2}{2 \cdot \lambda_{max}} \quad \text{where} \quad \lambda_{max} \approx \max_i \sum_j |D_{ij} \cdot \Phi_i| $$
-            </div>
-
-            <p>
-                This ensures that even if you pair a very fast dopant with a very slow one (strong coupling) or use non-ideal thermodynamics, the solver remains mathematically rigorous.
-            </p>
-        </div>
-
-        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-sm">4</span>
-            Visualizing data
-        </h2>
-
-        <div class="space-y-4 mb-8">
-            <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4">
-                <div class="shrink-0 w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-lg self-center md:self-start">
-                    <i class="fas fa-water"></i>
-                </div>
-                <div>
-                    <h4 class="font-bold text-slate-800">3D Flux View (Surface Plot)</h4>
-                    <p class="text-sm text-slate-600 mt-1">
-                        Visualizes the net flow of atoms $J(x,t)$. 
-                    </p>
-                    <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-4">
-                        <li><strong>The "Wall":</strong> A massive flux spike at T=0 where gradients are infinite.</li>
-                        <li><strong>Coupling Signs:</strong> If a slow element moves "uphill" (negative flux against its own gradient), it creates a dip in the surface, visually proving the Onsager cross-terms are active.</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4">
-                <div class="shrink-0 w-12 h-12 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center text-lg self-center md:self-start">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <div>
-                    <h4 class="font-bold text-slate-800">Concentration Profile (2D)</h4>
-                    <p class="text-sm text-slate-600 mt-1">
-                        The classic "Diffusion Profile".
-                    </p>
-                    <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-4">
-                        <li><strong>Uphill Diffusion:</strong> Look for "bumps" near the interface. This is the fast element "stealing" vacancies from the slow element.</li>
-                        <li><strong>Kirkendall Shift:</strong> Asymmetry in the profiles indicates the lattice plane is physically moving to compensate for unequal flux.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="w-8 h-8 rounded bg-rose-100 text-rose-600 flex items-center justify-center text-sm">5</span>
-            Non-Ideal Thermodynamics ($\Omega \neq 0$)
-        </h2>
-
-        <div class="bg-rose-50 border border-rose-100 p-6 rounded mb-8">
-            <p class="text-slate-700 text-sm mb-4">
-                Fick's Law assumes a "Dilute Solution" (Ideal Gas behavior, $\gamma=1$). In real alloys, atoms interact chemically. We model this using the <strong>Regular Solution Model</strong> via the Interaction Parameter $\Omega$ (Omega).
+            <p class="help-text">
+                This tool solves the transport equations using concentration gradients, which leads to an <strong>asymmetric</strong> diffusion matrix.
             </p>
 
-            <h4 class="font-bold text-rose-800 text-sm mb-2 uppercase tracking-wide">1. The Thermodynamic Factor ($\Phi$)</h4>
-            <p class="text-sm text-slate-600 mb-3">
-                Flux is driven by the gradient of Chemical Potential ($\mu$), not just concentration. We calculate a correction factor $\Phi$ at every grid point:
-            </p>
-            <div class="text-center bg-white p-3 rounded border border-rose-200 mb-4 font-mono text-rose-900 text-sm">
-                $$ \Phi = 1 - \frac{2 \Omega C (1-C)}{k_B T} $$
-                <div class="text-xs text-slate-400 mt-1">Then, $J_{actual} = J_{onsager} \times \Phi$</div>
-            </div>
-
-            <h4 class="font-bold text-rose-800 text-sm mb-2 uppercase tracking-wide">2. The Meaning of Omega ($\Omega$)</h4>
-            <p class="text-sm text-slate-600 mb-4">
-                The parameter $\Omega$ describes the enthalpy of mixing between the Dopant and the Matrix.
-            </p>
-
-            <div class="space-y-3">
-                <div class="bg-white p-4 rounded shadow-sm border-l-4 border-indigo-500">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-indigo-700 text-sm">Case A: Ordering ($\Omega < 0$)</span>
-                        <span class="font-mono text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">$\Phi > 1$</span>
+            <div class="help-grid">
+                <div class="theory-card card-slate">
+                    <h4>The Onsager Matrix ($L$)</h4>
+                    <div class="math-box">
+                        $$ J_i = - \sum_{j} L_{ij} \nabla \mu_j $$
                     </div>
-                    <p class="text-xs text-slate-600">
-                        The dopant atoms are attracted to the matrix atoms. 
-                        <br><strong>Effect:</strong> The thermodynamic driving force is increased. Diffusion appears <strong>faster</strong> or gradients become steeper as atoms rush to mix.
+                    <p class="small-note">
+                        Driven by Chemical Potential ($\mu$).<br>
+                        <strong>Symmetric ($L_{ij} = L_{ji}$)</strong> due to microscopic time reversibility (Onsager Reciprocal Relations).
                     </p>
                 </div>
 
-                <div class="bg-white p-4 rounded shadow-sm border-l-4 border-amber-500">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-amber-700 text-sm">Case B: Clustering ($\Omega > 0$)</span>
-                        <span class="font-mono text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded">$0 < \Phi < 1$</span>
+                <div class="theory-card card-indigo">
+                    <h4>The Diffusion Matrix ($D$)</h4>
+                    <div class="math-box">
+                        $$ J_i = - \sum_{j} D_{ij} \nabla C_j $$
                     </div>
-                    <p class="text-xs text-slate-600">
-                        The dopant atoms repel the matrix.
-                        <br><strong>Effect:</strong> The driving force is reduced. Diffusion is <strong>suppressed</strong> (sluggish).
-                    </p>
-                </div>
-
-                <div class="bg-white p-4 rounded shadow-sm border-l-4 border-rose-600">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-rose-700 text-sm">Case C: Spinodal Decomposition ($\Omega \gg 0$)</span>
-                        <span class="font-mono text-xs bg-rose-50 text-rose-700 px-2 py-1 rounded">$\Phi < 0$</span>
-                    </div>
-                    <p class="text-xs text-slate-600">
-                        If repulsion is very high and Temperature is low ($2\Omega > 4 k_B T$), the system becomes unstable.
-                        <br><strong>Effect:</strong> <strong>Negative Diffusion</strong>. Atoms flow from Low Concentration $\to$ High Concentration. The material spontaneously un-mixes (phase separation).
+                    <p class="small-note color-indigo">
+                        Driven by Concentration ($C$).<br>
+                        <strong>Asymmetric ($D_{ij} \neq D_{ji}$)</strong> because it combines the symmetric $L$ matrix with the thermodynamic properties of the material ($D = L \cdot \frac{\partial \mu}{\partial C}$).
                     </p>
                 </div>
             </div>
         </div>
 
-        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="w-8 h-8 rounded bg-cyan-100 text-cyan-600 flex items-center justify-center text-sm">6</span>
-            Reference Values for MgO Matrix
-        </h2>
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-orange">2</span> The Manning-Darken Approximation</h2>
 
-        <div class="bg-cyan-50 border-l-4 border-cyan-500 p-5 rounded mb-8 shadow-sm">
-            <p class="text-sm text-slate-700 mb-4">
-                The values below are compiled from experimental thermodynamic assessments of oxide solid solutions.
-                <br><span class="text-xs text-slate-500">Note: $1 \text{ kJ/mol} \approx 0.0104 \text{ eV}$.</span>
+            <p class="help-text">
+                This tool calculates the $D_{ij}$ terms dynamically at every grid point using the Manning-Darken formalism for vacancy-mediated diffusion. The asymmetry arises physically from the <strong>Vacancy Wind Effect</strong>.
             </p>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-cyan-100 text-cyan-900 font-bold uppercase border-b border-cyan-200">
+            <div class="table-wrapper">
+                <table class="theory-table">
+                    <thead>
                         <tr>
-                            <th class="px-3 py-2">Dopant (Oxide)</th>
-                            <th class="px-3 py-2">$\Omega$ (eV)</th>
-                            <th class="px-3 py-2">Behavior</th>
-                            <th class="px-3 py-2">Notes</th>
+                            <th>Term</th>
+                            <th>Formula</th>
+                            <th>Physical Meaning</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-cyan-100 bg-white">
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">NiO (Ni²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.00</td>
-                            <td class="px-3 py-2">Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Complete solid solution.</td>
+                    <tbody>
+                        <tr>
+                            <td class="font-mono text-indigo">Diagonal ($D_{ii}$)</td>
+                            <td class="font-mono">$$D^*_i + C_i (D^*_{matrix} - D^*_i)$$</td>
+                            <td>Tracer diffusion modified by the net flow of the matrix.</td>
                         </tr>
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">CoO (Co²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.05</td>
-                            <td class="px-3 py-2">Near Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Very slight repulsion ($\approx 5$ kJ/mol).</td>
-                        </tr>
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">FeO (Fe²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.04</td>
-                            <td class="px-3 py-2">Near Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Mixes well at high Temp.</td>
-                        </tr>
-                        <tr class="hover:bg-cyan-50/50">
-                            <td class="px-3 py-2 font-bold text-slate-700">MnO (Mn²⁺)</td>
-                            <td class="px-3 py-2 font-mono text-emerald-600">0.04</td>
-                            <td class="px-3 py-2">Near Ideal</td>
-                            <td class="px-3 py-2 text-slate-500">Similar radius to Mg²⁺.</td>
-                        </tr>
-
-
-                        <tr class="hover:bg-cyan-50/50">
-    <td class="px-3 py-2 font-bold text-slate-700">CuO (Cu²⁺)</td>
-    <td class="px-3 py-2 font-mono text-amber-600">0.21</td>
-    <td class="px-3 py-2">Repulsive</td>
-    <td class="px-3 py-2 text-slate-500">
-        Jahn-Teller ion. Distorts the local MgO lattice, reducing solubility.
-    </td>
-</tr>
-
-<tr class="hover:bg-cyan-50/50">
-    <td class="px-3 py-2 font-bold text-slate-700">ZnO (Zn²⁺)</td>
-    <td class="px-3 py-2 font-mono text-amber-600">0.18</td>
-    <td class="px-3 py-2">Repulsive</td>
-    <td class="px-3 py-2 text-slate-500">
-        Structural mismatch. Zn prefers tetrahedral coord (Wurtzite) vs Mg octahedral (Rock Salt).
-    </td>
-</tr>
-
-
-                        <tr class="bg-slate-50 hover:bg-slate-100 border-t border-slate-200">
-                            <td class="px-3 py-2 font-bold text-slate-700">Cr₂O₃ (Cr³⁺)</td>
-                            <td class="px-3 py-2 font-mono text-purple-600">> 0.80</td>
-                            <td class="px-3 py-2">Solubility Limit</td>
-                            <td class="px-3 py-2 text-slate-500">Forms Spinel (MgCr₂O₄). Treats MgO as matrix.</td>
-                        </tr>
-                        <tr class="bg-slate-50 hover:bg-slate-100">
-                            <td class="px-3 py-2 font-bold text-slate-700">Al₂O₃ (Al³⁺)</td>
-                            <td class="px-3 py-2 font-mono text-purple-600">> 1.00</td>
-                            <td class="px-3 py-2">Solubility Limit</td>
-                            <td class="px-3 py-2 text-slate-500">Very low solubility in Periclase.</td>
+                        <tr class="row-highlight">
+                            <td class="font-mono text-orange">Off-Diagonal ($D_{ij}$)</td>
+                            <td class="font-mono">$$C_i (D^*_{matrix} - D^*_j)$$</td>
+                            <td>
+                                <strong>Vacancy Wind:</strong> If species $j$ is fast ($D^*_j$ high), it creates a vacancy wind that drags species $i$. This is asymmetric because $C_i \neq C_j$.
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <p class="text-[10px] text-slate-400 mt-2 italic">
-                * For 3+ ions (Cr, Al, Fe³⁺), the "Regular Solution" model is an approximation. A high positive $\Omega$ effectively simulates their low solubility limit.
-            </p>
         </div>
 
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-emerald">3</span> Numerical Algorithm & Stability</h2>
+            
+            <div class="theory-box box-slate">
+                <p>
+                    The coupled Partial Differential Equations (PDEs) are solved by using an Explicit Finite Difference Method. 
+                    Because the equations are coupled (the motion of one element depends on all others), simple stability checks fail.
+                </p>
+                
+                <h4 class="sub-heading">Robust Stability: Spectral Radius Control</h4>
+                <p>
+                    To ensure the simulation does not "explode", the timestep $\Delta t$ is calculated by using <strong>Gershgorin's Circle Theorem</strong> to estimate the maximum Eigenvalue ($\lambda_{max}$) of the diffusion matrix at every step:
+                </p>
+                
+                <div class="math-block">
+                    $$ \Delta t \leq \frac{\Delta x^2}{2 \cdot \lambda_{max}} \quad \text{where} \quad \lambda_{max} \approx \max_i \sum_j |D_{ij} \cdot \Phi_i| $$
+                </div>
 
+                <p>
+                    This ensures that even if you pair a very fast dopant with a very slow one (strong coupling) or use non-ideal thermodynamics, the solver remains mathematically rigorous.
+                </p>
+            </div>
+        </div>
+
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-blue">4</span> Visualizing data</h2>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="icon-circle bg-blue"><i class="fas fa-water"></i></div>
+                    <div>
+                        <h4>3D Flux View (Surface Plot)</h4>
+                        <p>Visualizes the net flow of atoms $J(x,t)$.</p>
+                        <ul>
+                            <li><strong>The "Wall":</strong> A massive flux spike at T=0 where gradients are infinite.</li>
+                            <li><strong>Coupling Signs:</strong> If a slow element moves "uphill" (negative flux against its own gradient), it creates a dip in the surface, visually proving the Onsager cross-terms are active.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="icon-circle bg-purple"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <h4>Concentration Profile (2D)</h4>
+                        <p>The classic "Diffusion Profile".</p>
+                        <ul>
+                            <li><strong>Uphill Diffusion:</strong> Look for "bumps" near the interface. This is the fast element "stealing" vacancies from the slow element.</li>
+                            <li><strong>Kirkendall Shift:</strong> Asymmetry in the profiles indicates the lattice plane is physically moving to compensate for unequal flux.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-rose">5</span> Non-Ideal Thermodynamics ($\Omega \neq 0$)</h2>
+
+            <div class="theory-box box-rose">
+                <p>
+                    Fick's Law assumes a "Dilute Solution" (Ideal Gas behavior, $\gamma=1$). In real alloys, atoms interact chemically. We model this using the <strong>Regular Solution Model</strong> via the Interaction Parameter $\Omega$ (Omega).
+                </p>
+
+                <h4 class="sub-heading text-rose">1. The Thermodynamic Factor ($\Phi$)</h4>
+                <p>Flux is driven by the gradient of Chemical Potential ($\mu$), not just concentration. We calculate a correction factor $\Phi$ at every grid point:</p>
+                
+                <div class="math-box rose-math">
+                    $$ \Phi = 1 - \frac{2 \Omega C (1-C)}{k_B T} $$
+                    <div class="sub-note">Then, $J_{actual} = J_{onsager} \times \Phi$</div>
+                </div>
+
+                <h4 class="sub-heading text-rose">2. The Meaning of Omega ($\Omega$)</h4>
+                <p>The parameter $\Omega$ describes the enthalpy of mixing between the Dopant and the Matrix.</p>
+
+                <div class="case-study-list">
+                    <div class="case-box border-indigo">
+                        <div class="case-header">
+                            <span class="case-title text-indigo">Case A: Ordering ($\Omega < 0$)</span>
+                            <span class="case-badge bg-indigo">$\Phi > 1$</span>
+                        </div>
+                        <p>The dopant atoms are attracted to the matrix atoms.<br><strong>Effect:</strong> The thermodynamic driving force is increased. Diffusion appears <strong>faster</strong> or gradients become steeper as atoms rush to mix.</p>
+                    </div>
+
+                    <div class="case-box border-amber">
+                        <div class="case-header">
+                            <span class="case-title text-amber">Case B: Clustering ($\Omega > 0$)</span>
+                            <span class="case-badge bg-amber">$0 < \Phi < 1$</span>
+                        </div>
+                        <p>The dopant atoms repel the matrix.<br><strong>Effect:</strong> The driving force is reduced. Diffusion is <strong>suppressed</strong> (sluggish).</p>
+                    </div>
+
+                    <div class="case-box border-rose">
+                        <div class="case-header">
+                            <span class="case-title text-rose">Case C: Spinodal Decomposition ($\Omega \gg 0$)</span>
+                            <span class="case-badge bg-rose">$\Phi < 0$</span>
+                        </div>
+                        <p>If repulsion is very high and Temperature is low ($2\Omega > 4 k_B T$), the system becomes unstable.<br><strong>Effect:</strong> <strong>Negative Diffusion</strong>. Atoms flow from Low Concentration $\to$ High Concentration. The material spontaneously un-mixes (phase separation).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-cyan">6</span> Reference Values for MgO Matrix</h2>
+
+            <div class="theory-box box-cyan">
+                <p>
+                    The values below are compiled from experimental thermodynamic assessments of oxide solid solutions.
+                    <br><span class="small-note">Note: $1 \text{ kJ/mol} \approx 0.0104 \text{ eV}$.</span>
+                </p>
+
+                <div class="table-wrapper">
+                    <table class="theory-table">
+                        <thead>
+                            <tr class="header-cyan">
+                                <th>Dopant (Oxide)</th>
+                                <th>$\Omega$ (eV)</th>
+                                <th>Behavior</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-bold">NiO (Ni²⁺)</td>
+                                <td class="font-mono text-emerald">0.00</td>
+                                <td>Ideal</td>
+                                <td class="text-muted">Complete solid solution.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">CoO (Co²⁺)</td>
+                                <td class="font-mono text-emerald">0.05</td>
+                                <td>Near Ideal</td>
+                                <td class="text-muted">Very slight repulsion ($\approx 5$ kJ/mol).</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">FeO (Fe²⁺)</td>
+                                <td class="font-mono text-emerald">0.04</td>
+                                <td>Near Ideal</td>
+                                <td class="text-muted">Mixes well at high Temp.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">MnO (Mn²⁺)</td>
+                                <td class="font-mono text-emerald">0.04</td>
+                                <td>Near Ideal</td>
+                                <td class="text-muted">Similar radius to Mg²⁺.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">CuO (Cu²⁺)</td>
+                                <td class="font-mono text-amber">0.21</td>
+                                <td>Repulsive</td>
+                                <td class="text-muted">Jahn-Teller ion. Distorts local lattice.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">ZnO (Zn²⁺)</td>
+                                <td class="font-mono text-amber">0.18</td>
+                                <td>Repulsive</td>
+                                <td class="text-muted">Structural mismatch (Tetra vs Octa).</td>
+                            </tr>
+                            <tr class="sep-top">
+                                <td class="font-bold">Cr₂O₃ (Cr³⁺)</td>
+                                <td class="font-mono text-purple">> 0.80</td>
+                                <td>Solubility Limit</td>
+                                <td class="text-muted">Forms Spinel (MgCr₂O₄).</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Al₂O₃ (Al³⁺)</td>
+                                <td class="font-mono text-purple">> 1.00</td>
+                                <td>Solubility Limit</td>
+                                <td class="text-muted">Very low solubility in Periclase.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="tiny-italic">* For 3+ ions (Cr, Al, Fe³⁺), a high positive $\Omega$ effectively simulates their low solubility limit.</p>
+            </div>
+        </div>
 
     </div>
 </div>
 
 
-
-
+            
         </main>
     </div>
 
     <template id="elementTemplate">
-    <div class="element-card bg-white p-3 rounded border border-gray-300 shadow-sm relative group border-l-4 mb-2">
-        <input type="hidden" class="el-color">
-        <button class="delete-btn absolute top-1 right-2 text-gray-300 hover:text-red-500 hidden group-hover:block transition" title="Remove">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="grid grid-cols-3 gap-2 mb-2"> <div class="col-span-3">
-                <label class="text-[10px] text-gray-500 font-bold block">Dopant</label>
-                <select class="el-name border border-gray-300 rounded text-xs w-full p-1 font-semibold text-slate-700" onchange="updateElementParams(this)">
-                </select>
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 font-bold block">D*₀</label>
-                <input type="text" class="el-d0 text-xs border border-gray-300 rounded p-1 w-full" onchange="debouncedUpdate()">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 font-bold block">Q (eV)</label>
-                <input type="number" class="el-q text-xs border border-gray-300 rounded p-1 w-full" step="0.1" onchange="debouncedUpdate()">
-            </div>
-            <div>
-                <label class="text-[10px] text-gray-500 font-bold block text-rose-600">Ω (eV)</label>
-                <input type="number" class="el-omega text-xs border border-rose-200 bg-rose-50 rounded p-1 w-full font-bold text-rose-800" value="0" step="0.01" onchange="debouncedUpdate()">
-            </div>
-            <div class="col-span-1.5"> <label class="text-[10px] text-gray-500 font-bold block">Source %</label>
-                <input type="number" class="el-c-left text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
-            </div>
-            <div class="col-span-1.5"> <label class="text-[10px] text-gray-500 font-bold block">Matrix %</label>
-                <input type="number" class="el-c-right text-xs border border-gray-300 rounded p-1 w-full" min="0" max="100" onchange="debouncedUpdate()">
+        <div class="element-card">
+            <input type="hidden" class="el-color">
+            <button class="delete-btn" title="Remove"><i class="fas fa-times"></i></button>
+            
+            <div class="element-grid">
+                <div class="input-group grid-full">
+                    <label>Dopant</label>
+                    <select class="el-name" onchange="updateElementParams(this)"></select>
+                </div>
+                <div class="input-group">
+                    <label>D*₀</label>
+                    <input type="text" class="el-d0" onchange="debouncedUpdate()">
+                </div>
+                <div class="input-group">
+                    <label>Q (eV)</label>
+                    <input type="number" class="el-q" step="0.1" onchange="debouncedUpdate()">
+                </div>
+                <div class="input-group">
+                    <label style="color: var(--danger)">Ω (eV)</label>
+                    <input type="number" class="el-omega" value="0" step="0.01" onchange="debouncedUpdate()" style="background:#fff1f2; color:#9f1239; font-weight:bold;">
+                </div>
+                <div class="input-group">
+                    <label>Source %</label>
+                    <input type="number" class="el-c-left" min="0" max="100" onchange="debouncedUpdate()">
+                </div>
+                <div class="input-group">
+                    <label>Matrix %</label>
+                    <input type="number" class="el-c-right" min="0" max="100" onchange="debouncedUpdate()">
+                </div>
             </div>
         </div>
-    </div>
-</template>
-
+    </template>
 
 <script id="worker-code" type="javascript/worker">
     const KB_EV = 8.617333262145e-5; 
@@ -510,7 +883,6 @@
     self.onmessage = function(e) {
         const inputs = e.data;
         try {
-            // --- 1. SETUP PARAMETERS ---
             const Temp = inputs.temp;
             const kBT = KB_EV * Temp;
             const Time_s = inputs.timeHours * 3600;
@@ -520,115 +892,62 @@
             const dx = L_m / (N - 1);
             
             const interfaceNode = Math.round(Source_m / dx);
-
-            // Matrix Properties
             const matExp = -inputs.targetQ / (kBT);
             const D_star_matrix = inputs.targetD0 * Math.exp(matExp);
 
-            // Initialize Species
             const species = inputs.elements.map(el => {
                 const exp = -el.q / (kBT);
                 const D_star = el.d0 * Math.exp(exp);
                 const C = new Float64Array(N);
-                
-                // Initial Step Profile
-                for(let i=0; i<N; i++) {
-                    C[i] = (i < interfaceNode) ? el.cLeft / 100 : el.cRight / 100;
-                }
+                for(let i=0; i<N; i++) C[i] = (i < interfaceNode) ? el.cLeft / 100 : el.cRight / 100;
 
-                return { 
-                    ...el, 
-                    D_star, 
-                    omega: el.omega || 0, // Default to 0 if undefined
-                    C, 
-                    C_new: new Float64Array(N), 
-                    Flux: new Float64Array(N), 
-                    history: [],
-                    fluxHistory: [] 
-                };
+                return { ...el, D_star, omega: el.omega || 0, C, C_new: new Float64Array(N), Flux: new Float64Array(N), history: [], fluxHistory: [] };
             });
 
-            // --- 2. TIME INTEGRATION LOOP ---
-            
-            // Initial Time Step Guess
             let maxD_initial = getSpectralRadius(species, D_star_matrix, N);
             let dt = (0.4 * dx * dx) / maxD_initial;
             let current_time = 0;
-            
-            // Loop counters
             let step = 0;
-            
-            // Optimization: Save intervals
             const estimatedSteps = Math.ceil(Time_s / dt);
             const saveInterval = Math.max(1, Math.floor(estimatedSteps / 40)); 
             const reportInterval = Math.max(100, Math.floor(estimatedSteps / 50));
 
             while (current_time < Time_s) {
-                
-                // A. Dynamic Stability Check (Recalculate dt every 100 steps to adjust for changing gradients)
                 if (step % 100 === 0) {
                     const maxEigenvalue = getSpectralRadius(species, D_star_matrix, N);
-                    // CFL Condition: dt <= dx^2 / (2 * D)
-                    // We use 0.4 for safety margin
                     dt = (0.4 * dx * dx) / maxEigenvalue;
                 }
-
-                // Ensure we don't overshoot the final time
                 if (current_time + dt > Time_s) dt = Time_s - current_time;
 
-                // B. Flux Calculation (Fick's 1st Law + Onsager + Thermodynamics)
                 for (let i = 0; i < N - 1; i++) {
-                    // Local properties at the interface between node i and i+1
                     const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
                     const grads = species.map(s => (s.C[i+1] - s.C[i]) / dx);
                     
                     species.forEach((s_i, idx_i) => {
                         let flux_onsager = 0;
-                        
-                        // 1. Calculate Onsager Matrix Terms (D_ij)
                         species.forEach((s_j, idx_j) => {
                             let D_ij = 0;
-                            if (idx_i === idx_j) {
-                                // Diagonal: Self-Diffusion + Matrix Drag
-                                D_ij = s_i.D_star + C_local[idx_i] * (D_star_matrix - s_i.D_star);
-                            } else {
-                                // Off-Diagonal: Vacancy Wind Effect (Cross-term)
-                                D_ij = C_local[idx_i] * (D_star_matrix - s_j.D_star);
-                            }
+                            if (idx_i === idx_j) D_ij = s_i.D_star + C_local[idx_i] * (D_star_matrix - s_i.D_star);
+                            else D_ij = C_local[idx_i] * (D_star_matrix - s_j.D_star);
                             flux_onsager += -1 * D_ij * grads[idx_j];
                         });
-
-                        // 2. Calculate Thermodynamic Factor (Phi)
-                        // Regular Solution Model: Phi = 1 - [2 * Omega * C * (1-C) / kT]
-                        // Note: If Omega is 0 (Ideal), Phi = 1.
                         const conc = C_local[idx_i];
                         const term = (2 * s_i.omega * conc * (1 - conc)) / kBT;
                         const Phi = 1 - term;
-
-                        // 3. Apply Correction
                         s_i.Flux[i] = flux_onsager * Phi;
                     });
                 }
 
-                // C. Conservation of Mass (Fick's 2nd Law)
                 for (let i = 1; i < N - 1; i++) {
                     species.forEach(s => {
                         const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
                         s.C_new[i] = s.C[i] - dt * dJ_dx;
                     });
                 }
+                species.forEach(s => { s.C_new[0] = s.C_new[1]; s.C_new[N-1] = s.C_new[N-2]; });
 
-                // D. Boundary Conditions (No Flux / Reflective)
-                species.forEach(s => { 
-                    s.C_new[0] = s.C_new[1]; 
-                    s.C_new[N-1] = s.C_new[N-2]; 
-                });
-
-                // E. Update & History
                 species.forEach(s => {
-                    // Swap Arrays
                     const temp = s.C; s.C = s.C_new; s.C_new = temp;
-                    
                     if (inputs.mode === 'history' && step % saveInterval === 0) {
                         s.history.push(Float64Array.from(s.C));
                         s.fluxHistory.push(Float64Array.from(s.Flux));
@@ -637,14 +956,11 @@
 
                 current_time += dt;
                 step++;
-
                 if (step % reportInterval === 0) {
-                    const percent = Math.min(100, Math.round((current_time / Time_s) * 100));
-                    self.postMessage({ type: 'progress', percent: percent });
+                    self.postMessage({ type: 'progress', percent: Math.min(100, Math.round((current_time / Time_s) * 100)) });
                 }
             }
 
-            // --- 3. FINALIZE ---
             const finalMatrix = new Float64Array(N);
             for(let i=0; i<N; i++) {
                 let sum = 0;
@@ -654,69 +970,39 @@
 
             self.postMessage({ type: 'complete', species, matrix: finalMatrix, dx, interfaceX: Source_m });
         } catch (err) {
-            self.postMessage({ type: 'error', message: err.message + " (Check Omega/Stability)" });
+            self.postMessage({ type: 'error', message: err.message });
         }
     };
 
-    /**
-     * Calculates the Spectral Radius (Max Eigenvalue) of the Diffusion Matrix
-     * Uses Gershgorin Circle Theorem for a safe upper bound.
-     * Essential for stability in coupled multi-component systems.
-     */
     function getSpectralRadius(species, D_star_matrix, N) {
         let maxEigenvalue = 0;
-
-        // Scan grid (sparse scan for performance, scanning every 5th point is usually sufficient)
-        // But for safety in this version, we scan the full grid.
         for (let x = 0; x < N; x++) {
-            
-            // For each species row i
             for (let i = 0; i < species.length; i++) {
                 let rowSum = 0;
                 const C_i = species[i].C[x];
-                
-                // Sum absolute values of all interaction terms
                 for (let j = 0; j < species.length; j++) {
                     let D_ij = 0;
-                    if (i === j) {
-                        D_ij = species[i].D_star + C_i * (D_star_matrix - species[i].D_star);
-                    } else {
-                        D_ij = C_i * (D_star_matrix - species[j].D_star);
-                    }
+                    if (i === j) D_ij = species[i].D_star + C_i * (D_star_matrix - species[i].D_star);
+                    else D_ij = C_i * (D_star_matrix - species[j].D_star);
                     rowSum += Math.abs(D_ij);
                 }
-                
-                // Apply Gamma correction roughly to the max Eigenvalue for safety
-                // If Phi is large (>1), we need smaller timesteps.
-                // If Phi is negative (Spinodal), we technically can't be stable with Explicit Euler, 
-                // but we take abs() to prevent crash.
                 let phi_est = 1.0;
-                if (species[i].omega !== 0) {
-                   // Worst case estimation for phi
-                   phi_est = Math.max(1, Math.abs(1 - (2 * species[i].omega * 0.25) / (KB_EV * 2000))); 
-                }
-
+                if (species[i].omega !== 0) phi_est = Math.max(1, Math.abs(1 - (2 * species[i].omega * 0.25) / (8.617e-5 * 2000))); 
                 if (rowSum * phi_est > maxEigenvalue) maxEigenvalue = rowSum * phi_est;
             }
         }
-        
         return Math.max(maxEigenvalue, 1e-35);
     }
 </script>
-
-
 
 <script>
     let worker = null;
     let chartInstance = null;
     let currentTab = 'profile';
     let debounceTimer;
-
-    // --- GLOBAL STORAGE FOR EXPORT ---
     let lastResults = null;
     let lastInputs = null;
 
-    // --- 3D TRANSITION METAL SERIES (Estimated for MgO) ---
     const CATION_DB = {
         "Sc": { label: "Sc³⁺ (Scandium)",   d0: "4.0e-10", q: 1.6 },
         "Ti": { label: "Ti⁴⁺ (Titanium)",   d0: "8.0e-10", q: 1.5 },
@@ -752,7 +1038,6 @@
         if(!inputs) return;
         terminateWorker();
         
-        // Enable 'history' mode for both Flux and Time3D tabs
         inputs.mode = (currentTab === 'time3d' || currentTab === 'flux') ? 'history' : 'snapshot';
         
         worker = createWorker();
@@ -774,7 +1059,6 @@
         lastResults = res;
         lastInputs = inputs;
 
-        // --- 1. PROFILE CHART (2D) ---
         if (currentTab === 'profile') {
             const dx = res.dx * 1e6;
             const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
@@ -816,116 +1100,60 @@
                 }
             });
 
-        // --- 2. 3D FLUX CHART (NEW) ---
         } else if (currentTab === 'flux') {
             const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
-            
             const traces = res.species.map(s => {
-                // Use fluxHistory for Z data
                 const zData = s.fluxHistory.map(row => Array.from(row));
                 const yData = Array.from({length: zData.length}, (_, i) => i * (inputs.timeHours/zData.length));
                 return {
-                    type: 'surface', 
-                    x: xData, y: yData, z: zData,
-                    name: s.name, 
-                    showscale: false, 
-                    showlegend: true,
-                    opacity: 0.9,
+                    type: 'surface', x: xData, y: yData, z: zData,
+                    name: s.name, showscale: false, showlegend: true, opacity: 0.9,
                     colorscale: [ [0, '#ffffff'], [1, s.color] ]
                 };
             });
-
             Plotly.newPlot('plotly-flux', traces, {
-                margin: {l:0,r:0,b:0,t:30}, 
-                showlegend: true,
-                legend: { x: 0, y: 1 },
-                scene: {
-                    xaxis:{title:'Depth (µm)'}, 
-                    yaxis:{title:'Time (h)'}, 
-                    zaxis:{title:'Flux (J)'},
-                    camera: { eye: {x: 1.5, y: 1.5, z: 1.5} }
-                }
+                margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
+                scene: { xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, zaxis:{title:'Flux (J)'} }
             });
 
-        // --- 3. 3D CONCENTRATION CHART ---
         } else if (currentTab === 'time3d') {
             const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
-            
             const traces = res.species.map(s => {
                 const zData = s.history.map(row => Array.from(row).map(v => v*100));
                 const yData = Array.from({length: zData.length}, (_, i) => i * (inputs.timeHours/zData.length));
                 return {
-                    type: 'surface', 
-                    x: xData, y: yData, z: zData,
-                    name: s.name, 
-                    showscale: false, 
-                    showlegend: true,
-                    opacity: 0.8,
+                    type: 'surface', x: xData, y: yData, z: zData,
+                    name: s.name, showscale: false, showlegend: true, opacity: 0.8,
                     colorscale: [ [0, '#ffffff'], [1, s.color] ]
                 };
             });
-
             Plotly.newPlot('plotly-time', traces, {
-                margin: {l:0,r:0,b:0,t:30}, 
-                showlegend: true,
-                legend: { x: 0, y: 1 },
-                scene: {
-                    xaxis:{title:'Depth (µm)'}, 
-                    yaxis:{title:'Time (h)'}, 
-                    zaxis:{title:'Conc (%)'}
-                }
+                margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
+                scene: { xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, zaxis:{title:'Conc (%)'} }
             });
         }
     }
 
     function downloadData() {
         if (!lastResults || !lastInputs) { alert("No data to download."); return; }
-        
         let csvContent = "data:text/csv;charset=utf-8,";
-        
-        // 1. Simulation Parameters
         csvContent += "--- SIMULATION PARAMETERS ---\n";
-        csvContent += `Temperature (K),${lastInputs.temp}\n`;
-        csvContent += `Time (Hours),${lastInputs.timeHours}\n`;
-        csvContent += `Source Length (um),${lastInputs.sourceLength}\n`;
-        csvContent += `Total Length (um),${lastInputs.totalLength}\n`;
-        csvContent += `Matrix D0 (m2/s),${lastInputs.targetD0}\n`;
-        csvContent += `Matrix Q (eV),${lastInputs.targetQ}\n`;
-        csvContent += `Grid Points,${lastInputs.N}\n\n`;
-        
-        // 2. Species Info (Updated to include Omega)
-        csvContent += "--- SPECIES INFO ---\n";
-        csvContent += "Name,D0,Q,Omega (eV),C_Source (%),C_Matrix (%)\n"; // <--- Header Updated
-        
-        lastInputs.elements.forEach(el => { 
-            // <--- Row Updated to include el.omega
-            csvContent += `${el.name},${el.d0},${el.q},${el.omega},${el.cLeft},${el.cRight}\n`; 
-        });
-        
+        csvContent += `Temperature (K),${lastInputs.temp}\nTime (Hours),${lastInputs.timeHours}\nSource Length (um),${lastInputs.sourceLength}\nTotal Length (um),${lastInputs.totalLength}\nMatrix D0 (m2/s),${lastInputs.targetD0}\nMatrix Q (eV),${lastInputs.targetQ}\nGrid Points,${lastInputs.N}\n\n`;
+        csvContent += "--- SPECIES INFO ---\nName,D0,Q,Omega (eV),C_Source (%),C_Matrix (%)\n";
+        lastInputs.elements.forEach(el => { csvContent += `${el.name},${el.d0},${el.q},${el.omega},${el.cLeft},${el.cRight}\n`; });
         csvContent += "\n--- CALCULATION RESULTS ---\n";
-        
-        // 3. Calculation Data (Remains the same)
         let headerRow = ["Depth (um)", "Matrix Conc (%)"];
-        lastResults.species.forEach(s => { 
-            headerRow.push(`${s.name} Conc (%)`); 
-            headerRow.push(`${s.name} Flux (J)`); 
-        });
+        lastResults.species.forEach(s => { headerRow.push(`${s.name} Conc (%)`); headerRow.push(`${s.name} Flux (J)`); });
         csvContent += headerRow.join(",") + "\n";
-        
         const N = lastInputs.N;
         const dx_um = lastResults.dx * 1e6;
-        
         for (let i = 0; i < N; i++) {
             let row = [];
             row.push((i * dx_um).toFixed(4));
             row.push((lastResults.matrix[i] * 100).toFixed(4));
-            lastResults.species.forEach(s => { 
-                row.push((s.C[i] * 100).toFixed(4)); 
-                row.push((s.Flux[i]).toExponential(4)); 
-            });
+            lastResults.species.forEach(s => { row.push((s.C[i] * 100).toFixed(4)); row.push((s.Flux[i]).toExponential(4)); });
             csvContent += row.join(",") + "\n";
         }
-        
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -934,7 +1162,6 @@
         link.click();
         document.body.removeChild(link);
     }
-
 
     function validateInputs() {
         const elements = [];
