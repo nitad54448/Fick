@@ -252,7 +252,8 @@
         /* Help Section styling */
         .help-container {
             padding: 32px;
-            max-width: 800px;
+            max-width: 1200px;
+            width: 98%
             margin: 0 auto;
             overflow-y: auto;
             height: 100%;
@@ -260,7 +261,7 @@
         }
         .help-header { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; }
         .help-header h1 { margin: 0; font-size: 24px; color: var(--text-main); }
-        .help-section { margin-bottom: 32px; }
+        .help-section { margin-bottom: 40px; }
         .help-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         .step-badge {
             width: 24px; height: 24px; background: var(--accent-light); color: var(--accent);
@@ -342,7 +343,7 @@
 }
 
 /* Typography Helpers */
-.help-text { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+.help-text { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.7; }
 .small-note { font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.4; }
 .tiny-italic { font-size: 10px; color: #94a3b8; margin-top: 8px; font-style: italic; }
 .sub-heading { font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0; color: var(--text-main); }
@@ -367,7 +368,11 @@
 .theory-table tr.sep-top td { border-top: 2px solid #e2e8f0; background: #f8fafc; }
 
 /* Features (Visualizing) */
-.feature-list { display: flex; flex-direction: column; gap: 16px; }
+.feature-list { 
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px; 
+}
 .feature-item {
     background: white;
     border: 1px solid var(--border-color);
@@ -376,9 +381,10 @@
     display: flex;
     gap: 16px;
     align-items: flex-start;
+    height: 100%;  /* ADD THIS */
 }
-@media (min-width: 768px) {
-    .feature-list { flex-direction: row; }
+@media (max-width: 768px) {
+    .feature-list { grid-template-columns: 1fr; }
 }
 
 .icon-circle {
@@ -1113,7 +1119,7 @@
             });
             Plotly.newPlot('plotly-flux', traces, {
                 margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
-                scene: { xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, zaxis:{title:'Flux (J)'} }
+                scene: { xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, zaxis:{title:'Flux (J)'}, aspectmode: 'cube',camera: { eye: { x: 1.5, y: 1.5, z: 1.3 } } }
             });
 
         } else if (currentTab === 'time3d') {
@@ -1129,7 +1135,7 @@
             });
             Plotly.newPlot('plotly-time', traces, {
                 margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
-                scene: { xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, zaxis:{title:'Conc (%)'} }
+                scene: { xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, zaxis:{title:'Conc (%)'}, aspectmode: 'cube',camera: { eye: { x: 1.5, y: 1.5, z: 1.3 } } }
             });
         }
     }
