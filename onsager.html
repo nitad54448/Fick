@@ -581,12 +581,13 @@
             </div>
 
 
+
             <div id="pane-help" class="tab-pane">
     <div class="help-container">
         
         <div class="help-header">
             <h1>Documentation & Theory</h1>
-            <p>Onsager Multi-Component Diffusion Solver (v8.4), December 6, 2025.</p>
+            <p>Onsager Multi-Component Diffusion Solver (v8.4) • December 2025</p>
         </div>
 
         <div class="alert-box">
@@ -594,75 +595,129 @@
             <div>
                 <h3>Parameter Warning</h3>
                 <p>
-                    Default values ($D_0, Q$) are approximations for <strong>MgO</strong>. For other systems you must update these values. This tool assumes that D0 and Q do not change with concentration.
+                    Default values ($D_0, Q$) are tuned for <strong>MgO</strong>. 
+                    For other matrices, you must update these parameters. 
+                    The solver assumes $D_0$ and $Q$ do not depend on concentration.
                 </p>
             </div>
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge">1</span> Thermodynamics: The $L$ vs. $D$ Matrix</h2>
-            
-            <p class="help-text">
-                This tool solves the transport equations using concentration gradients, which leads to an <strong>asymmetric</strong> diffusion matrix.
+            <h2 class="help-title"><span class="step-badge">1</span> The Multi-Component Diffusion Matrix</h2>
+
+            <p>
+                In a multicomponent system, each species responds to the gradients of all
+                other species. The fluxes obey a Fick-type matrix law:
             </p>
 
-            <div class="help-grid">
-                <div class="theory-card card-slate">
-                    <h4>The Onsager Matrix ($L$)</h4>
-                    <div class="math-box">
-                        $$ J_i = - \sum_{j} L_{ij} \nabla \mu_j $$
-                    </div>
-                    <p class="small-note">
-                        Driven by Chemical Potential ($\mu$).<br>
-                        <strong>Symmetric ($L_{ij} = L_{ji}$)</strong> due to microscopic time reversibility (Onsager Reciprocal Relations).
-                    </p>
-                </div>
-
-                <div class="theory-card card-indigo">
-                    <h4>The Diffusion Matrix ($D$)</h4>
-                    <div class="math-box">
-                        $$ J_i = - \sum_{j} D_{ij} \nabla C_j $$
-                    </div>
-                    <p class="small-note color-indigo">
-                        Driven by Concentration ($C$).<br>
-                        <strong>Asymmetric ($D_{ij} \neq D_{ji}$)</strong> because it combines the symmetric $L$ matrix with the thermodynamic properties of the material ($D = L \cdot \frac{\partial \mu}{\partial C}$).
-                    </p>
-                </div>
+            <div class="math-block">
+                $$ J_i = -\sum_j D_{ij}\,\nabla C_j $$
             </div>
+
+            <p>
+                Unlike simple Fickian diffusion, the coefficients form a full matrix whose
+                elements depend on temperature and on the local concentrations. This solver
+                computes all <em>matrix elements</em> at every position and timestep.
+            </p>
+
+            <h3 class="sub-heading">1.1 Tracer Diffusivities</h3>
+            <p>Each species has a tracer diffusivity defined by an Arrhenius law:</p>
+            <div class="math-block">
+                $$ D_i^*(T) = D_{0,i}\,\exp\!\left(-\frac{Q_i}{k_B T}\right) $$
+            </div>
+            <p>The same expression defines the tracer diffusivity of the matrix (host lattice):</p>
+            <div class="math-block">
+                $$ D_{\text{matrix}}^*(T) = D_{0,\text{matrix}} \exp\!\left(-\frac{Q_{\text{matrix}}}{k_B T}\right) $$
+            </div>
+
+            <h3 class="sub-heading">1.2 Diffusion Matrix Elements</h3>
+            <p>
+                For vacancy-mediated diffusion, the Manning–Darken model gives explicit
+                expressions for every element of the diffusion matrix:
+            </p>
+            <div class="math-block">
+                $$ D_{ii} = D_i^* + C_i\big(D_{\text{matrix}}^* - D_i^*\big) $$
+            </div>
+            <div class="math-block">
+                $$ D_{ij} = C_i\big(D_{\text{matrix}}^* - D_j^*\big) \qquad (i \neq j) $$
+            </div>
+            <p>
+                Off-diagonal terms describe <strong>cross-coupling</strong>, where a gradient in
+                species <em>j</em> drives a flux of species <em>i</em>. 
+                Because concentrations and tracer diffusivities differ, the matrix is naturally
+                asymmetric ($D_{ij} \neq D_{ji}$).
+            </p>
+
+            <h3 class="sub-heading">1.3 Why the Matrix Evolves in Time</h3>
+            <p>
+                Since concentrations change during diffusion, each matrix element is
+                recalculated every timestep:
+            </p>
+            <div class="math-block">
+                $$ D_{ij}(x,t) = D_{ij}\big(C_1(x,t), C_2(x,t),\dots,T\big) $$
+            </div>
+            <p>
+                This dynamic diffusion matrix is responsible for phenomena such as uphill
+                diffusion, flux reversal, and the Kirkendall effect.
+            </p>
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-orange">2</span> The Manning-Darken Approximation</h2>
+            <h2 class="help-title"><span class="step-badge icon-orange">2</span> The Manning–Darken Model and Final Flux Law</h2>
 
-            <p class="help-text">
-                This tool calculates the $D_{ij}$ terms dynamically at every grid point using the Manning-Darken formalism for vacancy-mediated diffusion. The asymmetry arises physically from the <strong>Vacancy Wind Effect</strong>.
+            <p>
+                Vacancy-mediated diffusion couples all species through the shared vacancy
+                population. The Manning–Darken model provides explicit formulas for the
+                diffusion matrix, used directly by the solver. These were defined in Section 1.
             </p>
 
-            <div class="table-wrapper">
-                <table class="theory-table">
-                    <thead>
-                        <tr>
-                            <th>Term</th>
-                            <th>Formula</th>
-                            <th>Physical Meaning</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="font-mono text-indigo">Diagonal ($D_{ii}$)</td>
-                            <td class="font-mono">$$D^*_i + C_i (D^*_{matrix} - D^*_i)$$</td>
-                            <td>Tracer diffusion modified by the net flow of the matrix.</td>
-                        </tr>
-                        <tr class="row-highlight">
-                            <td class="font-mono text-orange">Off-Diagonal ($D_{ij}$)</td>
-                            <td class="font-mono">$$C_i (D^*_{matrix} - D^*_j)$$</td>
-                            <td>
-                                <strong>Vacancy Wind:</strong> If species $j$ is fast ($D^*_j$ high), it creates a vacancy wind that drags species $i$. This is asymmetric because $C_i \neq C_j$.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <h3 class="sub-heading">2.1 Thermodynamic Factor (Regular Solution)</h3>
+            <p>
+                Non-ideal mixing modifies the driving force through a factor derived from the
+                curvature of the free energy. For a regular-solution model with interaction
+                parameter $\Omega$:
+            </p>
+            <div class="math-block">
+                $$ \Phi_i = 1 - \frac{2\Omega_i\,C_i(1-C_i)}{k_B T} $$
             </div>
+            <p>
+                When \( \Phi_i < 0 \), the system is in the spinodal region where diffusion
+                amplifies composition fluctuations.
+            </p>
+
+            <h3 class="sub-heading">2.2 Local Concentration Gradients</h3>
+            <p>
+                Spatial derivatives are computed from local concentrations:
+            </p>
+            <div class="math-block">
+                $$ \nabla C_j(x) \approx \frac{C_j(x+\Delta x) - C_j(x)}{\Delta x} $$
+            </div>
+            <p>Interface fluxes use midpoint concentrations for stability.</p>
+
+            <h3 class="sub-heading">2.3 Final Flux Expression Used in the Solver</h3>
+            <p>The solver first constructs the Onsager-like quantity:</p>
+            <div class="math-block">
+                $$ \text{flux\_onsager}_i = -\sum_j D_{ij}\,\nabla C_j $$
+            </div>
+            <p>Then applies the thermodynamic factor:</p>
+            <div class="math-block">
+                $$ J_i = \Phi_i\;\text{flux\_onsager}_i $$
+            </div>
+            <p>Therefore the final flux law used at every node is:</p>
+            <div class="math-block" style="font-weight: 500;">
+                $$ J_i(x) = -\Phi_i(x)\sum_j D_{ij}(x)\,\nabla C_j(x). $$
+            </div>
+
+            <p>This is a <strong>Fick-type law</strong> with:</p>
+            <ul>
+                <li>a full diffusion matrix \(D_{ij}\),</li>
+                <li>a thermodynamic multiplier \( \Phi_i \),</li>
+                <li>updated at each timestep and each grid point.</li>
+            </ul>
+            <p>
+                In this form, uphill diffusion, flux reversal, vacancy wind, and interface
+                sharpening arise naturally from the physics.
+            </p>
         </div>
 
         <div class="help-section">
@@ -670,49 +725,65 @@
             
             <div class="theory-box box-slate">
                 <p>
-                    The coupled Partial Differential Equations (PDEs) are solved by using an Explicit Finite Difference Method. 
-                    Because the equations are coupled (the motion of one element depends on all others), simple stability checks fail.
+                    The solver uses an explicit finite-difference scheme. Because the 
+                    system is strongly coupled, numerical stability depends on the 
+                    largest eigenvalue of the diffusion matrix. 
+                    Instead of computing eigenvalues explicitly, the code uses
+                    <strong>Gershgorin bounds</strong> to estimate the spectral radius.
                 </p>
-                
-                <h4 class="sub-heading">Robust Stability: Spectral Radius Control</h4>
-                <p>
-                    To ensure the simulation does not "explode", the timestep $\Delta t$ is calculated by using <strong>Gershgorin's Circle Theorem</strong> to estimate the maximum Eigenvalue ($\lambda_{max}$) of the diffusion matrix at every step:
-                </p>
-                
                 <div class="math-block">
-                    $$ \Delta t \leq \frac{\Delta x^2}{2 \cdot \lambda_{max}} \quad \text{where} \quad \lambda_{max} \approx \max_i \sum_j |D_{ij} \cdot \Phi_i| $$
+                    $$ \Delta t \le \frac{\Delta x^2}{2\,\lambda_{\max}} $$
                 </div>
-
                 <p>
-                    This ensures that even if you pair a very fast dopant with a very slow one (strong coupling) or use non-ideal thermodynamics, the solver remains mathematically rigorous.
+                    Here $\lambda_{\max}$ is estimated locally from row sums of 
+                    $|D_{ij}|$ multiplied by the thermodynamic factor. 
+                    This ensures stability even for systems with strong coupling 
+                    or highly unequal diffusivities.
                 </p>
             </div>
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-blue">4</span> Visualizing data</h2>
+            <h2 class="help-title"><span class="step-badge icon-blue">4</span> Viewing the Results</h2>
+            <p>
+                The solver provides several visualization modes. They update continuously as 
+                concentrations evolve and the diffusion matrix changes in time.
+            </p>
 
             <div class="feature-list">
                 <div class="feature-item">
-                    <div class="icon-circle bg-blue"><i class="fas fa-water"></i></div>
+                    <div class="icon-circle bg-purple"><i class="fas fa-chart-line"></i></div>
                     <div>
-                        <h4>3D Flux View (Surface Plot)</h4>
-                        <p>Visualizes the net flow of atoms $J(x,t)$.</p>
+                        <h4>Concentration Profiles</h4>
+                        <p>Standard diffusion curves displayed as a function of position.</p>
                         <ul>
-                            <li><strong>The "Wall":</strong> A massive flux spike at T=0 where gradients are infinite.</li>
-                            <li><strong>Coupling Signs:</strong> If a slow element moves "uphill" (negative flux against its own gradient), it creates a dip in the surface, visually proving the Onsager cross-terms are active.</li>
+                            <li><strong>Asymmetry</strong> indicates a Kirkendall shift.</li>
+                            <li><strong>Local bumps</strong> show vacancy drag.</li>
+                            <li><strong>Flat zones</strong> correspond to flux cancellation.</li>
                         </ul>
                     </div>
                 </div>
 
                 <div class="feature-item">
-                    <div class="icon-circle bg-purple"><i class="fas fa-chart-line"></i></div>
+                    <div class="icon-circle bg-blue"><i class="fas fa-water"></i></div>
                     <div>
-                        <h4>Concentration Profile (2D)</h4>
-                        <p>The classic "Diffusion Profile".</p>
+                        <h4>3D Flux Surface</h4>
+                        <p>A time–position surface plot of the flux.</p>
                         <ul>
-                            <li><strong>Uphill Diffusion:</strong> Look for "bumps" near the interface. This is the fast element "stealing" vacancies from the slow element.</li>
-                            <li><strong>Kirkendall Shift:</strong> Asymmetry in the profiles indicates the lattice plane is physically moving to compensate for unequal flux.</li>
+                            <li>Coupling can create <strong>flux reversal</strong>.</li>
+                            <li>Off-diagonal terms produce <strong>tilted flow ridges</strong>.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="icon-circle bg-cyan"><i class="fas fa-clock"></i></div>
+                    <div>
+                        <h4>Time Traces</h4>
+                        <p>Time evolution of concentration at specific markers.</p>
+                        <ul>
+                            <li>A species can move backwards (uphill diffusion).</li>
+                            <li>Different species may cross at the same location.</li>
                         </ul>
                     </div>
                 </div>
@@ -720,221 +791,141 @@
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-rose">5</span> Non-Ideal Thermodynamics ($\Omega \neq 0$)</h2>
-
+            <h2 class="help-title"><span class="step-badge icon-rose">5</span> Non-Ideal Thermodynamics (Ω)</h2>
+            
             <div class="theory-box box-rose">
                 <p>
-                    Fick's Law assumes a "Dilute Solution" (Ideal Gas behavior, $\gamma=1$). In real alloys, atoms interact chemically. We model this using the <strong>Regular Solution Model</strong> via the Interaction Parameter $\Omega$ (Omega).
+                    Deviations from ideal mixing are included through the regular-solution 
+                    parameter $\Omega$. It modifies the chemical potential curvature and therefore 
+                    multiplies the flux through a thermodynamic factor.
                 </p>
-
-                <h4 class="sub-heading text-rose">1. The Thermodynamic Factor ($\Phi$)</h4>
-                <p>Flux is driven by the gradient of Chemical Potential ($\mu$), not just concentration. We calculate a correction factor $\Phi$ at every grid point:</p>
-                
-                <div class="math-box rose-math">
-                    $$ \Phi = 1 - \frac{2 \Omega C (1-C)}{k_B T} $$
-                    <div class="sub-note">Then, $J_{actual} = J_{onsager} \times \Phi$</div>
+                <div class="math-block">
+                    $$ \Phi = 1 - \frac{2\Omega\, C(1-C)}{k_B T} $$
                 </div>
-
-                <h4 class="sub-heading text-rose">2. The Meaning of Omega ($\Omega$)</h4>
-                <p>The parameter $\Omega$ describes the enthalpy of mixing between the Dopant and the Matrix.</p>
-
-                <div class="case-study-list">
-                    <div class="case-box border-indigo">
-                        <div class="case-header">
-                            <span class="case-title text-indigo">Case A: Ordering ($\Omega < 0$)</span>
-                            <span class="case-badge bg-indigo">$\Phi > 1$</span>
-                        </div>
-                        <p>The dopant atoms are attracted to the matrix atoms.<br><strong>Effect:</strong> The thermodynamic driving force is increased. Diffusion appears <strong>faster</strong> or gradients become steeper as atoms rush to mix.</p>
-                    </div>
-
-                    <div class="case-box border-amber">
-                        <div class="case-header">
-                            <span class="case-title text-amber">Case B: Clustering ($\Omega > 0$)</span>
-                            <span class="case-badge bg-amber">$0 < \Phi < 1$</span>
-                        </div>
-                        <p>The dopant atoms repel the matrix.<br><strong>Effect:</strong> The driving force is reduced. Diffusion is <strong>suppressed</strong> (sluggish).</p>
-                    </div>
-
-                    <div class="case-box border-rose">
-                        <div class="case-header">
-                            <span class="case-title text-rose">Case C: Spinodal Decomposition ($\Omega \gg 0$)</span>
-                            <span class="case-badge bg-rose">$\Phi < 0$</span>
-                        </div>
-                        <p>If repulsion is very high and Temperature is low ($2\Omega > 4 k_B T$), the system becomes unstable.<br><strong>Effect:</strong> <strong>Negative Diffusion</strong>. Atoms flow from Low Concentration $\to$ High Concentration. The material spontaneously un-mixes (phase separation).</p>
-                    </div>
+                <p>This factor is applied directly to the Manning–Darken flux:</p>
+                <div class="math-block">
+                    $$ J_{\text{actual}} = J_{\text{MD}}\,\Phi $$
                 </div>
-            </div>
-        </div>
-
-        <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-cyan">6</span> Reference Values for MgO Matrix</h2>
-
-            <div class="theory-box box-cyan">
                 <p>
-                    The values below are compiled from experimental thermodynamic assessments of oxide solid solutions.
-                    <br><span class="small-note">Note: $1 \text{ kJ/mol} \approx 0.0104 \text{ eV}$.</span>
+                    If <strong>$\Phi < 0$</strong>, the system is in the <strong>spinodal region</strong>,
+                    where diffusion drives demixing instead of smoothing. 
+                    This solver supports such regimes because the numerical stability constraint
+                    is computed at every node.
                 </p>
-
-                <div class="table-wrapper">
-                    <table class="theory-table">
-                        <thead>
-                            <tr class="header-cyan">
-                                <th>Dopant (Oxide)</th>
-                                <th>$\Omega$ (eV)</th>
-                                <th>Behavior</th>
-                                <th>Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="font-bold">NiO (Ni²⁺)</td>
-                                <td class="font-mono text-emerald">0.00</td>
-                                <td>Ideal</td>
-                                <td class="text-muted">Complete solid solution.</td>
-                            </tr>
-                            <tr>
-                                <td class="font-bold">CoO (Co²⁺)</td>
-                                <td class="font-mono text-emerald">0.05</td>
-                                <td>Near Ideal</td>
-                                <td class="text-muted">Very slight repulsion ($\approx 5$ kJ/mol).</td>
-                            </tr>
-                            <tr>
-                                <td class="font-bold">FeO (Fe²⁺)</td>
-                                <td class="font-mono text-emerald">0.04</td>
-                                <td>Near Ideal</td>
-                                <td class="text-muted">Mixes well at high Temp.</td>
-                            </tr>
-                            <tr>
-                                <td class="font-bold">MnO (Mn²⁺)</td>
-                                <td class="font-mono text-emerald">0.04</td>
-                                <td>Near Ideal</td>
-                                <td class="text-muted">Similar radius to Mg²⁺.</td>
-                            </tr>
-                            <tr>
-                                <td class="font-bold">CuO (Cu²⁺)</td>
-                                <td class="font-mono text-amber">0.21</td>
-                                <td>Repulsive</td>
-                                <td class="text-muted">Jahn-Teller ion. Distorts local lattice.</td>
-                            </tr>
-                            <tr>
-                                <td class="font-bold">ZnO (Zn²⁺)</td>
-                                <td class="font-mono text-amber">0.18</td>
-                                <td>Repulsive</td>
-                                <td class="text-muted">Structural mismatch (Tetra vs Octa).</td>
-                            </tr>
-                            <tr class="sep-top">
-                                <td class="font-bold">Cr₂O₃ (Cr³⁺)</td>
-                                <td class="font-mono text-purple">> 0.80</td>
-                                <td>Solubility Limit</td>
-                                <td class="text-muted">Forms Spinel (MgCr₂O₄).</td>
-                            </tr>
-                            <tr>
-                                <td class="font-bold">Al₂O₃ (Al³⁺)</td>
-                                <td class="font-mono text-purple">> 1.00</td>
-                                <td>Solubility Limit</td>
-                                <td class="text-muted">Very low solubility in Periclase.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p class="tiny-italic">* For 3+ ions (Cr, Al, Fe³⁺), a high positive $\Omega$ effectively simulates their low solubility limit.</p>
-            </div>
-        </div>
-
-
-
-
-
-
-
-        <div class="help-section">
-            <h2 class="help-title"><span class="step-badge" style="background: #e0e7ff; color: #4338ca;">7</span> 
-                Advanced Topics & Extensions</h2>
-
-            <div class="theory-box box-indigo">
-                <h4 class="sub-heading text-indigo">Limitations of This Model</h4>
-                <p style="margin-bottom: 12px;">
-                    This solver is a powerful tool, but it makes several simplifying assumptions:
-                </p>
-                <ul style="margin-left: 20px; line-height: 1.8;">
-                    <li><strong>1D Geometry:</strong> Real diffusion couples have grain boundaries, surface roughness, 
-                        and lateral variations. This model assumes infinite planar geometry.</li>
-                    <li><strong>No Grain Boundaries:</strong> GBs are "fast paths" (D_GB ≫ D_bulk). For nanocrystalline 
-                        materials or short annealing times, GB diffusion dominates.</li>
-                    <li><strong>Constant D₀ and Q:</strong> In reality, diffusion coefficients can depend on composition 
-                        (especially in concentrated alloys). This is the "concentration-dependent D" problem.</li>
-                    <li><strong>Regular Solution Model Only:</strong> More complex thermodynamics (sub-regular, associated 
-                        solutions, compound formation) require different Ω(C) functions.</li>
-                    <li><strong>No Point Defect Equilibria:</strong> The model doesn't track vacancy concentration 
-                        explicitly—it's "folded into" the Manning equations. For very non-stoichiometric oxides 
-                        (e.g., Fe₁₋ₓO, TiO₂₋ₓ), defect chemistry matters.</li>
-                    <li><strong>Isothermal:</strong> No temperature gradients. Real furnaces have T variations that 
-                        affect local diffusion rates.</li>
+                <ul>
+                    <li><strong>$\Omega = 0$</strong> → ideal solution.</li>
+                    <li><strong>$\Omega > 0$</strong> → repulsive interactions, miscibility gaps possible.</li>
+                    <li><strong>Large $\Omega$</strong> → sharp interfaces and uphill diffusion.</li>
                 </ul>
             </div>
+        </div>
 
-            <div class="help-grid" style="margin-top: 20px;">
-                <div class="theory-card card-slate">
-                    <h4><i class="fas fa-graduation-cap"></i> Further Reading</h4>
-                    <ul style="font-size: 12px; line-height: 1.6; margin-top: 8px;">
-                        <li><strong>Onsager (1931):</strong> "Reciprocal Relations in Irreversible Processes" – 
-                            The foundational paper on coupled transport.</li>
-                        <li><strong>Darken (1948):</strong> "Diffusion, Mobility and Their Interrelation" – 
-                            Connects tracer diffusion to chemical diffusion.</li>
-                        <li><strong>Manning (1968):</strong> "Diffusion Kinetics for Atoms in Crystals" – 
-                            Vacancy wind theory in detail.</li>
-                        <li><strong>Balluffi, Allen, Carter (2005):</strong> "Kinetics of Materials" – 
-                            Modern textbook covering all aspects of diffusion.</li>
-                        <li><strong>CALPHAD Database:</strong> Thermodynamic assessments for specific oxide systems 
-                            (searchable online).</li>
-                    </ul>
-                </div>
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-cyan">6</span> Reference Ω Values for MgO Dopants</h2>
+            
+            <div class="theory-box box-cyan">
+                <p>
+                    Approximate interaction parameters $\Omega$ for common divalent and trivalent 
+                    dopants in MgO. Values depend on temperature and assessment method, 
+                    but the trends below are robust.
+                </p>
 
-                <div class="theory-card card-indigo">
-                    <h4><i class="fas fa-code-branch"></i> Future Extensions</h4>
-                    <ul style="font-size: 12px; line-height: 1.6; margin-top: 8px;">
-                        <li>2D/3D geometry (grain boundary networks, thin films with corners)</li>
-                        <li>Grain boundary diffusion (Fick-Heitjans model)</li>
-                        <li>Concentration-dependent D₀(C) and Q(C)</li>
-                        <li>Multi-sublattice models (oxides with multiple cation sites)</li>
-                        <li>Coupled diffusion + phase transformation (nucleation & growth)</li>
-                        <li>Defect chemistry solver (Kröger-Vink notation, equilibrium constants)</li>
-                        <li>Fitting module: auto-extract D₀, Q, Ω from experimental profiles</li>
-                        <li>Stress-assisted diffusion (elasto-diffusion coupling)</li>
-                    </ul>
-                </div>
+                <table class="theory-table">
+                    <thead>
+                        <tr>
+                            <th>Dopant</th>
+                            <th>Ω (eV)</th>
+                            <th>Behavior</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>NiO</td><td>0.00</td><td>Ideal</td><td>Complete solid solution</td></tr>
+                        <tr><td>CoO</td><td>0.05</td><td>Near Ideal</td><td>Slight short-range repulsion</td></tr>
+                        <tr><td>FeO</td><td>0.04</td><td>Near Ideal</td><td>High-temperature stability</td></tr>
+                        <tr><td>MnO</td><td>0.04</td><td>Near Ideal</td><td>Size match with Mg²⁺</td></tr>
+                        <tr><td>CuO</td><td>0.21</td><td>Repulsive</td><td>Jahn–Teller distortions</td></tr>
+                        <tr><td>ZrO</td><td>0.18</td><td>Repulsive</td><td>Octahedral mismatch</td></tr>
+                        <tr class="sep-top">
+                            <td>Cr₂O₃</td><td>&gt;0.80</td><td>Solubility limit</td><td>Tends to form spinel</td>
+                        </tr>
+                        <tr>
+                            <td>Al₂O₃</td><td>&gt;1.00</td><td>Strongly repulsive</td><td>Very low solubility</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <div class="help-section" style="border-top: 2px solid var(--border-color); padding-top: 24px;">
-            <h2 class="help-title" style="color: #059669;">
-                <i class="fas fa-question-circle"></i> Questions & Support
-            </h2>
-            <div class="theory-box" style="background: #d1fae5; border-left: 4px solid #059669;">
-                <p style="line-height: 1.8; color: #065f46;">
-                    This tool was developed for educational purposes in solid-state diffusion by Nita Dragoe from Univ Paris-Saclay. 
-                    It implements peer-reviewed models from the materials science literature and has been validated 
-                    against analytical solutions (error functions, Matano-Boltzmann analysis) for ideal systems.<br><br>
-                    
-                    <strong>Citing This Tool:</strong> If you use this simulator in published research, please cite 
-                    the underlying theory (Onsager, Manning-Darken) and mention "Onsager Diffusion Solver v8.4" 
-                    in your methods section.<br><br>
-                    
-                    <strong>Feedback:</strong> For bug reports or questions about specific open an issue on the project repository.<br><br>
-                    
-                    <strong>Disclaimer:</strong> Results are only as good as the input parameters. Always validate 
-                    simulations against experimental data before drawing conclusions about real material systems.
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-blue">7</span> Advanced Topics & Model Limits</h2>
+            
+            <div class="theory-box box-indigo">
+                <p>
+                    This solver implements vacancy-mediated Onsager diffusion using a 
+                    simplified physical model. Although it captures the central features of 
+                    multi-component diffusion, several assumptions are made for clarity and speed.
+                </p>
+                <ul>
+                    <li>
+                        <strong>1D geometry</strong> — the solver treats the system as a 
+                        one-dimensional slab with no lateral effects.
+                    </li>
+                    <li>
+                        <strong>Constant diffusivity prefactors</strong> — 
+                        The parameters $D_0$ and $Q$ are taken as concentration-independent. 
+                        In reality, both can vary under high strain or at high dopant loadings.
+                    </li>
+                    <li>
+                        <strong>No explicit defect chemistry</strong> — 
+                        Charged vacancies, electronic carriers, or Frenkel pairs are not 
+                        separately tracked. Vacancies here are “effective” carriers folded into $D_{ij}$.
+                    </li>
+                    <li>
+                        <strong>No grain boundaries or dislocations</strong> — 
+                        Diffusion is assumed to occur in a defect-free, bulk single crystal.
+                    </li>
+                    <li>
+                        <strong>Regular-solution thermodynamics only</strong> — 
+                        Free-energy curvature comes from a single interaction parameter $\Omega$.
+                    </li>
+                </ul>
+                <p>
+                    Even with these simplifications, the solver reproduces classical behaviors:
+                    Kirkendall shifts, uphill diffusion, vacancy wind effects, and rapid 
+                    interface sharpening under strong $\Omega$. 
+                    It is stable across a wide range of conditions due to the adaptive timestep control.
                 </p>
             </div>
         </div>
 
-
-
-
-
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge icon-blue">8</span> Notes, Credits & References</h2>
+            
+            <div class="theory-box" style="background:#e8f0fe; border-left:4px solid var(--gf-blue);">
+                <p>
+                    This tool is intended for teaching, research, and rapid prototyping of 
+                    diffusion problems. It implements the classic vacancy-mediated framework 
+                    with concentration-dependent diffusion matrices.
+                </p>
+                <p>If you use this tool in academic work, please cite:</p>
+                <ul>
+                    <li>The Manning–Darken coupling expressions for vacancy-mediated diffusion.</li>
+                    <li>“Onsager Multicomponent Diffusion Solver v8.4, 2025.”</li>
+                </ul>
+                <p><strong>Development notes:</strong></p>
+                <ul>
+                    <li>The numerical engine is implemented in a WebWorker for responsiveness.</li>
+                    <li>All fluxes and diffusion matrices are recomputed every timestep.</li>
+                    <li>Stability is controlled with local Gershgorin bounds.</li>
+                    <li>Plots use canvas/WebGL for real-time updates.</li>
+                </ul>
+            </div>
+        </div>
 
     </div>
 </div>
+
 
 
             
