@@ -85,6 +85,7 @@
         
         <!-- Sidebar Controls -->
         <aside class="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] shrink-0 overflow-y-auto">
+                           
             <div class="p-4 space-y-5">
                 
                 <!-- 1. Geometry & Thermal -->
@@ -97,23 +98,25 @@
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <div class="input-group">
                             <label class="text-[10px] text-red-700 font-bold block mb-1">T_Hot (Left) [K]</label>
-                            <input type="number" id="tHot" value="800" min="300" max="1500" class="w-full text-sm border border-red-200 rounded p-1.5 font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-200 outline-none" onchange="debouncedUpdate()">
+                            <input type="number" id="tHot" value="700" min="300" max="1500" class="w-full text-sm border border-red-200 rounded p-1.5 font-bold text-red-700 bg-white focus:ring-2 focus:ring-red-200 outline-none" onchange="debouncedUpdate()">
                         </div>
                         <div class="input-group">
                             <label class="text-[10px] text-blue-700 font-bold block mb-1">T_Cold (Right) [K]</label>
-                            <input type="number" id="tCold" value="400" min="200" max="1000" class="w-full text-sm border border-blue-200 rounded p-1.5 font-bold text-blue-700 bg-white focus:ring-2 focus:ring-blue-200 outline-none" onchange="debouncedUpdate()">
+                            <input type="number" id="tCold" value="600" min="200" max="1000" class="w-full text-sm border border-blue-200 rounded p-1.5 font-bold text-blue-700 bg-white focus:ring-2 focus:ring-blue-200 outline-none" onchange="debouncedUpdate()">
                         </div>
                     </div>
                     <div class="input-group">
                         <label class="text-[10px] text-slate-600 font-bold block mb-1">Leg Length (mm)</label>
                         <div class="relative">
-                            <input type="number" id="legLength" value="10" min="1" step="0.5" class="w-full text-sm border border-slate-300 rounded p-1.5 font-semibold" onchange="debouncedUpdate()">
+                            <input type="number" id="legLength" value="5" min="1" step="0.5" class="w-full text-sm border border-slate-300 rounded p-1.5 font-semibold" onchange="debouncedUpdate()">
                             <span class="absolute right-2 top-1.5 text-xs text-slate-400">mm</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- 2. Timeline -->
+
+
                 <div class="bg-slate-50 p-3 rounded border border-slate-200">
                     <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2. Timeline</h3>
                     <div class="input-group">
@@ -122,42 +125,54 @@
                     </div>
                 </div>
 
-                <!-- 3. Material / Dopant -->
-                <div class="bg-emerald-50 p-3 rounded border border-emerald-100">
-                    <div class="flex justify-between items-center mb-3">
+                <div class="bg-emerald-50 p-3 rounded border border-emerald-100 space-y-3">
+                    
+                    <div class="flex justify-between items-center">
                         <h3 class="text-xs font-bold text-emerald-800 uppercase tracking-wider">3. Dopant (PbSe)</h3>
                         <select id="presetSelect" class="text-[10px] bg-white border border-emerald-200 rounded px-2 py-1 text-emerald-700 font-bold cursor-pointer hover:bg-emerald-100" onchange="loadPreset()">
-                            <option value="custom">Custom</option>
+                            <option value="custom">Custom Params</option>
                             <option value="Na" selected>Na (p-type)</option>
                             <option value="Ag">Ag (Fast)</option>
                             <option value="Cl">Cl (n-type)</option>
                         </select>
                     </div>
 
-                    <div class="space-y-3">
+                    <div>
+                        <label class="text-[10px] text-emerald-700 font-bold block mb-1">Concentration ($C(x)$) [cm⁻³]</label>
+                        
+                        <input type="text" id="c0" value="1e19" 
+                            class="w-full text-xs font-mono border border-emerald-200 rounded p-1.5 bg-white placeholder-emerald-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors" 
+                            placeholder="e.g. 1e19 or 1e19 * (1-x)" 
+                            onchange="debouncedUpdate()"
+                            oninput="clearError()"> 
+                        
+                        <div id="conc-error" style="display:none;" class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-[10px] text-red-600 font-bold leading-tight">
+                            <i class="fas fa-exclamation-circle mr-1"></i> <span id="conc-error-text">Error</span>
+                        </div>
+
+                        <p class="text-[9px] text-slate-500 mt-1 italic leading-tight">
+                            Type a number (e.g. <code>1e19</code>) or a function of <code>x</code>, x=0 is hot side, x=1 cold side.                            Ex: <code>2e19 * (1 - 0.5*x)</code>
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-emerald-700 font-bold block mb-1">Initial Conc. ($C_0$) [cm⁻³]</label>
-                            <input type="text" id="c0" value="1e19" class="w-full text-xs font-mono border border-emerald-200 rounded p-1.5 bg-white" onchange="debouncedUpdate()">
+                            <label class="text-[10px] text-emerald-700 font-bold block">D₀ (m²/s)</label>
+                            <input type="text" id="d0" value="2.3e-7" class="w-full text-xs border border-emerald-200 rounded p-1" onchange="debouncedUpdate()">
                         </div>
-
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[10px] text-emerald-700 font-bold block">D₀ (m²/s)</label>
-                                <input type="text" id="d0" value="2.3e-7" class="w-full text-xs border border-emerald-200 rounded p-1" onchange="debouncedUpdate()">
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-emerald-700 font-bold block">Ea (eV)</label>
-                                <input type="number" id="ea" value="0.6" step="0.05" class="w-full text-xs border border-emerald-200 rounded p-1" onchange="debouncedUpdate()">
-                            </div>
-                        </div>
-
-                        <div class="pt-2 border-t border-emerald-200">
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="text-[10px] text-purple-700 font-bold">Heat of Transport Q* (eV)</label>
-                            </div>
-                            <input type="number" id="qStar" value="0.2" step="0.05" class="w-full text-xs border border-purple-200 rounded p-1 font-bold text-purple-800 bg-purple-50" onchange="debouncedUpdate()">
+                        <div>
+                            <label class="text-[10px] text-emerald-700 font-bold block">Ea (eV)</label>
+                            <input type="number" id="ea" value="0.6" step="0.05" class="w-full text-xs border border-emerald-200 rounded p-1" onchange="debouncedUpdate()">
                         </div>
                     </div>
+
+                    <div class="pt-2 border-t border-emerald-200">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[10px] text-purple-700 font-bold">Heat of Transport Q* (eV)</label>
+                        </div>
+                        <input type="number" id="qStar" value="0.2" step="0.05" class="w-full text-xs border border-purple-200 rounded p-1 font-bold text-purple-800 bg-purple-50" onchange="debouncedUpdate()">
+                    </div>
+
                 </div>
 
                 <div class="mt-auto pt-4">
@@ -165,6 +180,8 @@
                         <i class="fas fa-file-csv mr-2"></i> Export Data
                     </button>
                 </div>
+
+
             </div>
         </aside>
 
@@ -246,84 +263,140 @@
             </div>
 
 
-            <div id="pane-theory" class="tab-pane bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <div id="pane-theory" class="tab-pane bg-white p-8 rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
                 <div class="max-w-4xl mx-auto pb-20 prose prose-slate">
-                    <h1 class="text-3xl font-bold text-slate-800 mb-6">Physics & Model Documentation</h1>
                     
-                    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-8 rounded-r">
-                        <p class="text-sm text-indigo-900 m-0">
-                            <strong>Model Version:</strong> Re-tuned SPB + Bipolar (v2).<br>
-                            This simulation uses a phenomenological model calibrated to <strong>p-type PbSe</strong> experimental data. It accounts for the Soret effect (mass transport) and high-temperature bipolar conduction (efficiency degradation).
-                        </p>
-                    </div>
-
-                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">1. Transport Equations</h2>
-                    <p>The dopant flux $J$ is driven by both the concentration gradient (Fick's Law) and the temperature gradient (Soret Effect):</p>
-                    
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 my-4">
-                        <div class="text-center font-mono text-lg text-slate-800">
-                            $$ J = -D \left( \nabla C + \frac{C Q^*}{k_B T^2} \nabla T \right) $$
+                    <div class="flex items-center gap-3 mb-6 border-b border-gray-200 pb-4">
+                        <div class="bg-indigo-600 text-white w-10 h-10 rounded flex items-center justify-center font-bold text-xl">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-slate-800 m-0">User Guide</h1>
+                            <p class="text-slate-500 m-0 text-sm">ThermoMigrate v3.4 Documentation</p>
                         </div>
                     </div>
-                    <p class="text-sm text-slate-600 mb-4">
-                        <strong>Direction of Flow ($Q^*$):</strong>
-                        <span class="text-blue-600 font-bold">Positive $Q^*$</span> moves dopants to the <span class="bg-blue-100 px-1 rounded">COLD</span> side. 
-                        <span class="text-red-600 font-bold">Negative $Q^*$</span> moves dopants to the <span class="bg-red-100 px-1 rounded">HOT</span> side.
-                    </p>
 
-                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">2. PbSe Material Model (Tuned)</h2>
-                    <p>
-                        To calculate $zT$, we map local Concentration ($C$) and Temperature ($T$) to properties. 
-                        At high T ($>500K$), strictly parabolic models fail. We apply a <strong>Bipolar Correction Factor ($\xi$)</strong> to match experimental data.
-                    </p>
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
+                        <h2 class="text-xl font-bold text-emerald-900 mt-0 mb-4">
+                            <i class="fas fa-calculator mr-2"></i> How to use "Smart Input"
+                        </h2>
+                        <p class="text-sm text-emerald-800 mb-4">
+                            The <strong>Concentration</strong> field accepts JavaScript math expressions. You can define complex initial gradients to test Functionally Graded Materials (FGM).
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-white p-4 rounded border border-emerald-100 shadow-sm">
+                                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">The Variable 'x'</h4>
+                                <ul class="text-sm space-y-2 m-0 pl-0 list-none">
+                                    <li class="flex items-center justify-between border-b border-gray-100 pb-1">
+                                        <span><code class="font-bold text-red-600">x = 0.0</code></span>
+                                        <span class="text-gray-500">Hot Side (Left)</span>
+                                    </li>
+                                    <li class="flex items-center justify-between">
+                                        <span><code class="font-bold text-blue-600">x = 1.0</code></span>
+                                        <span class="text-gray-500">Cold Side (Right)</span>
+                                    </li>
+                                </ul>
+                                <p class="text-xs text-slate-400 mt-2 italic">The profile is normalized to leg length.</p>
+                            </div>
 
-                    <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">A. The Bipolar Factor ($\xi$)</h3>
-                    <p class="text-sm">We define a minority carrier activation term based on an effective band gap $E_g \approx 0.28 \text{ eV}$:</p>
-                    <div class="text-center my-2 text-sm">
-                        $$ \xi_{bi} = \exp\left( -\frac{0.28}{2 k_B T} \right) $$
+                            <div class="bg-white p-4 rounded border border-emerald-100 shadow-sm">
+                                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Supported Math</h4>
+                                <div class="text-xs text-slate-600 font-mono grid grid-cols-3 gap-2">
+                                    <span class="bg-gray-50 p-1 rounded">exp(x)</span>
+                                    <span class="bg-gray-50 p-1 rounded">log(x)</span>
+                                    <span class="bg-gray-50 p-1 rounded">pow(a,b)</span>
+                                    <span class="bg-gray-50 p-1 rounded">sin(x)</span>
+                                    <span class="bg-gray-50 p-1 rounded">cos(x)</span>
+                                    <span class="bg-gray-50 p-1 rounded">sqrt(x)</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-2 italic">Standard JS operators (+, -, *, /) apply.</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">B. Property Equations</h3>
-                    <div class="overflow-x-auto mb-6">
-                        <table class="w-full text-sm text-left text-slate-600 border border-slate-200 rounded-lg">
-                            <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">Exemple Profile Equations</h2>
+                    <p>Copy and paste these directly into the Concentration input field to test different scenarios.</p>
+
+                    <div class="overflow-hidden border border-gray-200 rounded-lg shadow-sm mb-8">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-xs">
                                 <tr>
-                                    <th class="px-4 py-3">Property</th>
-                                    <th class="px-4 py-3">Equation / Value</th>
-                                    <th class="px-4 py-3">Notes</th>
+                                    <th class="px-4 py-3">Profile Type</th>
+                                    <th class="px-4 py-3">Equation Example</th>
+                                    <th class="px-4 py-3">Why test this?</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr class="bg-white border-b">
-                                    <td class="px-4 py-3 font-bold">Mobility ($\mu$)</td>
-                                    <td class="px-4 py-3">$$ 1150 \cdot (T/300)^{-2.2} $$</td>
-                                    <td class="px-4 py-3">Slightly shallower decay than acoustic (-2.5) to maintain $\sigma$ at 800K.</td>
+                            <tbody class="divide-y divide-gray-200 bg-white">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-bold text-slate-700">Constant (Flat)</td>
+                                    <td class="px-4 py-3"><code class="bg-slate-100 px-2 py-1 rounded text-pink-600 select-all">1e19</code></td>
+                                    <td class="px-4 py-3 text-slate-500">The standard baseline.</td>
                                 </tr>
-                                <tr class="bg-slate-50 border-b">
-                                    <td class="px-4 py-3 font-bold">Seebeck ($S$)</td>
-                                    <td class="px-4 py-3">$$ S_{eff} = \frac{S_{base} (1 + 0.0025\Delta T)}{1 + \mathbf{5} \cdot \xi_{bi}} $$</td>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-bold text-slate-700">Linear Grading</td>
                                     <td class="px-4 py-3">
-                                        <strong>Suppression:</strong> The factor <strong>5</strong> reduces $S$ at high T to prevent $zT$ overshoot.
+                                        <code class="bg-slate-100 px-2 py-1 rounded text-pink-600 select-all block mb-1">2e19 * (1 - 0.5*x)</code>
+                                        <span class="text-[10px] text-gray-400">Starts at 2e19, drops to 1e19</span>
                                     </td>
+                                    <td class="px-4 py-3 text-slate-500">Optimizes $zT$ by matching carrier conc to temperature ($n \propto T^{1.5}$).</td>
                                 </tr>
-                                <tr class="bg-white border-b">
-                                    <td class="px-4 py-3 font-bold">Thermal ($\kappa$)</td>
-                                    <td class="px-4 py-3">$$ \kappa_{lat} + \kappa_{elec} + 0.2 T \cdot \xi_{bi} $$</td>
-                                    <td class="px-4 py-3">Includes Lattice ($1.4/T$), Electronic (W-F), and Bipolar contributions.</td>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-bold text-slate-700">Exponential</td>
+                                    <td class="px-4 py-3"><code class="bg-slate-100 px-2 py-1 rounded text-pink-600 select-all">1e19 * exp(2*x)</code></td>
+                                    <td class="px-4 py-3 text-slate-500">Rapidly increasing dopant towards the cold side.</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-bold text-slate-700">Step Function</td>
+                                    <td class="px-4 py-3">
+                                        <code class="bg-slate-100 px-2 py-1 rounded text-pink-600 select-all">x < 0.5 ? 2e19 : 1e18</code>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-500">Simulates a diffusion couple (High conc joined to Low conc).</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-bold text-slate-700">Parabolic</td>
+                                    <td class="px-4 py-3"><code class="bg-slate-100 px-2 py-1 rounded text-pink-600 select-all">1e19 * (1 + 4*x*(1-x))</code></td>
+                                    <td class="px-4 py-3 text-slate-500">Peak concentration in the middle of the leg.</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">3. Numerical Details</h2>
+                    <h2 class="text-2xl font-bold text-slate-800 mt-12 mb-4">3. Underlying Physics (v2 Model)</h2>
+                    
+                    <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">A. The Soret Effect</h3>
+                    <p>Dopants migrate due to the temperature gradient. The direction is determined by the <strong>Heat of Transport ($Q^*$)</strong>.</p>
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 my-4">
+                        <ul class="list-none pl-0 m-0 space-y-2 text-sm text-amber-900">
+                            <li><i class="fas fa-arrow-right text-amber-600 w-6"></i> <strong>If Q* > 0:</strong> Dopants move to the <span class="font-bold">COLD</span> side.</li>
+                            <li><i class="fas fa-arrow-left text-amber-600 w-6"></i> <strong>If Q* < 0:</strong> Dopants move to the <span class="font-bold">HOT</span> side (Thermophilic).</li>
+                        </ul>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">B. High-Temperature Accuracy (Bipolar)</h3>
+                    <p>To prevent unrealistic $zT$ predictions at high temperatures (where standard models fail), this simulation uses a <strong>Bipolar Correction</strong> calibrated to p-type PbSe data.</p>
+                    
                     <ul class="list-disc pl-5 space-y-2 text-slate-600 text-sm">
-                        <li><strong>Method:</strong> Finite Difference (Explicit Euler).</li>
-                        <li><strong>Grid:</strong> Staggered grid for Flux conservation.</li>
-                        <li><strong>Stability:</strong> Dynamic time-stepping $\Delta t$ based on Diffusivity ($D_{max}$).</li>
-                        <li><strong>Boundary:</strong> Zero Flux (Closed system) at $x=0$ and $x=L$.</li>
+                        <li>
+                            <strong>Effective Band Gap:</strong> We use $E_g \approx 0.28$ eV to calculate minority carrier activation.
+                        </li>
+                        <li>
+                            <strong>Seebeck Suppression:</strong> As $T$ rises, the Seebeck coefficient is reduced by a factor of $\frac{1}{1 + 5\xi}$, where $\xi$ is the bipolar factor. This simulates the "rollover" seen in real experiments.
+                        </li>
+                        <li>
+                            <strong>Thermal Conductivity:</strong> An extra term $\kappa_{bi}$ is added at high $T$, further lowering the $zT$ to realistic limits ($zT_{max} \approx 1.2$).
+                        </li>
                     </ul>
+
+                    <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">C. Numerical Solver</h3>
+                    <p class="text-sm text-slate-600">
+                        The tool solves the 1D Continuity Equation using an explicit Finite Difference scheme. 
+                        Time steps ($\Delta t$) are automatically adjusted to satisfy the CFL stability condition ($\Delta t < 0.4 \Delta x^2 / D_{max}$), ensuring the simulation remains stable even with fast-diffusing dopants (like Ag or Cu).
+                    </p>
+
                 </div>
             </div>
+
 
 
         </main>
@@ -405,9 +478,56 @@
             const dT_dx = (p.tCold - p.tHot) / L_m; 
             for(let i=0; i<N; i++) T[i] = p.tHot + (p.tCold - p.tHot) * (i / (N-1));
 
-            // 3. Concentration Init
-            const C = new Float64Array(N).fill(p.c0); 
+
+            // 3. Concentration Init (Robust Error Handling)
+            const C = new Float64Array(N);
             const C_new = new Float64Array(N);
+            
+            const c0_input = String(p.c0);
+            let valFunc = null;
+            
+            // Check if input implies a function (contains 'x')
+            if (c0_input.toLowerCase().includes('x')) {
+                try {
+                    // 1. Try to compile the function
+                    // We use a temporary constructor to catch SyntaxErrors (e.g. missing parenthesis)
+                    valFunc = new Function('x', `
+                        const { exp, log, pow, sin, cos, sqrt } = Math;
+                        return ${c0_input};
+                    `);
+
+                    // 2. Test Run: Try to execute it once to catch RuntimeErrors (e.g. undefined variable 'y')
+                    const testVal = valFunc(0.5);
+                    if (isNaN(testVal)) throw new Error("Result is Not a Number (NaN)");
+
+                } catch(e) {
+                    // !! STOP SIMULATION AND REPORT ERROR !!
+                    self.postMessage({ 
+                        type: 'error', 
+                        message: "Invalid Formula: " + e.message 
+                    });
+                    return; // Stop execution here
+                }
+            } else {
+                // Constant number path
+                const constVal = parseFloat(c0_input);
+                if (isNaN(constVal)) {
+                     self.postMessage({ type: 'error', message: "Invalid Number" });
+                     return;
+                }
+                valFunc = () => constVal;
+            }
+
+            // Fill Array safely
+            for(let i=0; i<N; i++) {
+                const x_norm = i / (N-1); 
+                let val = valFunc(x_norm);
+                if (isNaN(val) || val < 1e15) val = 1e15; // Floor value
+                C[i] = val;
+            }
+
+
+
 
             // 4. Time Stepping & Stability
             const maxD = p.d0 * Math.exp(-p.ea / (KB_EV * p.tHot));
@@ -578,32 +698,52 @@
             alert("Export feature would go here (CSV generation of history arrays).");
         }
 
+        
+
+
+
         // --- MAIN SIMULATION ---
         function triggerSimulation() {
             if(worker) worker.terminate();
+            
+            // 1. Reset Error State
+            clearError(); 
 
-            // Modified calculation to use Days directly
-            const durationInput = parseFloat(document.getElementById('timeValue').value);
-            // Conversion: Days -> Seconds (1 Day = 86400 Seconds)
+            // 2. Safely Get Inputs
+            // We use a helper check to prevent "null" errors if an ID is missing
+            const getVal = (id) => {
+                const el = document.getElementById(id);
+                if (!el) { console.error("Missing HTML ID:", id); return 0; }
+                return parseFloat(el.value);
+            };
+
+            const durationInput = getVal('timeValue');
             const durationSeconds = durationInput * 86400;
 
             const params = {
-                tHot: parseFloat(document.getElementById('tHot').value),
-                tCold: parseFloat(document.getElementById('tCold').value),
-                length_mm: parseFloat(document.getElementById('legLength').value),
+                tHot: getVal('tHot'),
+                tCold: getVal('tCold'),
+                length_mm: getVal('legLength'),
                 duration_s: durationSeconds,
-                d0: parseFloat(document.getElementById('d0').value),
-                ea: parseFloat(document.getElementById('ea').value),
-                qStar: parseFloat(document.getElementById('qStar').value),
-                c0: parseFloat(document.getElementById('c0').value)
+                d0: getVal('d0'),
+                ea: getVal('ea'),
+                qStar: getVal('qStar'),
+                
+                // IMPORTANT: This uses the single "c0" field for everything now.
+                // We DO NOT reference 'profileType' or 'profileEq' anymore.
+                c0: document.getElementById('c0').value.trim() 
             };
 
+            // 3. Update UI Status
             document.getElementById('status-area').style.opacity = 1;
             document.getElementById('header-status').innerText = "Calculating...";
+            document.getElementById('header-progress').style.width = "0%";
             
+            // 4. Initialize Worker
             const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
             worker = new Worker(window.URL.createObjectURL(blob));
             
+            // 5. Handle Worker Messages
             worker.onmessage = (e) => {
                 if(e.data.type === 'progress') {
                     document.getElementById('header-progress').style.width = e.data.percent + "%";
@@ -613,51 +753,119 @@
                     setTimeout(() => document.getElementById('status-area').style.opacity = 0, 800);
                     renderAll(e.data);
                 }
+                else if(e.data.type === 'error') {
+                    // Stop Status
+                    document.getElementById('status-area').style.opacity = 0;
+                    document.getElementById('header-progress').style.width = "0%";
+                    
+                    // Show Error Box
+                    const errBox = document.getElementById('conc-error');
+                    const errText = document.getElementById('conc-error-text');
+                    const inputField = document.getElementById('c0');
+                    
+                    if(errText) errText.innerText = e.data.message;
+                    if(errBox) errBox.style.display = 'block';
+                    
+                    if(inputField) {
+                        inputField.classList.add('border-red-500', 'bg-red-50');
+                        inputField.classList.remove('border-emerald-200', 'bg-white');
+                    }
+                }
             };
             
             worker.postMessage(params);
         }
 
+        function clearError() {
+            const errBox = document.getElementById('conc-error');
+            const inputField = document.getElementById('c0');
+            
+            if(errBox) errBox.style.display = 'none';
+            
+            if(inputField) {
+                inputField.classList.remove('border-red-500', 'bg-red-50');
+                inputField.classList.add('border-emerald-200', 'bg-white');
+            }
+        }
+
+
         function renderAll(data) {
             const { x, T, hist_C, hist_S, hist_ZT, hist_Sig, timePoints, params } = data;
             const labels = x.map(val => (val*1000).toFixed(1)); // mm
 
-            // Final Snapshots (Last row of history)
-            const final_C = hist_C[hist_C.length-1];
+            // 1. Get Snapshot Data
+            const initial_C = hist_C[0];                // <--- NEW: Initial State (t=0)
+            const final_C = hist_C[hist_C.length-1];    // Final State (t=End)
             const final_S = hist_S[hist_S.length-1];
             const final_ZT = hist_ZT[hist_ZT.length-1];
             const final_Sig = hist_Sig[hist_Sig.length-1];
 
-            // Avg ZT Display
+            // 2. Calculate & Display Average ZT
             const avgZT = final_ZT.reduce((a,b)=>a+b, 0) / final_ZT.length;
             document.getElementById('avg-zt-display').innerText = `Avg ZT: ${avgZT.toFixed(2)}`;
 
             // --- 2D CHARTS ---
+            
+            // Chart 1: Concentration Profile (Initial vs Final)
             update2DChart('chartConc', labels, [
-                { label: 'Concentration (cm⁻³)', data: final_C, borderColor: '#4f46e5', yAxisID: 'y' },
-                { label: 'Temperature (K)', data: T, borderColor: '#ef4444', yAxisID: 'y1', borderDash:[5,5] }
+                { 
+                    label: 'Initial (t=0)', 
+                    data: initial_C, 
+                    borderColor: '#94a3b8', // Slate Grey
+                    borderDash: [5, 5],     // Dashed Line
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    yAxisID: 'y' 
+                },
+                { 
+                    label: 'Final (t=End)', 
+                    data: final_C, 
+                    borderColor: '#4f46e5', // Indigo Blue
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    yAxisID: 'y' 
+                },
+                { 
+                    label: 'Temperature (K)', 
+                    data: T, 
+                    borderColor: '#ef4444', // Red
+                    borderDash: [2, 2],     // Dotted
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    yAxisID: 'y1' 
+                }
             ], 'Conc (cm⁻³)', 'Temp (K)');
 
+            // Chart 2: Figure of Merit ZT
             update2DChart('chartZT', labels, [
                 { label: 'Figure of Merit (ZT)', data: final_ZT, borderColor: '#d97706', yAxisID: 'y' }
             ], 'ZT', '');
 
+            // Chart 3: Seebeck Coefficient
             update2DChart('chartS', labels, [
                 { label: 'Seebeck (µV/K)', data: final_S, borderColor: '#9333ea', yAxisID: 'y' }
             ], 'Seebeck (µV/K)', '');
 
+            // Chart 4: Conductivity
             update2DChart('chartSigma', labels, [
                 { label: 'Conductivity (S/cm)', data: final_Sig, borderColor: '#2563eb', yAxisID: 'y' }
             ], 'Sigma (S/cm)', '');
 
             // --- 3D PLOTS ---
             // Prepare Axis Data
-            const xPlot = x.map(v => v*1000);
+            const xPlot = x.map(v => v*1000); // mm
             
-            // Format time for Y axis
-            let tDiv = 3600; let tUnit = 'h';
-            if(timePoints[timePoints.length-1] > 3e7) { tDiv=3.15e7; tUnit='y'; }
-            else if(timePoints[timePoints.length-1] > 1e5) { tDiv=86400; tUnit='d'; }
+            // Determine Time Unit (Hours, Days, or Years) based on duration
+            const maxTime = timePoints[timePoints.length-1];
+            let tDiv = 3600; 
+            let tUnit = 'h';
+            
+            if(maxTime > 3.15e7) {      // > 1 Year
+                tDiv = 3.15e7; tUnit = 'y'; 
+            } else if(maxTime > 1e5) {  // > ~1 Day
+                tDiv = 86400; tUnit = 'd'; 
+            }
+            
             const yPlot = timePoints.map(t => t/tDiv);
 
             update3DPlot('plotlyConc', xPlot, yPlot, hist_C, 'Concentration', 'Viridis', tUnit);
