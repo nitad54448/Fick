@@ -578,7 +578,7 @@
         
         <div class="help-header">
             <h1>Documentation & Theory</h1>
-            <p>Onsager Multi-Component Diffusion Solver (v8.4) • December 2025</p>
+            <p>Onsager Multi-Component Diffusion Solver (v8.4) • December 7, 2025</p>
         </div>
 
         <div class="theory-box box-warning">
@@ -591,93 +591,218 @@
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge">1</span> The Multi-Component Diffusion Matrix</h2>
+            <h2 class="help-title"><span class="step-badge">1</span> From Fick to Onsager: Multi-Component Diffusion</h2>
 
             <p>
-                In a multicomponent system, each species responds to the gradients of all
-                other species. The fluxes obey a Fick-type matrix law:
+                In a single-component system, diffusion is driven solely by the concentration gradient of that species. 
+                Fick's First Law describes the flux as proportional to this gradient:
             </p>
 
             <div class="math-block">
-                $$ J_i = -\sum_j D_{ij}(C,T)\,\nabla C_j $$
+                $$ J = -D \, \nabla C $$
             </div>
 
             <p>
-                Unlike simple Fickian diffusion, the coefficients form a full matrix whose
-                elements depend on temperature and on the local concentrations. This solver
-                computes all <em>matrix elements</em> at every position and timestep.
+                Here, $D$ is the <strong>diffusion coefficient</strong> (units: m²/s), which measures how rapidly atoms move down their concentration gradient. 
+                The negative sign ensures that flux flows from high to low concentration.
             </p>
 
             <div class="theory-box">
-                <h4>1.1 Tracer Diffusivities</h4>
-                <p>Each species (and the matrix) has a tracer diffusivity defined by an Arrhenius law:</p>
-                <div style="text-align: center; margin: 10px 0; font-family: monospace;">
-                    $$ D_i^*(T) = D_{0,i}\,\exp\!\left(-\frac{Q_i}{k_B T}\right) $$
-                </div>
-
-                <h4 style="margin-top: 15px;">1.2 Dynamic Matrix Elements</h4>
+                <h4>What is the Diffusion Coefficient $D$?</h4>
                 <p>
-                    Because concentrations change during diffusion, each matrix element is
-                    recalculated every timestep:
-                    $ D_{ij}(x,t) = D_{ij}\big(C_1(x,t), \dots, C_n(x,t)\big) $.
-                    This dynamic matrix creates phenomena like uphill diffusion and flux reversal.
+                    The diffusion coefficient quantifies atomic mobility. It depends on temperature through the Arrhenius equation:
+                </p>
+                <div class="math-block">
+                    $$ D(T) = D_0 \exp\left( -\frac{Q}{k_B T} \right) $$
+                </div>
+                <p>
+                    <strong>$D_0$</strong> (pre-exponential factor) captures the attempt frequency and lattice geometry.<br>
+                    <strong>$Q$</strong> (activation energy) is the energy barrier for an atom to jump to a neighboring site.<br>
+                    <strong>$k_B$</strong> is Boltzmann's constant (8.617×10⁻⁵ eV/K).<br>
+                    <strong>$T$</strong> is absolute temperature (K).
+                </p>
+                <p>
+                    Higher temperatures exponentially increase $D$, allowing atoms to overcome barriers more easily.
                 </p>
             </div>
 
             <div class="theory-box box-info">
-    <h4>Relation to Fick's Second Law</h4>
-    <p>
-        $D_{ij}$ is defined by the flux equation (First Law), but it governs the time evolution 
-        described by Fick's Second Law. By combining continuity ($\partial C/\partial t = -\nabla J$) 
-        with the Onsager flux, we get the governing equation solved by this tool:
-    </p>
-    <div class="math-block" style="font-size: 1.1em; margin: 10px 0;">
-        $$ \frac{\partial C_i}{\partial t} = \nabla \cdot \left( \sum_{j} D_{ij} \nabla C_j \right) $$
-    </div>
-    <p>
-        This allows the gradient of one species (e.g., $C_j$) to cause the accumulation or 
-        depletion of another species ($C_i$) over time.
-    </p>
-</div>
+                <h4>Fick's Second Law: Time Evolution</h4>
+                <p>
+                    Combining Fick's First Law with mass conservation ($\partial C/\partial t = -\nabla \cdot J$) yields 
+                    Fick's Second Law, which governs how concentrations change over time:
+                </p>
+                <div class="math-block">
+                    $$ \frac{\partial C}{\partial t} = \nabla \cdot \left( D \, \nabla C \right) = D \, \nabla^2 C $$
+                </div>
+                <p>
+                    (assuming $D$ is constant in space). This is the classic diffusion equation: concentrations smooth out over time, 
+                    with sharper gradients diffusing faster.
+                </p>
+            </div>
 
+            <h3 style="margin-top: 30px; font-size: 16px; font-weight: 600; color: #1e293b;">Multi-Component Systems: The Onsager Framework</h3>
 
+            <p>
+                When multiple species diffuse simultaneously (e.g., dopants Ni²⁺, Co²⁺, Fe²⁺ in MgO), they interact. 
+                In vacancy-mediated diffusion, all species compete for the <em>same vacancies</em>. This creates <strong>cross-coupling</strong>: 
+                a gradient in species $j$ can drive a flux in species $i$, even if $i$ has no gradient.
+            </p>
 
+            <p>
+                The Onsager formalism generalizes Fick's law to account for these interactions. Instead of a single coefficient $D$, 
+                we have a <strong>diffusion matrix</strong> $D_{ij}$:
+            </p>
 
+            <div class="math-block">
+                $$ J_i = -\sum_j D_{ij}(C,T) \, \nabla C_j $$
+            </div>
+
+            <p>
+                <strong>Diagonal terms</strong> ($D_{ii}$): Self-diffusion of species $i$ driven by its own gradient.<br>
+                <strong>Off-diagonal terms</strong> ($D_{ij}$, $i \neq j$): Cross-diffusion, where species $i$ responds to gradients in species $j$.
+            </p>
+
+            <div class="theory-box">
+                <h4>What is the Onsager Approximation?</h4>
+                <p>
+                    Onsager's reciprocal relations state that the diffusion matrix must satisfy certain symmetry constraints based on 
+                    microscopic reversibility. In the context of vacancy-mediated diffusion, the Onsager framework provides a rigorous 
+                    way to calculate $D_{ij}$ from the individual tracer diffusivities and local concentrations.
+                </p>
+                <p>
+                    The key insight: all species share the same vacancy mechanism, so their motions are fundamentally coupled. 
+                    The Manning–Darken model (Section 2) gives explicit expressions for $D_{ij}$ consistent with Onsager's principles.
+                </p>
+            </div>
+
+            <div class="theory-box box-info">
+                <h4>Time Evolution in Multi-Component Systems</h4>
+                <p>
+                    Just as in the single-component case, we combine the generalized flux law with mass conservation to obtain:
+                </p>
+                <div class="math-block">
+                    $$ \frac{\partial C_i}{\partial t} = \nabla \cdot \left( \sum_{j} D_{ij} \, \nabla C_j \right) $$
+                </div>
+                <p>
+                    This is the governing equation solved by this tool. Unlike Fick's Second Law, the matrix $D_{ij}$ depends on 
+                    the local concentrations of <em>all</em> species, so it must be recalculated at every spatial point and every timestep. 
+                    This dynamic coupling produces surprising effects:
+                </p>
+                <ul style="margin-top: 10px; padding-left: 20px; font-size: 14px;">
+                    <li><strong>Uphill diffusion:</strong> Species can move <em>against</em> their own gradient.</li>
+                    <li><strong>Kirkendall effect:</strong> Asymmetric diffusion shifts the original interface.</li>
+                    <li><strong>Vacancy wind:</strong> Fast-diffusing species "drag" slower species along.</li>
+                </ul>
+            </div>
+
+            <div class="theory-box">
+                <h4>1.1 Tracer Diffusivities $D_i^*$</h4>
+                <p>
+                    Each species (including the matrix cations, e.g., Mg²⁺ in MgO) has an intrinsic <strong>tracer diffusivity</strong> 
+                    $D_i^*(T)$, which is the diffusion coefficient measured in a dilute limit when the species does not interact with others:
+                </p>
+                <div class="math-block">
+                    $$ D_i^*(T) = D_{0,i} \, \exp\left( -\frac{Q_i}{k_B T} \right) $$
+                </div>
+                <p>
+                    These $D_i^*$ values are the <em>inputs</em> to the Onsager diffusion matrix. They capture how easily each species 
+                    jumps through the lattice in isolation. The matrix $D_{ij}$ is constructed from these tracer diffusivities plus 
+                    concentration-dependent corrections.
+                </p>
+            </div>
 
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge">2</span> The Manning–Darken Model</h2>
+            <h2 class="help-title"><span class="step-badge">2</span> The Manning–Darken Model: Building the Diffusion Matrix</h2>
 
             <p>
-                Vacancy-mediated diffusion couples all species through the shared vacancy
-                population. The Manning–Darken model provides explicit formulas for the
-                diffusion matrix used by this solver.
+                In crystalline materials like MgO, cation diffusion occurs primarily through the <strong>vacancy mechanism</strong>: 
+                an atom jumps into a neighboring vacant lattice site. All cation species (Mg²⁺, Ni²⁺, Co²⁺, etc.) share the same 
+                pool of cation vacancies. This shared mechanism creates the cross-coupling described by the Onsager matrix.
             </p>
 
-            <div class="math-block">
-                $$ D_{ii} = D_i^* + C_i\big(D_{\text{matrix}}^* - D_i^*\big) $$
-                $$ D_{ij} = C_i\big(D_{\text{matrix}}^* - D_j^*\big) \quad (i \neq j) $$
+            <p>
+                The <strong>Manning–Darken model</strong> provides explicit formulas for the diffusion matrix elements $D_{ij}$ 
+                in terms of the tracer diffusivities $D_i^*$ and local concentrations $C_i$. These expressions respect Onsager's 
+                reciprocal relations and capture the physics of vacancy-mediated transport.
+            </p>
+
+            <div class="theory-box">
+                <h4>2.1 Diagonal Elements (Self-Diffusion)</h4>
+                <p>
+                    The diagonal elements $D_{ii}$ describe how species $i$ responds to its own concentration gradient:
+                </p>
+                <div class="math-block">
+                    $$ D_{ii} = D_i^* + C_i \left( D_{\text{matrix}}^* - D_i^* \right) $$
+                </div>
+                <p>
+                    <strong>Physical interpretation:</strong> At low concentration ($C_i \to 0$), $D_{ii} \approx D_i^*$ recovers the tracer limit. 
+                    As $C_i$ increases, the effective diffusivity blends toward the matrix diffusivity $D_{\text{matrix}}^*$ (the tracer 
+                    diffusivity of the host cations, e.g., Mg²⁺ in MgO). This reflects the fact that in a concentrated alloy, the 
+                    environment becomes more like the matrix.
+                </p>
             </div>
 
-            <p>
-                Off-diagonal terms ($D_{ij}$) describe <strong>cross-coupling</strong>, where a gradient in
-                species $j$ drives a flux of species $i$. 
-            </p>
+            <div class="theory-box">
+                <h4>2.2 Off-Diagonal Elements (Cross-Diffusion)</h4>
+                <p>
+                    The off-diagonal elements $D_{ij}$ ($i \neq j$) describe how species $i$ responds to gradients in species $j$:
+                </p>
+                <div class="math-block">
+                    $$ D_{ij} = C_i \left( D_{\text{matrix}}^* - D_j^* \right) $$
+                </div>
+                <p>
+                    <strong>Physical interpretation:</strong> This term arises from the vacancy wind effect. When species $j$ diffuses 
+                    (creating a flux of $j$-atoms), it generates a counter-flow of vacancies. Species $i$ can "surf" on this vacancy 
+                    current, causing a flux of $i$-atoms even when $i$ has no concentration gradient.
+                </p>
+                <p>
+                    If $D_j^* \ll D_{\text{matrix}}^*$ (slow dopant), then $D_{ij} > 0$: a gradient in $j$ pulls $i$ along.<br>
+                    If $D_j^* \gg D_{\text{matrix}}^*$ (fast dopant), then $D_{ij} < 0$: species $i$ moves <em>against</em> the $j$-gradient.
+                </p>
+            </div>
 
             <div class="theory-box box-info">
-                <h4>2.3 Final Flux Law Implementation</h4>
+                <h4>2.3 Why the Matrix Diffusivity Appears</h4>
                 <p>
-                    The solver calculates the flux in two steps. First, the configuration-based flux ($J^{\text{config}}$), 
-                    then the thermodynamic correction ($\Phi$):
-                </p>
-                <p style="text-align:center; font-family: monospace; font-size: 1.1em; margin: 10px 0;">
-                    $$ J_i(x) = \Phi_i(x) \underbrace{\left[ -\sum_j D_{ij}(x)\,\nabla C_j(x) \right]}_{\text{Configurational Term}} $$
+                    The quantity $D_{\text{matrix}}^*$ is the tracer diffusivity of the matrix cations (e.g., Mg²⁺ in MgO). 
+                    It sets the reference scale for vacancy motion. In a pure MgO crystal, vacancies would move at a rate determined by 
+                    Mg²⁺ jumps. When dopants are added, their different jump rates create local imbalances in the vacancy concentration, 
+                    which couples all species together.
                 </p>
                 <p>
-                    This captures interface sharpening, vacancy wind, and uphill diffusion naturally.
+                    The Manning–Darken expressions naturally interpolate between two limits:<br>
+                    <strong>(1)</strong> Dilute limit ($C_i \to 0$): Each dopant sees only the matrix, so $D_{ii} \to D_i^*$ and cross-terms vanish.<br>
+                    <strong>(2)</strong> Concentrated limit: The environment becomes dominated by the alloy composition, and all diffusivities 
+                    blend toward a common effective value.
                 </p>
             </div>
+
+            <div class="theory-box">
+                <h4>2.4 Final Flux Law with Thermodynamic Corrections</h4>
+                <p>
+                    The Manning–Darken expressions give the <em>kinetic</em> diffusion matrix. In non-ideal solutions, we must also 
+                    account for thermodynamic driving forces (chemical potential gradients). The solver includes these effects through 
+                    the thermodynamic factor $\Phi_i$:
+                </p>
+                <div class="math-block">
+                    $$ J_i(x) = \Phi_i(x) \left[ -\sum_j D_{ij}(x) \, \nabla C_j(x) \right] $$
+                </div>
+                <p>
+                    For a regular solution (Section 5), $\Phi_i$ depends on the interaction parameter $\Omega$:
+                </p>
+                <div class="math-block">
+                    $$ \Phi_i = 1 - \frac{2 \Omega \, C_i(1 - C_i)}{k_B T} $$
+                </div>
+                <p>
+                    When $\Phi_i < 0$, the system enters the spinodal region and phase separates (uphill diffusion occurs naturally). 
+                    When $\Phi_i > 1$, thermodynamic repulsion accelerates diffusion. This thermodynamic correction multiplies the 
+                    kinetic flux, capturing effects like interface sharpening and demixing.
+                </p>
+            </div>
+
         </div>
 
         <div class="help-section">
