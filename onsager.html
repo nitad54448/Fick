@@ -16,443 +16,435 @@
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
-    <style>
-        :root {
-            --bg-color: #f8fafc;
-            --panel-bg: #ffffff;
-            --border-color: #e2e8f0;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --primary: #ea580c; /* Orange */
-            --primary-light: #fff7ed;
-            --accent: #4f46e5; /* Indigo */
-            --accent-light: #eef2ff;
-            --danger: #ef4444;
-            --success: #10b981;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* --- Header --- */
-        .app-header {
-            height: 56px;
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            z-index: 10;
-        }
-
-        .brand { display: flex; align-items: center; gap: 12px; }
-        .brand-icon {
-            width: 32px; height: 32px;
-            background-color: var(--primary);
-            color: white;
-            border-radius: 4px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .brand h1 { font-size: 18px; margin: 0; font-weight: 700; }
-        .brand span { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 5px; }
-
-        /* Status Bar */
-        .status-area {
-            flex: 1;
-            margin: 0 32px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .progress-track {
-            flex: 1;
-            height: 6px;
-            background: var(--bg-color);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .progress-bar {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.2s;
-        }
-        .status-text { font-family: monospace; font-size: 12px; color: var(--text-muted); min-width: 60px; text-align: right; }
-        .stop-btn { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 14px; }
-
-        /* Tabs */
-        .nav-tabs { display: flex; height: 100%; gap: 4px; }
-        .tab-btn {
-            background: none;
-            border: none;
-            height: 100%;
-            padding: 0 16px;
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .tab-btn:hover { background-color: var(--bg-color); }
-        .tab-btn.active {
-            background-color: var(--accent-light);
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-        .tab-btn.help-btn { color: #059669; }
-
-        /* --- Main Layout --- */
-        .main-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            position: relative;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 320px;
-            background: var(--panel-bg);
-            border-right: 1px solid var(--border-color);
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            gap: 20px;
-            flex-shrink: 0;
-            box-shadow: 4px 0 24px rgba(0,0,0,0.02);
-            z-index: 5;
-        }
-
-        /* Panels in Sidebar */
-        .control-panel {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            background: #fafafa;
-        }
-        .panel-orange { background: var(--primary-light); border-color: #fed7aa; }
-        .panel-indigo { background: var(--accent-light); border-color: #c7d2fe; }
-        .panel-header {
-            display: flex; align-items: center; gap: 8px;
-            margin-bottom: 12px;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            padding-bottom: 8px;
-        }
-        .panel-title {
-            font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0;
-            color: var(--text-muted);
-        }
-        .text-orange { color: #9a3412; }
-        .text-indigo { color: #3730a3; }
-
-        /* Form Elements */
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .col-span-2 { grid-column: span 2; }
+<style>
+    /* --- 1. Variables & Reset --- */
+    :root {
+        /* Core Palette */
+        --bg-app: #f1f5f9;       /* Slate-100 */
+        --bg-panel: #ffffff;
+        --border: #e2e8f0;       /* Slate-200 */
         
-        .input-group label {
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            margin-bottom: 4px;
-            color: var(--text-muted);
-        }
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 6px;
-            font-size: 13px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            outline: none;
-            background: white;
-        }
-        .input-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
-
-        /* Element Card (Dopants) */
-        .element-card {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-left-width: 4px;
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 8px;
-            position: relative;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .element-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-        .grid-full { grid-column: 1 / -1; }
-        .delete-btn {
-            position: absolute; top: 4px; right: 4px;
-            border: none; background: none; color: #cbd5e1;
-            cursor: pointer; display: none;
-        }
-        .element-card:hover .delete-btn { display: block; }
-        .delete-btn:hover { color: var(--danger); }
-
-        /* Buttons */
-        .btn {
-            border: none; border-radius: 4px; padding: 6px 12px;
-            font-size: 11px; font-weight: 700; cursor: pointer;
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            transition: background 0.2s;
-        }
-        .btn-add { background: var(--accent); color: white; }
-        .btn-add:hover { background: #4338ca; }
-        .btn-download { width: 100%; background: #e2e8f0; color: #475569; margin-top: 16px; padding: 10px; }
-        .btn-download:hover { background: #cbd5e1; }
-
-        /* Content Area */
-        .content-area {
-            flex: 1;
-            background: var(--bg-color);
-            position: relative;
-            overflow: hidden;
-        }
-        .tab-pane {
-            display: none;
-            width: 100%; height: 100%;
-            position: absolute; top: 0; left: 0;
-        }
-        .tab-pane.active { display: block; }
-
-        /* Charts */
-        .chart-wrapper {
-            background: white;
-            margin: 16px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            height: calc(100% - 32px);
-            padding: 16px;
-            position: relative;
-        }
-        #plotly-flux, #plotly-time { width: 100%; height: 100%; }
-
-        /* Help Section styling */
-        .help-container {
-            padding: 32px;
-            max-width: 1200px;
-            width: 98%
-            margin: 0 auto;
-            overflow-y: auto;
-            height: 100%;
-            background: white;
-        }
-        .help-header { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; }
-        .help-header h1 { margin: 0; font-size: 24px; color: var(--text-main); }
-        .help-section { margin-bottom: 40px; }
-        .help-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-        .step-badge {
-            width: 24px; height: 24px; background: var(--accent-light); color: var(--accent);
-            border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px;
-        }
-        .alert-box {
-            background: #fffbeb; border-left: 4px solid #f59e0b;
-            padding: 16px; border-radius: 0 4px 4px 0; margin-bottom: 24px; display: flex; gap: 12px;
-        }
-        .equation-box {
-            background: white; border: 1px solid var(--border-color);
-            padding: 12px; text-align: center; border-radius: 4px; margin: 12px 0;
-        }
+        /* Text Colors */
+        --text-main: #0f172a;    /* Slate-900 */
+        --text-muted: #64748b;   /* Slate-500 */
         
+        /* Brand Colors */
+        --primary: #ea580c;      /* Orange-600 */
+        --primary-light: #fff7ed;/* Orange-50 */
+        --accent: #4f46e5;       /* Indigo-600 */
+        --accent-light: #eef2ff; /* Indigo-50 */
+        
+        /* Semantic Colors */
+        --danger: #ef4444;
+        --success: #10b981;
+        --warning-bg: #fffbeb;
+        --warning-border: #f59e0b;
+    }
 
-        /* --- Help Section Specifics --- */
+    * { box-sizing: border-box; }
 
-/* Badge Colors */
-.step-badge.icon-orange { background: #ffedd5; color: #c2410c; }
-.step-badge.icon-emerald { background: #d1fae5; color: #059669; }
-.step-badge.icon-blue { background: #dbeafe; color: #2563eb; }
-.step-badge.icon-rose { background: #ffe4e6; color: #e11d48; }
-.step-badge.icon-cyan { background: #cffafe; color: #0891b2; }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-app);
+        color: var(--text-main);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
 
-/* Grid for Cards */
-.help-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
-    margin-bottom: 24px;
-}
+    /* --- 2. App Header --- */
+    .app-header {
+        height: 56px;
+        background: var(--bg-panel);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        z-index: 10;
+        flex-shrink: 0;
+    }
 
-/* Theory Cards */
-.theory-card {
-    padding: 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-}
-.theory-card.card-slate { background: #f8fafc; border-color: #e2e8f0; }
-.theory-card.card-indigo { background: #eef2ff; border-color: #c7d2fe; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+        width: 32px; height: 32px;
+        background-color: var(--primary);
+        color: white;
+        border-radius: 6px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .brand h1 { font-size: 18px; margin: 0; font-weight: 700; color: var(--text-main); }
+    .brand span { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 5px; }
 
-.theory-card h4 {
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    color: var(--text-main);
-    font-weight: 700;
-}
+    /* Status Bar */
+    .status-area {
+        flex: 1;
+        margin: 0 32px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .progress-track {
+        flex: 1;
+        height: 6px;
+        background: var(--bg-app);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background: var(--primary);
+        width: 0%;
+        transition: width 0.2s;
+    }
+    .status-text { 
+        font-family: "Menlo", "Consolas", monospace; 
+        font-size: 12px; 
+        color: var(--text-muted); 
+        min-width: 60px; 
+        text-align: right; 
+    }
+    .stop-btn { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 14px; }
 
-/* Boxes */
-.theory-box {
-    padding: 20px;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    margin-bottom: 24px;
-    font-size: 14px;
-    color: var(--text-muted);
-}
-.theory-box.box-slate { background: #f8fafc; border-color: #e2e8f0; }
-.theory-box.box-rose { background: #fff1f2; border-color: #fecdd3; }
-.theory-box.box-cyan { background: #ecfeff; border-left: 4px solid #06b6d4; }
+    /* Navigation Tabs */
+    .nav-tabs { display: flex; height: 100%; gap: 4px; }
+    .tab-btn {
+        background: none;
+        border: none;
+        height: 100%;
+        padding: 0 16px;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .tab-btn:hover { background-color: var(--bg-app); color: var(--text-main); }
+    .tab-btn.active {
+        background-color: var(--accent-light);
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+    }
+    .tab-btn.help-btn { color: #059669; } /* Green for help */
 
-/* Math Displays */
-.math-box {
-    background: white;
-    padding: 8px;
-    border: 1px solid rgba(0,0,0,0.1);
-    border-radius: 4px;
-    margin-bottom: 12px;
-    text-align: center;
-    font-size: 13px;
-}
+    /* --- 3. Layout: Sidebar & Content --- */
+    .main-container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Sidebar */
+    .sidebar {
+        width: 320px;
+        background: var(--bg-panel);
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+        gap: 20px;
+        flex-shrink: 0;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.02);
+        z-index: 5;
+    }
+
+    /* Control Panels */
+    .control-panel {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fafafa;
+    }
+    .panel-orange { background: var(--primary-light); border-color: #fed7aa; }
+    .panel-indigo { background: var(--accent-light); border-color: #c7d2fe; }
+    
+    .panel-header {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 12px;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        padding-bottom: 8px;
+    }
+    .panel-title {
+        font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin: 0;
+        color: var(--text-muted);
+    }
+    .text-orange { color: #9a3412; }
+    .text-indigo { color: #3730a3; }
+
+    /* Inputs */
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .col-span-2 { grid-column: span 2; }
+    
+    .input-group label {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: var(--text-muted);
+    }
+    .input-group input, .input-group select {
+        width: 100%;
+        padding: 6px 8px;
+        font-size: 13px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        outline: none;
+        background: white;
+        color: var(--text-main);
+        transition: border-color 0.2s;
+    }
+    .input-group input:focus { 
+        border-color: var(--accent); 
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); 
+    }
+
+    /* Element Card (Dynamic List) */
+    .element-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-left-width: 4px; /* Color defined inline in JS */
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 10px;
+        position: relative;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        transition: transform 0.1s;
+    }
+    .element-card:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    
+    .element-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    .grid-full { grid-column: 1 / -1; }
+    
+    .delete-btn {
+        position: absolute; top: 6px; right: 6px;
+        border: none; background: none; color: #cbd5e1;
+        cursor: pointer; display: none; padding: 4px;
+    }
+    .element-card:hover .delete-btn { display: block; }
+    .delete-btn:hover { color: var(--danger); }
+
+    /* Sidebar Buttons */
+    .btn {
+        border: none; border-radius: 6px; padding: 8px 12px;
+        font-size: 11px; font-weight: 700; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        transition: all 0.2s;
+        text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-add { background: var(--accent); color: white; float: right;}
+    .btn-add:hover { background: #4338ca; }
+    
+    .btn-download { 
+        width: 100%; 
+        background: white; 
+        border: 1px solid var(--border);
+        color: var(--text-muted); 
+        margin-top: 16px; 
+    }
+    .btn-download:hover { background: #f8fafc; color: var(--text-main); border-color: #cbd5e1; }
+
+    /* --- 4. Main Content Area & Charts --- */
+    .content-area {
+        flex: 1;
+        background: var(--bg-app);
+        position: relative;
+        overflow: hidden;
+    }
+    .tab-pane {
+        display: none;
+        width: 100%; height: 100%;
+        position: absolute; top: 0; left: 0;
+        overflow-y: auto; /* Enable scrolling for help */
+    }
+    .tab-pane.active { display: block; }
+
+    .chart-wrapper {
+        background: white;
+        margin: 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        height: calc(100% - 32px);
+        padding: 16px;
+        position: relative;
+    }
+    #plotly-flux, #plotly-time { width: 100%; height: 100%; }
+
+    /* --- 5. Help Section  */
+    
+    .help-container {
+        padding: 40px;
+        max-width: 900px;
+        margin: 0 auto;
+        background: #ffffff;
+        color: #334155;
+        line-height: 1.6;
+        min-height: 100%;
+    }
+
+    /* Header */
+    .help-header {
+        margin-bottom: 40px;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 20px;
+    }
+    .help-header h1 {
+        font-size: 28px;
+        color: #0f172a;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        letter-spacing: -0.5px;
+    }
+    .help-header p {
+        color: #64748b;
+        font-size: 14px;
+        font-family: "Menlo", monospace;
+    }
+
+    /* Sections */
+    .help-section { margin-bottom: 60px; }
+    
+    .help-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .step-badge {
+        background: #434777;
+        color: white;
+        font-family: "Menlo", monospace;
+        font-size: 14px;
+        width: 28px; height: 28px;
+        border-radius: 6px;
+        display: flex; align-items: center; justify-content: center;
+    }
+
+/* Math Blocks (Clean / Transparent) */
 .math-block {
-    background: white;
-    padding: 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    text-align: center;
+    background: transparent;      
+    border: none;                  /* No border */
+    padding: 16px 0;               /* Vertical spacing only */
     margin: 16px 0;
+    overflow-x: auto;
+    text-align: center;
+    font-size: 1.25em;             
+    color: #1e293b;
+    font-family: "Times New Roman", Times, serif; 
 }
 
-/* Typography Helpers */
-.help-text { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.7; }
-.small-note { font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.4; }
-.tiny-italic { font-size: 10px; color: #94a3b8; margin-top: 8px; font-style: italic; }
-.sub-heading { font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0; color: var(--text-main); }
-.font-mono { font-family: monospace; font-size: 12px; }
-.font-bold { font-weight: 700; }
+    /* Theory Boxes */
+    .theory-box {
+        background: #fff;
+        border-left: 4px solid #cbd5e1;
+        padding: 20px;
+        margin: 24px 0;
+        border-radius: 0 8px 8px 0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .theory-box h4 { 
+        margin: 0 0 10px 0; 
+        color: #334155; 
+        font-size: 13px; 
+        font-weight: 800;
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+    }
+    .theory-box p { margin-bottom: 0; }
 
-/* Colors */
-.text-indigo { color: #4338ca; }
-.text-orange { color: #ea580c; }
-.text-rose { color: #be123c; }
-.text-amber { color: #b45309; }
-.text-emerald { color: #059669; }
-.text-purple { color: #7e22ce; }
-.text-muted { color: #64748b; }
+    /* Box Variations */
+    .box-warning { border-left-color: var(--warning-border); background: var(--warning-bg); }
+    .box-info    { border-left-color: #3b82f6; background: #eff6ff; }
+    
+    /* Visualization Grid */
+    .viz-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .viz-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .viz-card:hover { border-color: #94a3b8; transform: translateY(-2px); }
+    .viz-icon {
+        font-size: 20px; margin-bottom: 12px; color: var(--accent);
+        background: var(--accent-light); width: 40px; height: 40px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 8px;
+    }
 
-/* Table Updates */
-.theory-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.theory-table th { background: #f1f5f9; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
-.theory-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
-.theory-table tr.header-cyan th { background: #cffafe; color: #155e75; border-bottom-color: #22d3ee; }
-.theory-table tr.row-highlight { background: #fff7ed; } /* Orange tint */
-.theory-table tr.sep-top td { border-top: 2px solid #e2e8f0; background: #f8fafc; }
+    /* Reference Tables */
+    .data-table-wrapper {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .theory-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .theory-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .theory-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        vertical-align: top;
+    }
+    .theory-table tr:last-child td { border-bottom: none; }
+    
+    /* Tags in Tables */
+    .val-mono { font-family: "Menlo", monospace; font-weight: 700; color: #0f172a; }
+    .type-tag { 
+        display: inline-block; padding: 3px 10px; border-radius: 12px; 
+        font-size: 11px; font-weight: 700; 
+    }
+    .text-ideal { background: #dcfce7; color: #166534; }
+    .text-repulsive { background: #fef3c7; color: #92400e; }
+    .text-ordering { background: #e0e7ff; color: #3730a3; }
+    .text-phase { background: #ffe4e6; color: #9f1239; }
 
-/* Features (Visualizing) */
-.feature-list { 
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px; 
-}
-.feature-item {
-    background: white;
-    border: 1px solid var(--border-color);
-    padding: 16px;
-    border-radius: 8px;
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    height: 100%;  /* ADD THIS */
-}
-@media (max-width: 768px) {
-    .feature-list { grid-template-columns: 1fr; }
-}
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-.icon-circle {
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-}
-.icon-circle.bg-blue { background: #eff6ff; color: #3b82f6; }
-.icon-circle.bg-purple { background: #f3e8ff; color: #a855f7; }
+    @media (max-width: 768px) {
+        .app-header h1 { display: none; }
+        .sidebar { position: absolute; height: 100%; transform: translateX(-100%); transition: transform 0.3s; }
+        .sidebar.open { transform: translateX(0); }
+        .help-container { padding: 20px; }
+    }
+</style>
 
-.feature-item h4 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text-main); }
-.feature-item ul { margin: 8px 0 0 0; padding-left: 20px; font-size: 11px; color: var(--text-muted); line-height: 1.5; }
-
-/* Case Studies (Omega) */
-.case-study-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-.case-box {
-    background: white;
-    padding: 12px;
-    border-left: 4px solid;
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-.case-box.border-indigo { border-left-color: #6366f1; }
-.case-box.border-amber { border-left-color: #f59e0b; }
-.case-box.border-rose { border-left-color: #e11d48; }
-
-.case-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-.case-title { font-weight: 700; font-size: 13px; }
-.case-badge { font-family: monospace; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
-.case-badge.bg-indigo { background: #e0e7ff; color: #3730a3; }
-.case-badge.bg-amber { background: #fef3c7; color: #92400e; }
-.case-badge.bg-rose { background: #ffe4e6; color: #be123c; }
-
-/* Alert Box fix from previous turn if needed */
-.alert-box {
-    background: #fffbeb;
-    border-left: 4px solid #f59e0b;
-    padding: 16px;
-    border-radius: 0 4px 4px 0;
-    margin-bottom: 24px;
-    display: flex;
-    gap: 12px;
-}
-.alert-icon { color: #d97706; flex-shrink: 0; margin-top: 2px; }
-.alert-box h3 { margin: 0 0 4px 0; font-size: 14px; text-transform: uppercase; color: #92400e; }
-.alert-box p { margin: 0; font-size: 13px; color: #78350f; }
-
-
-        /* Table Styling */
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th { background: #ecfeff; color: #0e7490; padding: 8px; text-align: left; font-weight: 700; border-bottom: 1px solid #cffafe; }
-        td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); }
-        tr:hover { background: #f8fafc; }
-
-        /* Scrollbars */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        @media (max-width: 768px) {
-            .app-header h1 { display: none; }
-            .sidebar { position: absolute; height: 100%; transform: translateX(-100%); transition: transform 0.3s; }
-            .sidebar.open { transform: translateX(0); }
-        }
-    </style>
 </head>
 <body>
 
@@ -581,7 +573,6 @@
             </div>
 
 
-
             <div id="pane-help" class="tab-pane">
     <div class="help-container">
         
@@ -590,16 +581,13 @@
             <p>Onsager Multi-Component Diffusion Solver (v8.4) • December 2025</p>
         </div>
 
-        <div class="alert-box">
-            <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <div>
-                <h3>Parameter Warning</h3>
-                <p>
-                    Default values ($D_0, Q$) are tuned for <strong>MgO</strong>. 
-                    For other matrices, you must update these parameters. 
-                    The solver assumes $D_0$ and $Q$ do not depend on concentration.
-                </p>
-            </div>
+        <div class="theory-box box-warning">
+            <h4><i class="fas fa-exclamation-triangle"></i> Parameter Warning</h4>
+            <p>
+                Default values ($D_0, Q$) are tuned for <strong>MgO</strong>. 
+                For other matrices, you must update these parameters in the settings panel. 
+                The solver assumes $D_0$ and $Q$ do not depend on concentration.
+            </p>
         </div>
 
         <div class="help-section">
@@ -611,7 +599,7 @@
             </p>
 
             <div class="math-block">
-                $$ J_i = -\sum_j D_{ij}\,\nabla C_j $$
+                $$ J_i = -\sum_j D_{ij}(C,T)\,\nabla C_j $$
             </div>
 
             <p>
@@ -620,237 +608,234 @@
                 computes all <em>matrix elements</em> at every position and timestep.
             </p>
 
-            <h3 class="sub-heading">1.1 Tracer Diffusivities</h3>
-            <p>Each species has a tracer diffusivity defined by an Arrhenius law:</p>
-            <div class="math-block">
-                $$ D_i^*(T) = D_{0,i}\,\exp\!\left(-\frac{Q_i}{k_B T}\right) $$
-            </div>
-            <p>The same expression defines the tracer diffusivity of the matrix (host lattice):</p>
-            <div class="math-block">
-                $$ D_{\text{matrix}}^*(T) = D_{0,\text{matrix}} \exp\!\left(-\frac{Q_{\text{matrix}}}{k_B T}\right) $$
+            <div class="theory-box">
+                <h4>1.1 Tracer Diffusivities</h4>
+                <p>Each species (and the matrix) has a tracer diffusivity defined by an Arrhenius law:</p>
+                <div style="text-align: center; margin: 10px 0; font-family: monospace;">
+                    $$ D_i^*(T) = D_{0,i}\,\exp\!\left(-\frac{Q_i}{k_B T}\right) $$
+                </div>
+
+                <h4 style="margin-top: 15px;">1.2 Dynamic Matrix Elements</h4>
+                <p>
+                    Because concentrations change during diffusion, each matrix element is
+                    recalculated every timestep:
+                    $ D_{ij}(x,t) = D_{ij}\big(C_1(x,t), \dots, C_n(x,t)\big) $.
+                    This dynamic matrix creates phenomena like uphill diffusion and flux reversal.
+                </p>
             </div>
 
-            <h3 class="sub-heading">1.2 Diffusion Matrix Elements</h3>
-            <p>
-                For vacancy-mediated diffusion, the Manning–Darken model gives explicit
-                expressions for every element of the diffusion matrix:
-            </p>
-            <div class="math-block">
-                $$ D_{ii} = D_i^* + C_i\big(D_{\text{matrix}}^* - D_i^*\big) $$
-            </div>
-            <div class="math-block">
-                $$ D_{ij} = C_i\big(D_{\text{matrix}}^* - D_j^*\big) \qquad (i \neq j) $$
-            </div>
-            <p>
-                Off-diagonal terms describe <strong>cross-coupling</strong>, where a gradient in
-                species <em>j</em> drives a flux of species <em>i</em>. 
-                Because concentrations and tracer diffusivities differ, the matrix is naturally
-                asymmetric ($D_{ij} \neq D_{ji}$).
-            </p>
+            <div class="theory-box box-info">
+    <h4>Relation to Fick's Second Law</h4>
+    <p>
+        $D_{ij}$ is defined by the flux equation (First Law), but it governs the time evolution 
+        described by Fick's Second Law. By combining continuity ($\partial C/\partial t = -\nabla J$) 
+        with the Onsager flux, we get the governing equation solved by this tool:
+    </p>
+    <div class="math-block" style="font-size: 1.1em; margin: 10px 0;">
+        $$ \frac{\partial C_i}{\partial t} = \nabla \cdot \left( \sum_{j} D_{ij} \nabla C_j \right) $$
+    </div>
+    <p>
+        This allows the gradient of one species (e.g., $C_j$) to cause the accumulation or 
+        depletion of another species ($C_i$) over time.
+    </p>
+</div>
 
-            <h3 class="sub-heading">1.3 Why the Matrix Evolves in Time</h3>
-            <p>
-                Since concentrations change during diffusion, each matrix element is
-                recalculated every timestep:
-            </p>
-            <div class="math-block">
-                $$ D_{ij}(x,t) = D_{ij}\big(C_1(x,t), C_2(x,t),\dots,T\big) $$
-            </div>
-            <p>
-                This dynamic diffusion matrix is responsible for phenomena such as uphill
-                diffusion, flux reversal, and the Kirkendall effect.
-            </p>
+
+
+
+
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-orange">2</span> The Manning–Darken Model and Final Flux Law</h2>
+            <h2 class="help-title"><span class="step-badge">2</span> The Manning–Darken Model</h2>
 
             <p>
                 Vacancy-mediated diffusion couples all species through the shared vacancy
                 population. The Manning–Darken model provides explicit formulas for the
-                diffusion matrix, used directly by the solver. These were defined in Section 1.
+                diffusion matrix used by this solver.
             </p>
 
-            <h3 class="sub-heading">2.1 Thermodynamic Factor (Regular Solution)</h3>
-            <p>
-                Non-ideal mixing modifies the driving force through a factor derived from the
-                curvature of the free energy. For a regular-solution model with interaction
-                parameter $\Omega$:
-            </p>
             <div class="math-block">
-                $$ \Phi_i = 1 - \frac{2\Omega_i\,C_i(1-C_i)}{k_B T} $$
-            </div>
-            <p>
-                When \( \Phi_i < 0 \), the system is in the spinodal region where diffusion
-                amplifies composition fluctuations.
-            </p>
-
-            <h3 class="sub-heading">2.2 Local Concentration Gradients</h3>
-            <p>
-                Spatial derivatives are computed from local concentrations:
-            </p>
-            <div class="math-block">
-                $$ \nabla C_j(x) \approx \frac{C_j(x+\Delta x) - C_j(x)}{\Delta x} $$
-            </div>
-            <p>Interface fluxes use midpoint concentrations for stability.</p>
-
-            <h3 class="sub-heading">2.3 Final Flux Expression Used in the Solver</h3>
-            <p>The solver first constructs the Onsager-like quantity:</p>
-            <div class="math-block">
-                $$ \text{flux\_onsager}_i = -\sum_j D_{ij}\,\nabla C_j $$
-            </div>
-            <p>Then applies the thermodynamic factor:</p>
-            <div class="math-block">
-                $$ J_i = \Phi_i\;\text{flux\_onsager}_i $$
-            </div>
-            <p>Therefore the final flux law used at every node is:</p>
-            <div class="math-block" style="font-weight: 500;">
-                $$ J_i(x) = -\Phi_i(x)\sum_j D_{ij}(x)\,\nabla C_j(x). $$
+                $$ D_{ii} = D_i^* + C_i\big(D_{\text{matrix}}^* - D_i^*\big) $$
+                $$ D_{ij} = C_i\big(D_{\text{matrix}}^* - D_j^*\big) \quad (i \neq j) $$
             </div>
 
-            <p>This is a <strong>Fick-type law</strong> with:</p>
-            <ul>
-                <li>a full diffusion matrix \(D_{ij}\),</li>
-                <li>a thermodynamic multiplier \( \Phi_i \),</li>
-                <li>updated at each timestep and each grid point.</li>
-            </ul>
             <p>
-                In this form, uphill diffusion, flux reversal, vacancy wind, and interface
-                sharpening arise naturally from the physics.
+                Off-diagonal terms ($D_{ij}$) describe <strong>cross-coupling</strong>, where a gradient in
+                species $j$ drives a flux of species $i$. 
             </p>
+
+            <div class="theory-box box-info">
+                <h4>2.3 Final Flux Law Implementation</h4>
+                <p>
+                    The solver calculates the flux in two steps. First, the configuration-based flux ($J^{\text{config}}$), 
+                    then the thermodynamic correction ($\Phi$):
+                </p>
+                <p style="text-align:center; font-family: monospace; font-size: 1.1em; margin: 10px 0;">
+                    $$ J_i(x) = \Phi_i(x) \underbrace{\left[ -\sum_j D_{ij}(x)\,\nabla C_j(x) \right]}_{\text{Configurational Term}} $$
+                </p>
+                <p>
+                    This captures interface sharpening, vacancy wind, and uphill diffusion naturally.
+                </p>
+            </div>
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-emerald">3</span> Numerical Algorithm & Stability</h2>
+            <h2 class="help-title"><span class="step-badge">3</span> Numerical Algorithm & Stability</h2>
             
-            <div class="theory-box box-slate">
-                <p>
-                    The solver uses an explicit finite-difference scheme. Because the 
-                    system is strongly coupled, numerical stability depends on the 
-                    largest eigenvalue of the diffusion matrix. 
-                    Instead of computing eigenvalues explicitly, the code uses
-                    <strong>Gershgorin bounds</strong> to estimate the spectral radius.
-                </p>
-                <div class="math-block">
-                    $$ \Delta t \le \frac{\Delta x^2}{2\,\lambda_{\max}} $$
-                </div>
-                <p>
-                    Here $\lambda_{\max}$ is estimated locally from row sums of 
-                    $|D_{ij}|$ multiplied by the thermodynamic factor. 
-                    This ensures stability even for systems with strong coupling 
-                    or highly unequal diffusivities.
-                </p>
-            </div>
-        </div>
-
-        <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-blue">4</span> Viewing the Results</h2>
             <p>
-                The solver provides several visualization modes. They update continuously as 
-                concentrations evolve and the diffusion matrix changes in time.
+                The solver uses an explicit finite-difference scheme. Because the system is strongly coupled, 
+                numerical stability depends on the largest eigenvalue of the diffusion matrix.
             </p>
 
-            <div class="feature-list">
-                <div class="feature-item">
-                    <div class="icon-circle bg-purple"><i class="fas fa-chart-line"></i></div>
-                    <div>
-                        <h4>Concentration Profiles</h4>
-                        <p>Standard diffusion curves displayed as a function of position.</p>
-                        <ul>
-                            <li><strong>Asymmetry</strong> indicates a Kirkendall shift.</li>
-                            <li><strong>Local bumps</strong> show vacancy drag.</li>
-                            <li><strong>Flat zones</strong> correspond to flux cancellation.</li>
-                        </ul>
-                    </div>
+            <div class="math-block">
+                $$ \Delta t \le \frac{\Delta x^2}{2\,\lambda_{\max}} $$
+            </div>
+
+            <p>
+                Instead of computing eigenvalues explicitly, the code uses <strong>Gershgorin bounds</strong> 
+                to estimate $\lambda_{\max}$ locally at every grid point. This ensures stability even for 
+                systems with strong coupling or highly unequal diffusivities.
+            </p>
+        </div>
+
+        <div class="help-section">
+            <h2 class="help-title"><span class="step-badge">4</span> Viewing the Results</h2>
+            <div class="viz-grid">
+                <div class="viz-card">
+                    <div class="viz-icon"><i class="fas fa-chart-line"></i></div>
+                    <strong>Concentration (2D)</strong>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:8px;">
+                        Standard diffusion curves.
+                        <br>• <strong>Asymmetry:</strong> Kirkendall shift.
+                        <br>• <strong>Local bumps:</strong> Vacancy drag.
+                        <br>• <strong>Flat zones:</strong> Flux cancellation.
+                    </p>
                 </div>
 
-                <div class="feature-item">
-                    <div class="icon-circle bg-blue"><i class="fas fa-water"></i></div>
-                    <div>
-                        <h4>3D Flux Surface</h4>
-                        <p>A time–position surface plot of the flux.</p>
-                        <ul>
-                            <li>Coupling can create <strong>flux reversal</strong>.</li>
-                            <li>Off-diagonal terms produce <strong>tilted flow ridges</strong>.</li>
-                        </ul>
-                    </div>
+                <div class="viz-card">
+                    <div class="viz-icon"><i class="fas fa-water"></i></div>
+                    <strong>Flux Surface (3D)</strong>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:8px;">
+                        A time–position surface plot of $J(x,t)$.
+                        <br>• <strong>Reversal:</strong> Flux changing sign.
+                        <br>• <strong>Ridges:</strong> Tilted flow paths.
+                    </p>
                 </div>
 
-                <div class="feature-item">
-                    <div class="icon-circle bg-cyan"><i class="fas fa-clock"></i></div>
-                    <div>
-                        <h4>Time Traces</h4>
-                        <p>Time evolution of concentration at specific markers.</p>
-                        <ul>
-                            <li>A species can move backwards (uphill diffusion).</li>
-                            <li>Different species may cross at the same location.</li>
-                        </ul>
-                    </div>
+                <div class="viz-card">
+                    <div class="viz-icon"><i class="fas fa-cube"></i></div>
+                    <strong>Time Traces (3D)</strong>
+                    <p style="font-size:13px; color:var(--text-muted); margin-top:8px;">
+                        Evolution of concentration markers.
+                        <br>• <strong>Backwards movement:</strong> Uphill diffusion.
+                        <br>• <strong>Crossing:</strong> Species overtaking.
+                    </p>
                 </div>
             </div>
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-rose">5</span> Non-Ideal Thermodynamics (Ω)</h2>
+            <h2 class="help-title"><span class="step-badge">5</span> Non-Ideal Thermodynamics ($\Omega$)</h2>
+            
+            <p>
+                Deviations from ideal mixing are included through the regular-solution 
+                parameter $\Omega$. It modifies the chemical potential curvature:
+            </p>
+            <div class="math-block">
+                $$ \Phi = 1 - \frac{2\Omega\, C(1-C)}{k_B T} $$
+            </div>
             
             <div class="theory-box box-rose">
+                <h4>Spinodal Decomposition</h4>
                 <p>
-                    Deviations from ideal mixing are included through the regular-solution 
-                    parameter $\Omega$. It modifies the chemical potential curvature and therefore 
-                    multiplies the flux through a thermodynamic factor.
+                    If <strong>$\Phi < 0$</strong>, the system is in the <strong>spinodal region</strong>.
+                    Diffusion drives demixing (phase separation) instead of smoothing. 
+                    <br><br>
+                    • <strong>$\Omega = 0$:</strong> Ideal solution.<br>
+                    • <strong>$\Omega > 0$:</strong> Repulsive (miscibility gaps possible).<br>
+                    • <strong>Large $\Omega$:</strong> Sharp interfaces.
                 </p>
-                <div class="math-block">
-                    $$ \Phi = 1 - \frac{2\Omega\, C(1-C)}{k_B T} $$
-                </div>
-                <p>This factor is applied directly to the Manning–Darken flux:</p>
-                <div class="math-block">
-                    $$ J_{\text{actual}} = J_{\text{MD}}\,\Phi $$
-                </div>
-                <p>
-                    If <strong>$\Phi < 0$</strong>, the system is in the <strong>spinodal region</strong>,
-                    where diffusion drives demixing instead of smoothing. 
-                    This solver supports such regimes because the numerical stability constraint
-                    is computed at every node.
-                </p>
-                <ul>
-                    <li><strong>$\Omega = 0$</strong> → ideal solution.</li>
-                    <li><strong>$\Omega > 0$</strong> → repulsive interactions, miscibility gaps possible.</li>
-                    <li><strong>Large $\Omega$</strong> → sharp interfaces and uphill diffusion.</li>
-                </ul>
             </div>
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-cyan">6</span> Reference Ω Values for MgO Dopants</h2>
-            
-            <div class="theory-box box-cyan">
-                <p>
-                    Approximate interaction parameters $\Omega$ for common divalent and trivalent 
-                    dopants in MgO. Values depend on temperature and assessment method, 
-                    but the trends below are robust.
-                </p>
+            <h2 class="help-title"><span class="step-badge">6</span> Reference Values ($\Omega$)</h2>
+            <p>Experimental thermodynamic assessments ($1 \text{ kJ/mol} \approx 0.0104 \text{ eV}$).</p>
 
+            <div class="data-table-wrapper">
                 <table class="theory-table">
                     <thead>
                         <tr>
-                            <th>Dopant</th>
-                            <th>Ω (eV)</th>
-                            <th>Behavior</th>
-                            <th>Notes</th>
+                            <th>System (Matrix-Dopant)</th>
+                            <th>$\Omega$ (eV)</th>
+                            <th>Type</th>
+                            <th>Physical Reason</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>NiO</td><td>0.00</td><td>Ideal</td><td>Complete solid solution</td></tr>
-                        <tr><td>CoO</td><td>0.05</td><td>Near Ideal</td><td>Slight short-range repulsion</td></tr>
-                        <tr><td>FeO</td><td>0.04</td><td>Near Ideal</td><td>High-temperature stability</td></tr>
-                        <tr><td>MnO</td><td>0.04</td><td>Near Ideal</td><td>Size match with Mg²⁺</td></tr>
-                        <tr><td>CuO</td><td>0.21</td><td>Repulsive</td><td>Jahn–Teller distortions</td></tr>
-                        <tr><td>ZrO</td><td>0.18</td><td>Repulsive</td><td>Octahedral mismatch</td></tr>
-                        <tr class="sep-top">
-                            <td>Cr₂O₃</td><td>&gt;0.80</td><td>Solubility limit</td><td>Tends to form spinel</td>
+                        <tr style="background:#f8fafc"><td colspan="4" style="font-weight:700; color:#64748b; font-size:11px; text-transform:uppercase;">MgO Matrix</td></tr>
+                        <tr>
+                            <td><strong>MgO - NiO</strong></td>
+                            <td class="val-mono">0.00</td>
+                            <td><span class="type-tag text-ideal">Ideal</span></td>
+                            <td>Complete solid solution (Similar radii).</td>
                         </tr>
                         <tr>
-                            <td>Al₂O₃</td><td>&gt;1.00</td><td>Strongly repulsive</td><td>Very low solubility</td>
+                            <td><strong>MgO - CoO</strong></td>
+                            <td class="val-mono">0.05</td>
+                            <td><span class="type-tag text-ideal">Near Ideal</span></td>
+                            <td>Very slight repulsion.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MgO - FeO</strong></td>
+                            <td class="val-mono">0.04</td>
+                            <td><span class="type-tag text-ideal">Near Ideal</span></td>
+                            <td>Mixes well at high Temp.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MgO - ZnO</strong></td>
+                            <td class="val-mono">0.18</td>
+                            <td><span class="type-tag text-repulsive">Repulsive</span></td>
+                            <td>Structural mismatch (Rock Salt vs Wurtzite).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MgO - CuO</strong></td>
+                            <td class="val-mono">0.21</td>
+                            <td><span class="type-tag text-repulsive">Repulsive</span></td>
+                            <td>Jahn-Teller distortion.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MgO - CaO</strong></td>
+                            <td class="val-mono">0.55</td>
+                            <td><span class="type-tag text-phase">Miscibility Gap</span></td>
+                            <td>Ca²⁺ is large. Phase separates &lt; 2000K.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MgO - Cr₂O₃</strong></td>
+                            <td class="val-mono">> 0.80</td>
+                            <td><span class="type-tag text-phase">Precipitation</span></td>
+                            <td>Solubility limit simulation.</td>
+                        </tr>
+
+                        <tr style="background:#f8fafc"><td colspan="4" style="font-weight:700; color:#64748b; font-size:11px; text-transform:uppercase;">Metallic / Test</td></tr>
+                        <tr>
+                            <td><strong>Cu - Zn (Brass)</strong></td>
+                            <td class="val-mono">-0.10</td>
+                            <td><span class="type-tag text-ordering">Ordering</span></td>
+                            <td>Prefer A-B neighbors (Intermetallics).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Au - Cu</strong></td>
+                            <td class="val-mono">-0.08</td>
+                            <td><span class="type-tag text-ordering">Ordering</span></td>
+                            <td>Forms ordered compounds.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Simulation Test</strong></td>
+                            <td class="val-mono">-0.15</td>
+                            <td><span class="type-tag text-ordering">Strong Ordering</span></td>
+                            <td>Use to see "box-like" profiles.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -858,75 +843,38 @@
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-blue">7</span> Advanced Topics & Model Limits</h2>
+            <h2 class="help-title"><span class="step-badge">7</span> Advanced Topics & Limits</h2>
             
-            <div class="theory-box box-indigo">
+            <div class="theory-box">
                 <p>
                     This solver implements vacancy-mediated Onsager diffusion using a 
-                    simplified physical model. Although it captures the central features of 
-                    multi-component diffusion, several assumptions are made for clarity and speed.
+                    simplified physical model. Limitations include:
                 </p>
-                <ul>
-                    <li>
-                        <strong>1D geometry</strong> — the solver treats the system as a 
-                        one-dimensional slab with no lateral effects.
-                    </li>
-                    <li>
-                        <strong>Constant diffusivity prefactors</strong> — 
-                        The parameters $D_0$ and $Q$ are taken as concentration-independent. 
-                        In reality, both can vary under high strain or at high dopant loadings.
-                    </li>
-                    <li>
-                        <strong>No explicit defect chemistry</strong> — 
-                        Charged vacancies, electronic carriers, or Frenkel pairs are not 
-                        separately tracked. Vacancies here are “effective” carriers folded into $D_{ij}$.
-                    </li>
-                    <li>
-                        <strong>No grain boundaries or dislocations</strong> — 
-                        Diffusion is assumed to occur in a defect-free, bulk single crystal.
-                    </li>
-                    <li>
-                        <strong>Regular-solution thermodynamics only</strong> — 
-                        Free-energy curvature comes from a single interaction parameter $\Omega$.
-                    </li>
+                <ul style="margin-top:10px; padding-left:20px; color:var(--text-muted); font-size:14px;">
+                    <li><strong>1D geometry:</strong> The system is a one-dimensional slab.</li>
+                    <li><strong>Constant prefactors:</strong> $D_0$ and $Q$ are concentration-independent.</li>
+                    <li><strong>No defect chemistry:</strong> Charged vacancies or Frenkel pairs are not explicitly tracked.</li>
+                    <li><strong>Single Crystal:</strong> No grain boundaries or dislocations.</li>
                 </ul>
-                <p>
-                    Even with these simplifications, the solver reproduces classical behaviors:
-                    Kirkendall shifts, uphill diffusion, vacancy wind effects, and rapid 
-                    interface sharpening under strong $\Omega$. 
-                    It is stable across a wide range of conditions due to the adaptive timestep control.
+                <p style="margin-top:10px;">
+                    Even with these simplifications, the solver reproduces Kirkendall shifts, 
+                    uphill diffusion, vacancy wind, and interface sharpening.
                 </p>
             </div>
         </div>
 
         <div class="help-section">
-            <h2 class="help-title"><span class="step-badge icon-blue">8</span> Notes, Credits & References</h2>
+            <h2 class="help-title"><span class="step-badge">8</span> Notes & References</h2>
             
-            <div class="theory-box" style="background:#e8f0fe; border-left:4px solid var(--gf-blue);">
-                <p>
-                    This tool is intended for teaching, research, and rapid prototyping of 
-                    diffusion problems. It implements the classic vacancy-mediated framework 
-                    with concentration-dependent diffusion matrices.
-                </p>
-                <p>If you use this tool in academic work, please cite:</p>
-                <ul>
-                    <li>The Manning–Darken coupling expressions for vacancy-mediated diffusion.</li>
-                    <li>“Onsager Multicomponent Diffusion Solver v8.4, 2025.”</li>
-                </ul>
-                <p><strong>Development notes:</strong></p>
-                <ul>
-                    <li>The numerical engine is implemented in a WebWorker for responsiveness.</li>
-                    <li>All fluxes and diffusion matrices are recomputed every timestep.</li>
-                    <li>Stability is controlled with local Gershgorin bounds.</li>
-                    <li>Plots use canvas/WebGL for real-time updates.</li>
-                </ul>
+            <div style="background:#f1f5f9; padding:20px; border-radius:8px; font-size:13px; color:var(--text-muted);">
+                <p><strong>Usage:</strong> Intended for teaching, research, and rapid prototyping.</p>
+                <p><strong>Citation:</strong> If used in academic work, please cite "Onsager Multicomponent Diffusion Solver v8.4, 2025" and the Manning-Darken coupling expressions.</p>
+                <p><strong>Tech Stack:</strong> WebWorker for physics engine, Chart.js (2D), Plotly (3D).</p>
             </div>
         </div>
 
     </div>
 </div>
-
-
 
             
         </main>
