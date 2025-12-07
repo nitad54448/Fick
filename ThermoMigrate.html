@@ -245,110 +245,86 @@
                 </div>
             </div>
 
-            <!-- PANEL 5: THEORY (UPDATED) -->
+
             <div id="pane-theory" class="tab-pane bg-white p-8 rounded-lg shadow-sm border border-gray-200">
                 <div class="max-w-4xl mx-auto pb-20 prose prose-slate">
                     <h1 class="text-3xl font-bold text-slate-800 mb-6">Physics & Model Documentation</h1>
                     
                     <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-8 rounded-r">
                         <p class="text-sm text-indigo-900 m-0">
-                            <strong>Simulation Goal:</strong> This tool simulates the coupled diffusion of dopants in a thermoelectric leg under a steep temperature gradient, predicting the degradation of efficiency ($zT$) over time due to the Soret effect (Thermomigration).
+                            <strong>Model Version:</strong> Re-tuned SPB + Bipolar (v2).<br>
+                            This simulation uses a phenomenological model calibrated to <strong>p-type PbSe</strong> experimental data. It accounts for the Soret effect (mass transport) and high-temperature bipolar conduction (efficiency degradation).
                         </p>
                     </div>
 
-                    <!-- Section 1 -->
-                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">1. Transport Physics</h2>
-                    <p>The evolution of the dopant concentration $C(x,t)$ is governed by the continuity equation $\frac{\partial C}{\partial t} = - \nabla \cdot J$. The total flux $J$ is derived from the phenomenological equations of irreversible thermodynamics, combining Fickian diffusion and the Soret effect:</p>
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">1. Transport Equations</h2>
+                    <p>The dopant flux $J$ is driven by both the concentration gradient (Fick's Law) and the temperature gradient (Soret Effect):</p>
                     
-                    <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 my-6">
-                        <div class="text-center font-mono text-lg text-slate-800 mb-4">
-                            $$ J = \underbrace{-D \frac{\partial C}{\partial x}}_{\text{Fick's Law}} \quad \underbrace{- \frac{D C Q^*}{k_B T^2} \frac{\partial T}{\partial x}}_{\text{Soret Effect}} $$
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 my-4">
+                        <div class="text-center font-mono text-lg text-slate-800">
+                            $$ J = -D \left( \nabla C + \frac{C Q^*}{k_B T^2} \nabla T \right) $$
                         </div>
-                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600 list-none pl-0">
-                            <li class="flex gap-2"><span class="font-bold w-12 text-right">D</span> <span>Diffusion Coefficient ($m^2/s$)</span></li>
-                            <li class="flex gap-2"><span class="font-bold w-12 text-right">C</span> <span>Concentration ($cm^{-3}$)</span></li>
-                            <li class="flex gap-2"><span class="font-bold w-12 text-right">Q*</span> <span>Heat of Transport ($eV$)</span></li>
-                            <li class="flex gap-2"><span class="font-bold w-12 text-right">k_B</span> <span>Boltzmann Constant</span></li>
-                        </ul>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">
+                        <strong>Direction of Flow ($Q^*$):</strong>
+                        <span class="text-blue-600 font-bold">Positive $Q^*$</span> moves dopants to the <span class="bg-blue-100 px-1 rounded">COLD</span> side. 
+                        <span class="text-red-600 font-bold">Negative $Q^*$</span> moves dopants to the <span class="bg-red-100 px-1 rounded">HOT</span> side.
+                    </p>
+
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">2. PbSe Material Model (Tuned)</h2>
+                    <p>
+                        To calculate $zT$, we map local Concentration ($C$) and Temperature ($T$) to properties. 
+                        At high T ($>500K$), strictly parabolic models fail. We apply a <strong>Bipolar Correction Factor ($\xi$)</strong> to match experimental data.
+                    </p>
+
+                    <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">A. The Bipolar Factor ($\xi$)</h3>
+                    <p class="text-sm">We define a minority carrier activation term based on an effective band gap $E_g \approx 0.28 \text{ eV}$:</p>
+                    <div class="text-center my-2 text-sm">
+                        $$ \xi_{bi} = \exp\left( -\frac{0.28}{2 k_B T} \right) $$
                     </div>
 
-                    <h3 class="text-lg font-bold text-slate-700">Temperature Dependence</h3>
-                    <p>Since the temperature varies from $T_{hot}$ to $T_{cold}$, the diffusivity $D$ varies exponentially along the leg length $L$. We use an Arrhenius relationship:</p>
-                    <div class="text-center my-4">$$ D(T) = D_0 \exp\left(-\frac{E_a}{k_B T}\right) $$</div>
-                    <p class="text-sm text-slate-500">where $E_a$ is the activation energy and $D_0$ is the pre-exponential factor.</p>
-
-                    <!-- Section 2 -->
-                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">2. Material Model (PbSe)</h2>
-                    <p>To evaluate the thermoelectric performance, we map the local concentration $C(x)$ and temperature $T(x)$ to transport properties using a semi-empirical Single Parabolic Band (SPB) model tailored for p-type PbSe.</p>
-
-                    <div class="overflow-x-auto my-6">
+                    <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">B. Property Equations</h3>
+                    <div class="overflow-x-auto mb-6">
                         <table class="w-full text-sm text-left text-slate-600 border border-slate-200 rounded-lg">
                             <thead class="text-xs text-slate-700 uppercase bg-slate-100">
                                 <tr>
                                     <th class="px-4 py-3">Property</th>
-                                    <th class="px-4 py-3">Model Equation</th>
-                                    <th class="px-4 py-3">Physical Justification</th>
+                                    <th class="px-4 py-3">Equation / Value</th>
+                                    <th class="px-4 py-3">Notes</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr class="bg-white border-b">
                                     <td class="px-4 py-3 font-bold">Mobility ($\mu$)</td>
-                                    <td class="px-4 py-3">$\mu \approx 1000 (\frac{T}{300})^{-2.5}$</td>
-                                    <td class="px-4 py-3">Dominated by acoustic phonon scattering ($\propto T^{-2.5}$).</td>
+                                    <td class="px-4 py-3">$$ 1150 \cdot (T/300)^{-2.2} $$</td>
+                                    <td class="px-4 py-3">Slightly shallower decay than acoustic (-2.5) to maintain $\sigma$ at 800K.</td>
                                 </tr>
                                 <tr class="bg-slate-50 border-b">
-                                    <td class="px-4 py-3 font-bold">Conductivity ($\sigma$)</td>
-                                    <td class="px-4 py-3">$\sigma = n e \mu$</td>
-                                    <td class="px-4 py-3">Drude model approximation ($e$ = elem. charge).</td>
+                                    <td class="px-4 py-3 font-bold">Seebeck ($S$)</td>
+                                    <td class="px-4 py-3">$$ S_{eff} = \frac{S_{base} (1 + 0.0025\Delta T)}{1 + \mathbf{5} \cdot \xi_{bi}} $$</td>
+                                    <td class="px-4 py-3">
+                                        <strong>Suppression:</strong> The factor <strong>5</strong> reduces $S$ at high T to prevent $zT$ overshoot.
+                                    </td>
                                 </tr>
                                 <tr class="bg-white border-b">
-                                    <td class="px-4 py-3 font-bold">Seebeck ($S$)</td>
-                                    <td class="px-4 py-3">$S \propto \log(n) \cdot T$</td>
-                                    <td class="px-4 py-3">Pisarenko relation simplified. Decreases with doping, increases with T.</td>
-                                </tr>
-                                <tr class="bg-slate-50 border-b">
-                                    <td class="px-4 py-3 font-bold">Thermal Cond. ($\kappa$)</td>
-                                    <td class="px-4 py-3">$\kappa_{lat} + L \sigma T$</td>
-                                    <td class="px-4 py-3">Lattice ($\propto T^{-1}$) + Electronic (Wiedemann-Franz, $L=2.4 \cdot 10^{-8}$).</td>
+                                    <td class="px-4 py-3 font-bold">Thermal ($\kappa$)</td>
+                                    <td class="px-4 py-3">$$ \kappa_{lat} + \kappa_{elec} + 0.2 T \cdot \xi_{bi} $$</td>
+                                    <td class="px-4 py-3">Includes Lattice ($1.4/T$), Electronic (W-F), and Bipolar contributions.</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <p>Finally, the Figure of Merit ($zT$) is calculated as: $$ zT = \frac{S^2 \sigma}{\kappa} T $$</p>
 
-                    <!-- Section 3 -->
-                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">3. Numerical Methods</h2>
-                    <p>The simulation uses a <strong>Finite Difference Method (FDM)</strong> with an explicit forward Euler time-stepping scheme.</p>
-                    <ul class="list-disc pl-5 space-y-2 text-slate-600">
-                        <li><strong>Grid:</strong> The spatial domain $L$ is discretized into $N$ nodes (default 70-80).</li>
-                        <li><strong>Staggered Flux:</strong> Flux $J_{i+1/2}$ is calculated between nodes to ensure mass conservation.</li>
-                        <li><strong>Time Step ($\Delta t$):</strong> Calculated dynamically to satisfy the Courant–Friedrichs–Lewy (CFL) stability condition:
-                            $$ \Delta t < 0.4 \frac{\Delta x^2}{D_{max}} $$
-                        </li>
-                        <li><strong>Boundary Conditions:</strong> Zero Flux ($J=0$) at $x=0, L$ (Closed system / Reflective).</li>
+                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">3. Numerical Details</h2>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600 text-sm">
+                        <li><strong>Method:</strong> Finite Difference (Explicit Euler).</li>
+                        <li><strong>Grid:</strong> Staggered grid for Flux conservation.</li>
+                        <li><strong>Stability:</strong> Dynamic time-stepping $\Delta t$ based on Diffusivity ($D_{max}$).</li>
+                        <li><strong>Boundary:</strong> Zero Flux (Closed system) at $x=0$ and $x=L$.</li>
                     </ul>
-
-                    <!-- Section 4 -->
-                    <h2 class="text-2xl font-bold text-slate-800 mt-8 mb-4">4. Limitations & Approximations</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-amber-50 p-4 rounded border border-amber-200">
-                            <h4 class="font-bold text-amber-800 mb-2">Physics</h4>
-                            <ul class="list-disc pl-4 text-sm text-amber-900 space-y-1">
-                                <li><strong>1D Approximation:</strong> Ignores radial gradients or side-wall heat loss.</li>
-                                <li><strong>Linear T-Profile:</strong> Assumes constant thermal conductivity for the temperature solution itself.</li>
-                                <li><strong>Dilute Limit:</strong> Assumes dopants do not interact with each other (no activity coefficients).</li>
-                            </ul>
-                        </div>
-                        <div class="bg-blue-50 p-4 rounded border border-blue-200">
-                            <h4 class="font-bold text-blue-800 mb-2">Material Parameters</h4>
-                            <ul class="list-disc pl-4 text-sm text-blue-900 space-y-1">
-                                <li><strong>Constant Q*:</strong> The Heat of Transport is assumed temperature-independent.</li>
-                                <li><strong>Parabolic Bands:</strong> The property model ignores band non-parabolicity and multi-band effects (e.g. L-band convergence in PbTe/PbSe).</li>
-                            </ul>
-                        </div>
-                    </div>
                 </div>
             </div>
+
 
         </main>
     </div>
@@ -359,41 +335,58 @@
         const KB_J = 1.380649e-23;
         const E_CHARGE = 1.60217663e-19;
 
-        // --- PHYSICS MODEL ---
+       // --- PHYSICS MODEL (RE-TUNED v2) ---
         function getProperties(n_cm3, T) {
-            // Ensure n_cm3 is within realistic bounds for the log calculation
+            // Cap Concentration for safety
             let n_safe = n_cm3;
-            if (n_safe < 1e16) n_safe = 1e16;
-            if (n_safe > 1e22) n_safe = 1e22;
+            if (n_safe < 1e17) n_safe = 1e17;
+            if (n_safe > 5e20) n_safe = 5e20;
 
             const T_norm = T / 300;
             const logN = Math.log10(n_safe);
             
-            // Mobility Model (Acoustic Phonon Scattering dominant)
-            const mu = 800 * Math.pow(T_norm, -2.5); // cm2/Vs
+            // 1. Mobility (cm2/Vs)
+            // Slightly reduced decay (-2.2) to maintain conductivity at high T
+            const mu = 1150 * Math.pow(T_norm, -2.2); 
             
-            // Conductivity (S/cm)
+            // 2. Electrical Conductivity (S/cm)
             const sigma = n_safe * 1.602e-19 * mu; 
             
-            // Seebeck Model (Empirical Pisarenko fit for PbSe)
-            // Base S at 300K depending on logN
-            // At 1e18 -> ~400uV/K. At 1e20 -> ~140uV/K
-            let S_base = 400 - 130 * (logN - 18); 
-            // Temperature dependence (Linear approx)
-            const S_uV = S_base * (1 + 0.0015 * (T - 300));
+            // 3. Seebeck (Pisarenko with Tuned Bipolar)
+            // Base at 300K: ~200 uV/K at 1e19
+            const S_base_300K = 400 - 130 * (logN - 18); 
+            
+            // Linear rise with T (typical for degenerate/SPB)
+            // We use (T-300) slope instead of multiplicative T/300 to control ascent
+            let S_temp = S_base_300K * (1 + 0.0025 * (T - 300));
+
+            // Bipolar correction
+            // Eg ~ 0.28 eV effective gap for bipolar onset
+            const E_g = 0.28; 
+            const kBT = 8.617e-5 * T;
+            const bipolar_factor = Math.exp( -E_g / (2 * kBT) );
+            
+            // Gentler suppression (factor of 5 instead of 50)
+            const S_uV = S_temp / (1 + 5 * bipolar_factor); 
             const S = S_uV * 1e-6; // V/K
 
-            // Thermal Conductivity
-            const k_lat = 1.3 / T_norm; // W/mK
-            const L = 2.4e-8; // Lorenz number
-            const k_elec = L * (sigma * 100) * T; // sigma*100 for S/m
-            const k_tot = k_lat + k_elec;
+            // 4. Thermal Conductivity (W/mK)
+            const L_num = 2.4e-8; // Lorenz number
+            const k_lat = 1.4 / T_norm; // Lattice (1/T)
+            const k_elec = L_num * (sigma * 100) * T; 
+            
+            // Bipolar Thermal Conductivity (moderate addition)
+            const k_bi = 0.2 * (T/300) * bipolar_factor * 100;
+            
+            const k_tot = k_lat + k_elec + k_bi;
 
-            // ZT
+            // 5. ZT Calculation
+            // sigma * 100 converts S/cm to S/m
             const ZT = (S * S * (sigma * 100) / k_tot) * T;
 
             return { S: S_uV, sigma: sigma, k: k_tot, ZT: Math.max(0, ZT) };
         }
+      
 
         self.onmessage = function(e) {
             const p = e.data; 
