@@ -802,6 +802,10 @@ body {
   animation: spin 1s linear infinite;
 }
 
+.visible {
+  visibility: visible;
+}
+
 .collapse {
   visibility: collapse;
 }
