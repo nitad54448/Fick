@@ -184,7 +184,54 @@
     }
     #plotly-flux, #plotly-time { width: 100%; height: 100%; }
 
-    /* --- 5. Help Section (Redesigned) --- */
+    /* --- 5. Help Section  --- */
+
+    /* --- Help Section Specifics --- */
+    .matrix-diagram {
+        display: inline-grid;
+        grid-template-columns: auto auto auto;
+        gap: 2px;
+        background: #e2e8f0;
+        border: 1px solid #cbd5e1;
+        padding: 2px;
+        border-radius: 6px;
+        margin: 10px 0;
+        font-family: monospace;
+        font-size: 13px;
+    }
+    .mat-cell {
+        background: white;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .mat-header {
+        background: #f1f5f9;
+        font-weight: 700;
+        color: #475569;
+    }
+    .mat-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        font-weight: 800;
+    }
+    .mat-highlight {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 2px solid #3b82f6;
+        font-weight: 700;
+    }
+    .guide-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 15px;
+    }
+    @media (max-width: 800px) { .guide-grid { grid-template-columns: 1fr; } }
+
     .help-container {
         padding: 40px; max-width: 900px; margin: 0 auto; background: #ffffff;
         color: #334155; line-height: 1.6; min-height: 100%;
@@ -321,7 +368,8 @@
                  <div class="chart-wrapper"><div id="plotly-time"></div></div>
             </div>
 
-<div id="pane-help" class="tab-pane">
+
+            <div id="pane-help" class="tab-pane">
     <div class="help-container">
 
         <div class="help-header">
@@ -404,43 +452,79 @@
             </p>
 
             <div class="theory-box" style="border-left-color: #ea580c; background: #fff7ed;">
-                <h4 style="color: #9a3412;">3.1 Kinetics: The Q-Matrix ($Q_{ij}$)</h4>
+                <h4 style="color: #9a3412;"><i class="fas fa-tachometer-alt"></i> 3.1 Kinetics: The Q-Matrix ($Q_{ij}$)</h4>
                 <p>
                     <strong>Definition:</strong> $Q_{ij}$ represents the activation energy (barrier) for species $i$ to jump when its local environment is dominated by species $j$.
+                    The solver calculates a local diffusion coefficient $D^*_i(x)$ at every grid point:
                 </p>
-                <p>The solver calculates a local diffusion coefficient $D^*_i(x)$ at every grid point:</p>
                 <div class="math-block">
                     $$ D_i^*(x) = D_{0,i} \exp\left(-\frac{\sum_j C_j(x) Q_{ij}}{k_B T}\right) $$
                 </div>
-                <ul>
-                    <li>If $Q_{Mg-Mg} < Q_{Mg-Ni}$, Mg diffuses slower as the Ni concentration increases (trapping).</li>
-                    <li>This allows the simulation of "sluggish diffusion" in high-entropy zones or doped regions.</li>
-                </ul>
+
+                <div style="margin-top:20px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.1);">
+                    <strong>How to read the Q-Matrix:</strong><br>
+                    <span style="font-size:13px; color:#666;">Row = The Walker (Diffuser) &nbsp;|&nbsp; Column = The Environment (Neighbors)</span>
+                    
+                    <div style="display:flex; justify-content:center; margin: 15px 0;">
+                        <div class="matrix-diagram">
+                            <div class="mat-cell mat-header" style="background:#cbd5e1;">Q<sub>ij</sub></div>
+                            <div class="mat-cell mat-header">Env: Mg</div>
+                            <div class="mat-cell mat-header">Env: Ni</div>
+                            
+                            <div class="mat-cell mat-header">Diff: Mg</div>
+                            <div class="mat-cell">2.20</div>
+                            <div class="mat-cell" style="border:2px dashed #94a3b8; opacity:0.6;">2.15</div>
+
+                            <div class="mat-cell mat-header">Diff: Ni</div>
+                            <div class="mat-cell mat-highlight" style="border:2px dashed #3b82f6;">2.10</div>
+                            <div class="mat-cell">2.10</div>
+                        </div>
+                    </div>
+                    
+                    <ul style="font-size:13px;">
+                        <li>
+                            <strong>Example (Blue Box):</strong> <span style="color:#2563eb; font-weight:700;">Q<sub>Ni-Mg</sub></span> = 2.10 eV. 
+                            This is the energy required for a <strong>Ni atom</strong> to jump when surrounded by <strong>Mg atoms</strong>.
+                        </li>
+                        <li>
+                            <strong>Asymmetry:</strong> Physically, $Q_{Ni-Mg}$ (Ni moving in Mg) is distinct from $Q_{Mg-Ni}$ (Mg moving in Ni). 
+                            <br><em>Note: The software defaults to symmetric averages for convenience, but you can edit them independently.</em>
+                        </li>
+                    </ul>
+                </div>
             </div>
 
             <div class="theory-box" style="border-left-color: #db2777; background: #fdf2f8;">
-                <h4 style="color: #be185d;">3.2 Thermodynamics: The $\Omega$-Matrix ($\Omega_{ij}$)</h4>
+                <h4 style="color: #be185d;"><i class="fas fa-magnet"></i> 3.2 Thermodynamics: The $\Omega$-Matrix ($\Omega_{ij}$)</h4>
                 <p>
                     <strong>Definition:</strong> This captures the Enthalpy of Mixing ($H_{mix}$) using a Regular Solution Model.
-                    It defines the "Thermodynamic Factor" $\Phi$ found in the Darken/Manning equations.
+                    It defines the driving force. unlike Q, this matrix is <strong>Always Symmetric</strong> ($A-B \equiv B-A$).
                 </p>
                 <div class="math-block">
                      H_{mix} = \sum_{i \neq j} \Omega_{ij} X_i X_j
                 </div>
-                <table class="param-table" style="margin-top:10px;">
-                    <tr>
-                        <td><strong>$\Omega > 0$</strong></td>
-                        <td><strong>Repulsive / Phase Separating.</strong> Species dislike mixing. Increases driving force (pushing them apart). Can lead to spinodal decomposition.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>$\Omega = 0$</strong></td>
-                        <td><strong>Ideal Solution.</strong> Mixing is driven purely by entropy (random walk).</td>
-                    </tr>
-                    <tr>
-                        <td><strong>$\Omega < 0$</strong></td>
-                        <td><strong>Ordering.</strong> Species attract. Reduces diffusion speed as atoms prefer to remain neighbors (short-range order).</td>
-                    </tr>
-                </table>
+
+                <div class="guide-grid" style="margin-top:15px;">
+                    <div class="theory-box" style="margin:0; border-left-color: #ef4444; background: #fff1f2;">
+                        <h4 style="color: #b91c1c; font-size:12px;">$\Omega > 0$ (Positive)</h4>
+                        <div style="text-align:center; padding:5px; font-weight:700; color:#b91c1c; font-size:11px;">
+                            REPULSION / UNMIXING
+                        </div>
+                        <p style="font-size:12px; line-height:1.4;">
+                            Species dislike mixing. Increases driving force (pushing them apart). Can lead to "Uphill Diffusion".
+                        </p>
+                    </div>
+
+                    <div class="theory-box" style="margin:0; border-left-color: #10b981; background: #ecfdf5;">
+                        <h4 style="color: #047857; font-size:12px;">$\Omega < 0$ (Negative)</h4>
+                        <div style="text-align:center; padding:5px; font-weight:700; color:#047857; font-size:11px;">
+                            ATTRACTION / ORDERING
+                        </div>
+                        <p style="font-size:12px; line-height:1.4;">
+                            Species attract. Reduces diffusion speed as atoms prefer to remain neighbors (short-range order).
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1091,31 +1175,32 @@ function buildOmegaVector(species) {
 function buildMatrixTables() {
     const species = getSpeciesList();
 
+
     // --- Helper to create cells ---
     const createCell = (r, c, val, type) => {
-        const rIdx = species.indexOf(r);
-        const cIdx = species.indexOf(c);
         const isDiag = (r === c);
-        const isLower = (rIdx > cIdx); 
-
-        // CASE 1: Lower Diagonal -> Disabled & Grey
-        if (isLower) {
-            return `<td style="background:#f1f5f9; padding:4px; border-bottom:1px solid #e2e8f0;">
-                <input type="text" disabled value="" 
-                       style="width:70px; padding:4px; border:1px solid #e2e8f0; background:transparent; cursor:not-allowed;">
-            </td>`;
-        }
-
-        // CASE 2: Regular Cell (Upper Triangle + Diagonal)
         let disabled = "";
         let bgStyle = "";
         
-        // For Omega, diagonal is always 0 and disabled
-        if (type === 'omega' && isDiag) {
-             disabled = "disabled";
-             bgStyle = "background:#f8fafc; color:#94a3b8;";
+        // For Omega, diagonal is always 0 and disabled, AND lower triangle is disabled (symmetric)
+        if (type === 'omega') {
+            const rIdx = species.indexOf(r);
+            const cIdx = species.indexOf(c);
+            const isLower = (rIdx > cIdx);
+            
+            if (isDiag) {
+                disabled = "disabled";
+                bgStyle = "background:#f8fafc; color:#94a3b8;";
+            } else if (isLower) {
+                // Lower triangle for Omega: show mirror value but disabled
+                return `<td style="background:#f1f5f9; padding:4px; border-bottom:1px solid #e2e8f0; text-align:center;">
+                    <input type="number" disabled value="${val}" 
+                           style="width:70px; padding:4px; border:1px solid #e2e8f0; background:transparent; text-align:center; cursor:not-allowed; color:#94a3b8;">
+                </td>`;
+            }
         }
-
+        
+        // For Q matrix, all cells are editable (including diagonal and full matrix)
         return `<td style="padding:4px; border-bottom:1px solid #e2e8f0; text-align:center;">
             <input type="number" class="${type}-cell" data-row="${r}" data-col="${c}" value="${val}" step="0.01" ${disabled}
                    style="width:70px; padding:4px; border:1px solid #cbd5e1; text-align:center; ${bgStyle}">
@@ -1161,15 +1246,15 @@ function buildMatrixTables() {
     attachMatrixListeners();
 }
 
-    function attachMatrixListeners(){
-    // Q Listeners (Symmetry is NOT required for Q physically, but often assumed. 
-    // Usually Q_ij != Q_ji (Diffuser i in Env j vs Diffuser j in Env i).
-    // So we ONLY update the specific cell for Q unless you want forced symmetry.)
+function attachMatrixListeners(){
+    // Q Listeners - Now fully asymmetric, each cell is independent
     document.querySelectorAll('.q-cell').forEach(inp => {
         inp.oninput = () => {
             const r = inp.dataset.row, c = inp.dataset.col;
             const v = parseFloat(inp.value);
-            if (!isNaN(v)) qMatrixData[keyFor(r,c)] = v;
+            if (!isNaN(v)) {
+                qMatrixData[keyFor(r,c)] = v;
+            }
         };
     });
 
@@ -1181,13 +1266,21 @@ function buildMatrixTables() {
             if (!isNaN(v)) {
                 // 1. Update this cell (e.g. Mg-Zn)
                 omegaMatrixData[keyFor(r,c)] = v;
-                // 2. Automatically update the hidden symmetric twin (e.g. Zn-Mg)
+                // 2. Automatically update the symmetric twin (e.g. Zn-Mg)
                 omegaMatrixData[keyFor(c,r)] = v;
+                
+                // 3. Update the mirrored input field visually
+                const mirrorInp = document.querySelector(`.omega-cell[data-row="${c}"][data-col="${r}"]`);
+                if (mirrorInp && !mirrorInp.disabled) {
+                    mirrorInp.value = v;
+                }
             }
         };
     });
 }
-    // -------------------------
+
+
+// -------------------------
     // OPEN/CLOSE modal (use preserve logic)
     // -------------------------
     function openInteractionModal() {
