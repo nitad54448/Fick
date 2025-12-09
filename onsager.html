@@ -369,237 +369,187 @@
             </div>
 
 
-            <div id="pane-help" class="tab-pane">
+            <!-- Updated pane-help div with expanded explanations -->
+<div id="pane-help" class="tab-pane">
     <div class="help-container">
-
         <div class="help-header">
             <h1>Theory & Documentation</h1>
             <p>Onsager Multi-Component Diffusion Solver • v8.5</p>
         </div>
 
+        <!-- 1. Overview -->
         <div class="help-section">
             <h2 class="help-title">1. Overview</h2>
             <p>
-                This software simulates <strong>multi-component cation diffusion</strong> in oxide crystals (e.g., Rock-salt structures like MgO, NiO). 
-                While standard introductory models (Fick's Laws) assume atoms move independently, real solid-state systems imply 
-                <strong>correlations</strong>. Atoms share a common lattice and compete for the same vacancies.
+                This tool simulates <strong>multi-component cation diffusion</strong> in oxide crystals using the
+                <strong>Onsager transport formalism</strong>. Unlike simple Fickian diffusion where species diffuse
+                independently, real crystals exhibit <strong>correlated motion</strong>. Every jump requires a vacancy,
+                and vacancies are shared by all species, producing <em>cross-coupling</em> between fluxes.
             </p>
             <p>
-                This solver uses the <strong>Onsager Matrix Formalism</strong> to account for these cross-interactions, calculating phenomena 
-                that simpler models miss, such as <em>Uphill Diffusion</em>, <em>Vacancy Wind</em>, and <em>Kinetic Demixing</em>.
+                The solver calculates concentration profiles, fluxes, and time evolution using concentration‑dependent
+                diffusivities, full Onsager coupling, and optional thermodynamic interactions through a Regular Solution
+                model.
             </p>
         </div>
 
+        <!-- 2. Physical Models -->
         <div class="help-section">
             <h2 class="help-title">2. Physical Models</h2>
 
             <div class="theory-box">
-                <h4>2.1 The Onsager Flux Equation (General)</h4>
+                <h4>2.1 Onsager Flux Equation</h4>
                 <p>
-                    In a multi-component system, the flux of species $i$ ($J_i$) is driven by the gradients of chemical potential of 
-                    <strong>all</strong> species present. In this solver, we express this via a diffusion matrix:
+                    For each species <em>i</em>, the flux is governed by gradients of <em>all</em> concentrations:
                 </p>
                 <div class="math-block">$$ J_i = -\sum_j D_{ij} \nabla C_j $$</div>
                 <ul>
-                    <li><strong>Diagonal Terms ($D_{ii}$):</strong> The standard diffusion of species $i$ down its own gradient.</li>
-                    <li><strong>Off-Diagonal Terms ($D_{ij}$):</strong> Cross-coefficients. For example, a gradient in Ni ($j$) can cause a flux of Mg ($i$) due to vacancy coupling.</li>
+                    <li><strong>Diagonal terms:</strong> diffusion of species <em>i</em> down its own gradient.</li>
+                    <li><strong>Off‑diagonal terms:</strong> cross‑coupling due to vacancy sharing.
+                    </li>
                 </ul>
+                <p>
+                    These effects cause phenomena like <em>uphill diffusion</em> (flow against a gradient) and
+                    <em>vacancy wind</em> (dragging slower ions by fast-moving ones).
+                </p>
             </div>
 
             <div class="theory-box box-info">
-                <h4>2.2 The Vacancy Wind Effect</h4>
+                <h4>2.2 Why the Vacancy Wind Exists</h4>
                 <p>
-                    Diffusion in these oxides occurs via a <strong>Vacancy Mechanism</strong>. 
-                    If a fast species (e.g., Zn) diffuses rapidly in one direction ($+x$), there is a net flow of vacancies in the opposite direction ($-x$).
-                    This "wind" of vacancies impinges on slower species (e.g., Mg), potentially dragging them <strong>up</strong> their concentration gradient.
-                    <br><br>
-                    <em>In this simulation, this is automatically calculated via the off-diagonal kinetic terms.</em>
+                    In vacancy-mediated materials, a jump of species A to the right implies the vacancy moves left.
+                    If one species jumps much faster than others, its motion creates a net vacancy flow—a
+                    <strong>vacancy wind</strong>. Slower species can then be swept in the opposite direction.
                 </p>
             </div>
 
-            <div class="theory-box" style="border-left-color: #8b5cf6; background: #f5f3ff;">
-                <h4 style="color: #5b21b6;">2.3 The Manning-Darken Connection</h4>
+            <div class="theory-box" style="border-left-color:#8b5cf6; background:#f5f3ff;">
+                <h4 style="color:#5b21b6;">2.3 Manning–Darken Connection</h4>
                 <p>
-                    Users often ask how this relates to the classic <strong>Darken</strong> equation. 
-                    The Darken equation describes interdiffusion in a binary alloy, relating the chemical diffusion coefficient ($\tilde{D}$) 
-                    to the tracer diffusivities ($D^*$) of the individual components.
-                </p>
-                <p><strong>The Classic Darken Equation:</strong></p>
-                <div class="math-block">
-                    $$ \tilde{D} = (X_A D^*_B + X_B D^*_A) \cdot \Phi $$
-                </div>
-                <p>
-                    Where $X$ is mole fraction and $\Phi$ is the thermodynamic factor. However, Darken ignored the vacancy wind. 
-                    <strong>Manning</strong> refined this by introducing a correlation factor ($S$):
-                </p>
-                <p><strong>The Manning Correction:</strong></p>
-                <div class="math-block">
-                    $$ \tilde{D}_{Manning} = \left( X_A D^*_B + X_B D^*_A + 2 X_A X_B (D^*_A - D^*_B)^2 / M_0 \right) \cdot \Phi $$
-                </div>
-                <p>
-                    <strong>How this solver works:</strong><br>
-                    This tool solves the full Onsager matrix. In the limit of a binary system, our results are mathematically equivalent to the Manning formulation. 
-                    We calculate the fluxes $J_i$ individually rather than lumping them into a single $\tilde{D}$, allowing us to simulate $N > 2$ components 
-                    where a single "Interdiffusion Coefficient" cannot be defined.
+                    In binary systems, Onsager theory reduces to the classic Darken and Manning expressions for
+                    interdiffusion. Manning’s correlation factor accounts for vacancy drag effects. In systems with
+                    3+ species, interdiffusion ceases to be a single number—hence the full matrix formulation used
+                    here.
                 </p>
             </div>
         </div>
 
+        <!-- 3. Matrices -->
         <div class="help-section">
             <h2 class="help-title">3. The Simulation Matrices</h2>
             <p>
-                To predict diffusion profiles, we separate the problem into <strong>Kinetics</strong> (Barrier Heights) and <strong>Thermodynamics</strong> (Mixing Energy).
+                Transport is controlled by two key matrices: the kinetic <strong>Q-matrix</strong> and the thermodynamic
+                <strong>Ω‑matrix</strong>.
             </p>
 
-            <div class="theory-box" style="border-left-color: #ea580c; background: #fff7ed;">
-                <h4 style="color: #9a3412;"><i class="fas fa-tachometer-alt"></i> 3.1 Kinetics: The Q-Matrix ($Q_{ij}$)</h4>
+            <!-- Q MATRIX -->
+            <div class="theory-box" style="border-left-color:#ea580c; background:#fff7ed;">
+                <h4 style="color:#9a3412;"><i class="fas fa-tachometer-alt"></i> 3.1 Kinetics: The Q‑Matrix</h4>
                 <p>
-                    <strong>Definition:</strong> $Q_{ij}$ represents the activation energy (barrier) for species $i$ to jump when its local environment is dominated by species $j$.
-                    The solver calculates a local diffusion coefficient $D^*_i(x)$ at every grid point:
+                    The activation energy for a jump depends on <em>who is jumping</em> (the diffuser) and
+                    <em>who surrounds the site</em> (the environment). Thus, for each species pair (i,j) we define:
                 </p>
-                <div class="math-block">
-                    $$ D_i^*(x) = D_{0,i} \exp\left(-\frac{\sum_j C_j(x) Q_{ij}}{k_B T}\right) $$
+                <div class="math-block">$$ Q_{ij} = \text{barrier for species } i \text{ moving in environment dominated by } j $$</div>
+
+                <h4>Why the Q‑Matrix Can Be Asymmetric</h4>
+                <p>
+                    In real materials, diffusion barriers depend on ionic size, charge, electronic configuration, and
+                    local strain. These effects are <em>not</em> symmetric:
+                </p>
+                <ul>
+                    <li>Mg moving in a Ni‑rich environment is not equivalent to Ni moving in a Mg‑rich one.</li>
+                    <li>Charge‑state or spin‑state differences alter saddle‑point energies differently for each ion.</li>
+                    <li>Local distortions (e.g., Zn tetrahedral tendency; Cu Jahn–Teller distortion) produce
+                        direction‑dependent effects.</li>
+                </ul>
+
+                <div class="theory-box" style="background:#fff; border-left:3px solid #d1d5db; margin:20px 0;">
+                    <h4 style="font-size:12px; margin-bottom:8px;">Interpretation of Q<sub>ij</sub></h4>
+                    <p style="font-size:14px;">
+                        <strong>Row = Diffuser, Column = Environment.</strong> A larger value means a higher activation
+                        barrier and slower jumps.
+                    </p>
                 </div>
 
-                <div style="margin-top:20px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.1);">
-                    <strong>How to read the Q-Matrix:</strong><br>
-                    <span style="font-size:13px; color:#666;">Row = The Walker (Diffuser) &nbsp;|&nbsp; Column = The Environment (Neighbors)</span>
-                    
-                    <div style="display:flex; justify-content:center; margin: 15px 0;">
-                        <div class="matrix-diagram">
-                            <div class="mat-cell mat-header" style="background:#cbd5e1;">Q<sub>ij</sub></div>
-                            <div class="mat-cell mat-header">Env: Mg</div>
-                            <div class="mat-cell mat-header">Env: Ni</div>
-                            
-                            <div class="mat-cell mat-header">Diff: Mg</div>
-                            <div class="mat-cell">2.20</div>
-                            <div class="mat-cell" style="border:2px dashed #94a3b8; opacity:0.6;">2.15</div>
-
-                            <div class="mat-cell mat-header">Diff: Ni</div>
-                            <div class="mat-cell mat-highlight" style="border:2px dashed #3b82f6;">2.10</div>
-                            <div class="mat-cell">2.10</div>
-                        </div>
-                    </div>
-                    
-                    <ul style="font-size:13px;">
-                        <li>
-                            <strong>Example (Blue Box):</strong> <span style="color:#2563eb; font-weight:700;">Q<sub>Ni-Mg</sub></span> = 2.10 eV. 
-                            This is the energy required for a <strong>Ni atom</strong> to jump when surrounded by <strong>Mg atoms</strong>.
-                        </li>
-                        <li>
-                            <strong>Asymmetry:</strong> Physically, $Q_{Ni-Mg}$ (Ni moving in Mg) is distinct from $Q_{Mg-Ni}$ (Mg moving in Ni). 
-                            <br><em>Note: The software defaults to symmetric averages for convenience, but you can edit them independently.</em>
-                        </li>
-                    </ul>
+                <p>
+                    The effective tracer diffusivity used in the solver is:
+                </p>
+                <div class="math-block">
+                    $$ D_i^*(x) = D_{0,i}\, \exp\left(-\frac{\sum_j C_j(x)\, Q_{ij}}{k_B T}\right) $$
                 </div>
             </div>
 
-            <div class="theory-box" style="border-left-color: #db2777; background: #fdf2f8;">
-                <h4 style="color: #be185d;"><i class="fas fa-magnet"></i> 3.2 Thermodynamics: The $\Omega$-Matrix ($\Omega_{ij}$)</h4>
+            <!-- OMEGA MATRIX -->
+            <div class="theory-box" style="border-left-color:#db2777; background:#fdf2f8;">
+                <h4 style="color:#be185d;"><i class="fas fa-magnet"></i> 3.2 Thermodynamics: The Ω‑Matrix</h4>
                 <p>
-                    <strong>Definition:</strong> This captures the Enthalpy of Mixing ($H_{mix}$) using a Regular Solution Model.
-                    It defines the driving force. unlike Q, this matrix is <strong>Always Symmetric</strong> ($A-B \equiv B-A$).
+                    The Ω‑matrix defines enthalpic mixing interactions using a regular‑solution model:
                 </p>
-                <div class="math-block">
-                     H_{mix} = \sum_{i \neq j} \Omega_{ij} X_i X_j
-                </div>
-
-                <div class="guide-grid" style="margin-top:15px;">
-                    <div class="theory-box" style="margin:0; border-left-color: #ef4444; background: #fff1f2;">
-                        <h4 style="color: #b91c1c; font-size:12px;">$\Omega > 0$ (Positive)</h4>
-                        <div style="text-align:center; padding:5px; font-weight:700; color:#b91c1c; font-size:11px;">
-                            REPULSION / UNMIXING
-                        </div>
-                        <p style="font-size:12px; line-height:1.4;">
-                            Species dislike mixing. Increases driving force (pushing them apart). Can lead to "Uphill Diffusion".
-                        </p>
-                    </div>
-
-                    <div class="theory-box" style="margin:0; border-left-color: #10b981; background: #ecfdf5;">
-                        <h4 style="color: #047857; font-size:12px;">$\Omega < 0$ (Negative)</h4>
-                        <div style="text-align:center; padding:5px; font-weight:700; color:#047857; font-size:11px;">
-                            ATTRACTION / ORDERING
-                        </div>
-                        <p style="font-size:12px; line-height:1.4;">
-                            Species attract. Reduces diffusion speed as atoms prefer to remain neighbors (short-range order).
-                        </p>
-                    </div>
-                </div>
+                <div class="math-block">$$ H_{mix} = \sum_{i \neq j} \Omega_{ij} X_i X_j $$</div>
+                <p>
+                    Unlike Q, these interactions are <strong>fully symmetric</strong>: Ω<sub>ij</sub> = Ω<sub>ji</sub>.
+                </p>
+                <p>
+                    Positive Ω → demixing; negative Ω → ordering. Large Ω can produce strong chemical driving forces
+                    and significant departures from ideal Fickian behavior.
+                </p>
             </div>
         </div>
 
+        <!-- 4. References -->
         <div class="help-section">
-            <h2 class="help-title">4. Reference Parameter Values</h2>
-            <p>
-                The following defaults are used when selecting cations. They are based on general trends in MgO-based rock-salt oxides.
-            </p>
+            <h2 class="help-title">4. Reference Values</h2>
+            <p>These are typical values for rock‑salt oxides and are provided as reasonable starting points.</p>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
                 <div class="theory-box">
-                    <h4>4.1 Self-Diffusion Data</h4>
+                    <h4>4.1 Self‑Diffusion Parameters</h4>
                     <table class="param-table">
                         <thead>
-                            <tr><th>Ion</th><th>$D_0$ (m²/s)</th><th>$Q$ (eV)</th></tr>
+                            <tr><th>Ion</th><th>D₀</th><th>Q</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td><strong>Mg²⁺</strong></td><td>5.0e-11</td><td>2.20</td></tr>
-                            <tr><td><strong>Ni²⁺</strong></td><td>2.5e-10</td><td>2.10</td></tr>
-                            <tr><td><strong>Co²⁺</strong></td><td>5.0e-10</td><td>2.05</td></tr>
-                            <tr><td><strong>Fe²⁺</strong></td><td>1.2e-9</td> <td>1.95</td></tr>
-                            <tr><td><strong>Zn²⁺</strong></td><td>8.0e-10</td><td>1.85</td></tr>
-                            <tr><td><strong>Cu²⁺</strong></td><td>3.0e-10</td><td>2.15</td></tr>
-                            <tr><td><strong>Ca²⁺</strong></td><td>1.0e-10</td><td>2.60</td></tr>
+                            <tr><td>Mg²⁺</td><td>5.0e‑11</td><td>2.20</td></tr>
+                            <tr><td>Ni²⁺</td><td>2.5e‑10</td><td>2.10</td></tr>
+                            <tr><td>Co²⁺</td><td>5.0e‑10</td><td>2.05</td></tr>
+                            <tr><td>Fe²⁺</td><td>1.2e‑9</td><td>1.95</td></tr>
+                            <tr><td>Zn²⁺</td><td>8.0e‑10</td><td>1.85</td></tr>
+                            <tr><td>Cu²⁺</td><td>3.0e‑10</td><td>2.15</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="theory-box box-warning">
-                    <h4>4.2 Interaction parameters ($\Omega$)</h4>
+                    <h4>4.2 Interaction Energies (Ω)</h4>
                     <table class="param-table">
                         <thead>
-                            <tr><th>Pair</th><th>$\Omega$ (eV)</th><th>Effect</th></tr>
+                            <tr><th>Pair</th><th>Ω</th><th>Effect</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td><strong>Mg-Ni</strong></td><td>0.02</td><td>Near Ideal</td></tr>
-                            <tr><td><strong>Mg-Co</strong></td><td>0.03</td><td>Near Ideal</td></tr>
-                            <tr><td><strong>Mg-Cu</strong></td><td>0.18</td><td>Strain (Jahn-Teller)</td></tr>
-                            <tr><td><strong>Mg-Zn</strong></td><td>0.20</td><td>Coord. Mismatch</td></tr>
-                            <tr><td><strong>Mg-Ca</strong></td><td>0.40</td><td>Size Mismatch</td></tr>
-                            <tr><td><strong>Mg-Cr</strong></td><td>0.50</td><td>Charge Mismatch</td></tr>
+                            <tr><td>Mg‑Ni</td><td>0.02</td><td>Nearly ideal</td></tr>
+                            <tr><td>Mg‑Cu</td><td>0.18</td><td>JT strain</td></tr>
+                            <tr><td>Mg‑Zn</td><td>0.20</td><td>Coord mismatch</td></tr>
+                            <tr><td>Mg‑Ca</td><td>0.40</td><td>Size mismatch</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
+        <!-- 5. Viz -->
         <div class="help-section">
-            <h2 class="help-title">5. Visualizing the Data</h2>
-            <div class="viz-grid">
-                <div class="viz-card">
-                    <div class="viz-icon"><i class="fas fa-chart-line"></i></div>
-                    <strong>Profile (2D)</strong>
-                    <p>Standard Concentration vs. Depth. Look for "S-curves" vs "Error-function" shapes. Deviations imply concentration-dependent $D$.</p>
-                </div>
-                <div class="viz-card">
-                    <div class="viz-icon"><i class="fas fa-water"></i></div>
-                    <strong>Flux (3D)</strong>
-                    <p>
-                        <strong>Red Zones (Positive):</strong> Mass moving right.<br>
-                        <strong>Blue Zones (Negative):</strong> Mass moving left.<br>
-                        <em>Use this to spot vacancy wind effects where a species moves against its gradient.</em>
-                    </p>
-                </div>
-                <div class="viz-card">
-                    <div class="viz-icon"><i class="fas fa-cube"></i></div>
-                    <strong>History (3D)</strong>
-                    <p>Visualizes the evolution of concentration over time. Useful for observing transient "humps" at interfaces.</p>
-                </div>
-            </div>
+            <h2 class="help-title">5. Visualizing Outputs</h2>
+            <p>Three views let you explore the simulation data:</p>
+            <ul>
+                <li><strong>Profile:</strong> 2D concentration vs depth.</li>
+                <li><strong>Flux:</strong> 3D representation of flux over space and time.</li>
+                <li><strong>History:</strong> 3D concentration evolution.</li>
+            </ul>
         </div>
 
     </div>
 </div>
+
         
 
         </main>
