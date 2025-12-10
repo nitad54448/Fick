@@ -370,14 +370,13 @@
 
 
             <!-- Updated pane-help div with expanded explanations -->
-<div id="pane-help" class="tab-pane">
+            <div id="pane-help" class="tab-pane">
     <div class="help-container">
         <div class="help-header">
             <h1>Theory & Documentation</h1>
             <p>Onsager Multi-Component Diffusion Solver • v8.5</p>
         </div>
 
-        <!-- 1. Overview -->
         <div class="help-section">
             <h2 class="help-title">1. Overview</h2>
             <p>
@@ -393,7 +392,6 @@
             </p>
         </div>
 
-        <!-- 2. Physical Models -->
         <div class="help-section">
             <h2 class="help-title">2. Physical Models</h2>
 
@@ -434,7 +432,6 @@
             </div>
         </div>
 
-        <!-- 3. Matrices -->
         <div class="help-section">
             <h2 class="help-title">3. The Simulation Matrices</h2>
             <p>
@@ -442,7 +439,6 @@
                 <strong>Ω‑matrix</strong>.
             </p>
 
-            <!-- Q MATRIX -->
             <div class="theory-box" style="border-left-color:#ea580c; background:#fff7ed;">
                 <h4 style="color:#9a3412;"><i class="fas fa-tachometer-alt"></i> 3.1 Kinetics: The Q‑Matrix</h4>
                 <p>
@@ -479,7 +475,6 @@
                 </div>
             </div>
 
-            <!-- OMEGA MATRIX -->
             <div class="theory-box" style="border-left-color:#db2777; background:#fdf2f8;">
                 <h4 style="color:#be185d;"><i class="fas fa-magnet"></i> 3.2 Thermodynamics: The Ω‑Matrix</h4>
                 <p>
@@ -496,47 +491,93 @@
             </div>
         </div>
 
-        <!-- 4. References -->
         <div class="help-section">
-            <h2 class="help-title">4. Reference Values</h2>
-            <p>These are typical values for rock‑salt oxides and are provided as reasonable starting points.</p>
+            <h2 class="help-title">4. Reference Values (Full 3d Series)</h2>
+            <p>These are the default values used in the simulation code. They are typical for rock‑salt oxides at high temperatures.</p>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div style="display:grid; grid-template-columns:1fr; gap:20px;">
                 <div class="theory-box">
-                    <h4>4.1 Self‑Diffusion Parameters</h4>
+                    <h4>4.1 Self‑Diffusion Parameters ($D_0$ & $Q_{ii}$)</h4>
+                    <p style="font-size:12px; margin-bottom:10px; color:#64748b;">
+                        Includes 2+ cations, Aliovalent 3+/4+ cations, and post-transition metals. 
+                        Note: 3+ ions generally have higher Q due to electrostatic drag.
+                    </p>
                     <table class="param-table">
                         <thead>
-                            <tr><th>Ion</th><th>D₀</th><th>Q</th></tr>
+                            <tr><th>Ion</th><th>State</th><th>D₀ (m²/s)</th><th>Q (eV)</th><th>Notes</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>Mg²⁺</td><td>5.0e‑11</td><td>2.20</td></tr>
-                            <tr><td>Ni²⁺</td><td>2.5e‑10</td><td>2.10</td></tr>
-                            <tr><td>Co²⁺</td><td>5.0e‑10</td><td>2.05</td></tr>
-                            <tr><td>Fe²⁺</td><td>1.2e‑9</td><td>1.95</td></tr>
-                            <tr><td>Zn²⁺</td><td>8.0e‑10</td><td>1.85</td></tr>
-                            <tr><td>Cu²⁺</td><td>3.0e‑10</td><td>2.15</td></tr>
+                            <tr style="background:#f1f5f9;"><td><strong>Mg</strong></td><td>2+</td><td>5.0e‑11</td><td>2.20</td><td>Matrix Host</td></tr>
+                            <tr><td><strong>Sc</strong></td><td>3+</td><td>4.0e‑10</td><td>2.40</td><td>Early 3d</td></tr>
+                            <tr><td><strong>Ti</strong></td><td>4+</td><td>2.0e‑10</td><td>2.80</td><td>High Charge (Slow)</td></tr>
+                            <tr><td><strong>V</strong></td><td>3+</td><td>6.0e‑10</td><td>2.35</td><td></td></tr>
+                            <tr><td><strong>Cr</strong></td><td>3+</td><td>3.5e‑10</td><td>2.50</td><td></td></tr>
+                            <tr><td><strong>Mn</strong></td><td>2+</td><td>1.5e‑10</td><td>2.10</td><td></td></tr>
+                            <tr><td><strong>Fe</strong></td><td>2+</td><td>1.2e‑9</td><td>1.95</td><td>Ferrous (Fast)</td></tr>
+                            <tr><td><strong>Fe</strong></td><td>3+</td><td>5.0e‑10</td><td>2.45</td><td>Ferric (Slower)</td></tr>
+                            <tr><td><strong>Co</strong></td><td>2+</td><td>5.0e‑10</td><td>2.05</td><td>Cobalt(II)</td></tr>
+                            <tr><td><strong>Co</strong></td><td>3+</td><td>2.0e‑10</td><td>2.55</td><td>Cobalt(III)</td></tr>
+                            <tr><td><strong>Ni</strong></td><td>2+</td><td>2.5e‑10</td><td>2.10</td><td>Near Ideal</td></tr>
+                            <tr><td><strong>Cu</strong></td><td>2+</td><td>3.0e‑10</td><td>2.15</td><td>Jahn-Teller</td></tr>
+                            <tr><td><strong>Zn</strong></td><td>2+</td><td>8.0e‑10</td><td>1.85</td><td>Tetrahedral pref.</td></tr>
+                            <tr><td><strong>Ga</strong></td><td>3+</td><td>4.5e‑10</td><td>2.30</td><td>Post-Transition</td></tr>
+                            <tr><td><strong>Ca</strong></td><td>2+</td><td>1.0e‑10</td><td>2.60</td><td>Large Ion</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="theory-box box-warning">
-                    <h4>4.2 Interaction Energies (Ω)</h4>
+                    <h4>4.2 Interaction Energies ($\Omega$)</h4>
+                    <p style="font-size:12px; margin-bottom:10px; color:#78350f;">
+                        These defaults dictate how much specific pairs "dislike" mixing. Higher positive values = stronger demixing.
+                    </p>
                     <table class="param-table">
                         <thead>
-                            <tr><th>Pair</th><th>Ω</th><th>Effect</th></tr>
+                            <tr><th>Pair Type</th><th>Example Pairs</th><th>$\Omega$ (eV)</th><th>Physical Origin</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>Mg‑Ni</td><td>0.02</td><td>Nearly ideal</td></tr>
-                            <tr><td>Mg‑Cu</td><td>0.18</td><td>JT strain</td></tr>
-                            <tr><td>Mg‑Zn</td><td>0.20</td><td>Coord mismatch</td></tr>
-                            <tr><td>Mg‑Ca</td><td>0.40</td><td>Size mismatch</td></tr>
+                            <tr>
+                                <td><span class="tag tag-blue">Ideal</span></td>
+                                <td>Mg-Ni, Mg-Co², Ni-Co²</td>
+                                <td>0.01 - 0.03</td>
+                                <td>Similar ionic radius & charge.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="tag tag-orange">Structural</span></td>
+                                <td>Mg-Zn, Ni-Zn</td>
+                                <td>0.18 - 0.20</td>
+                                <td>Zn prefers tetrahedral sites; Matrix is octahedral.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="tag tag-orange">Jahn-Teller</span></td>
+                                <td>Mg-Cu, Ni-Cu</td>
+                                <td>0.15 - 0.18</td>
+                                <td>Lattice strain from electronic distortion.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="tag" style="background:#fee2e2; color:#991b1b;">Aliovalent</span></td>
+                                <td>Mg-Fe³, Mg-Co³, Mg-Sc</td>
+                                <td>0.40 - 0.50</td>
+                                <td>Charge mismatch ($3^+$ vs $2^+$) creates defects.</td>
+                            </tr>
+                             <tr>
+                                <td><span class="tag" style="background:#fee2e2; color:#991b1b;">High Charge</span></td>
+                                <td>Mg-Ti⁴⁺</td>
+                                <td>0.65</td>
+                                <td>Strong electrostatic repulsion.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="tag">Size Mismatch</span></td>
+                                <td>Mg-Ca</td>
+                                <td>0.40</td>
+                                <td>Ca ($1.00\mathring{A}$) is much larger than Mg ($0.72\mathring{A}$).</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- 5. Viz -->
         <div class="help-section">
             <h2 class="help-title">5. Visualizing Outputs</h2>
             <p>Three views let you explore the simulation data:</p>
@@ -549,8 +590,6 @@
 
     </div>
 </div>
-
-        
 
         </main>
     </div>
@@ -776,49 +815,62 @@
     let qMatrixData = {}; 
     let omegaMatrixData = {};
 
-    // --- REASONABLE DEFAULTS (Fixed) ---
+    // --- REASONABLE DEFAULTS 
+    // --- REASONABLE DEFAULTS (Updated for full 3d Series + Aliovalence) ---
     
-    // Standard Oxide Values (approximate)
+    // D0 values scaled to ~10^-10 m2/s range typical for high-T oxide diffusion
     const CATION_DB = {
-        "Sc": { label: "Sc³⁺ (Scandium)",   d0: "4.0e-10" },
-        "Ti": { label: "Ti⁴⁺ (Titanium)",   d0: "8.0e-10" },
-        "V":  { label: "V³⁺ (Vanadium)",    d0: "6.0e-10" },
-        "Cr": { label: "Cr³⁺ (Chromium)",   d0: "3.5e-10" },
-        "Mn": { label: "Mn²⁺ (Manganese)",  d0: "1.5e-10" },
-        "Fe": { label: "Fe²⁺ (Iron)",       d0: "1.2e-9"  },
-        "Co": { label: "Co²⁺ (Cobalt)",     d0: "5.0e-10" },
-        "Ni": { label: "Ni²⁺ (Nickel)",     d0: "2.5e-10" },
-        "Cu": { label: "Cu²⁺ (Copper)",     d0: "3.0e-10" },
-        "Zn": { label: "Zn²⁺ (Zinc)",       d0: "8.0e-10" },
-        "Ca": { label: "Ca²⁺ (Calcium)",    d0: "1.0e-10" }
+        "Sc":  { label: "Sc³⁺ (Scandium)",   d0: "4.0e-10" },
+        "Ti":  { label: "Ti⁴⁺ (Titanium)",   d0: "2.0e-10" }, // Slow, high charge
+        "V":   { label: "V³⁺ (Vanadium)",    d0: "6.0e-10" },
+        "Cr":  { label: "Cr³⁺ (Chromium)",   d0: "3.5e-10" },
+        "Mn":  { label: "Mn²⁺ (Manganese)",  d0: "1.5e-10" },
+        "Fe2": { label: "Fe²⁺ (Ferrous)",    d0: "1.2e-9"  }, // Fast
+        "Fe3": { label: "Fe³⁺ (Ferric)",     d0: "5.0e-10" }, // Slower than 2+
+        "Co2": { label: "Co²⁺ (Cobalt II)",  d0: "5.0e-10" },
+        "Co3": { label: "Co³⁺ (Cobalt III)", d0: "2.0e-10" }, // Low spin/High charge effects
+        "Ni":  { label: "Ni²⁺ (Nickel)",     d0: "2.5e-10" },
+        "Cu":  { label: "Cu²⁺ (Copper)",     d0: "3.0e-10" },
+        "Zn":  { label: "Zn²⁺ (Zinc)",       d0: "8.0e-10" },
+        "Ga":  { label: "Ga³⁺ (Gallium)",    d0: "4.5e-10" }, // Post-transition
+        "Ca":  { label: "Ca²⁺ (Calcium)",    d0: "1.0e-10" }  // Large impurity
     };
 
+    // Realistic Activation Energies (eV)
+    // 2+ ions ~1.8-2.2eV, 3+ ions ~2.3-2.8eV (Coulombic drag), Large ions >2.5eV
+    const Q_DEFAULTS = {
+        "Mg": 2.20, 
+        "Sc": 2.40, "Ti": 2.80, "V": 2.35, "Cr": 2.50, "Mn": 2.10,
+        "Fe2": 1.95, "Fe3": 2.45, 
+        "Co2": 2.05, "Co3": 2.55,
+        "Ni": 2.10, "Cu": 2.15, "Zn": 1.85, 
+        "Ga": 2.30, "Ca": 2.60,
+        "Unk": 2.20
+    };
 
-// Realistic Activation Energies (eV) - Added Cu
-const Q_DEFAULTS = {
-    "Mg": 2.20, "Ni": 2.10, "Co": 2.05, "Fe": 1.95,
-    "Zn": 1.85, "Ca": 2.60, "Cr": 2.50, 
-    "Cu": 2.15, // Cu diffuses slightly faster than Mg due to JT distortion loosely 'greasing' the path
-    "Unk": 2.20
-};
+    // Realistic Interactions (eV) -> Regular Solution Parameter Omega
+    const OMEGA_DEFAULTS = {
+        // --- 1. IDEAL-LIKE (Similar size/charge) ---
+        "Mg-Ni": 0.02, "Mg-Co2": 0.02, "Mg-Fe2": 0.03, 
+        "Ni-Co2": 0.01, "Fe2-Co2": 0.02,
 
-// Realistic Interactions (eV) - Updated with your physical intuition
-const OMEGA_DEFAULTS = {
-    // Mg vs Others
-    "Mg-Ni": 0.02, "Mg-Co": 0.03, "Mg-Fe": 0.03, // Ideal-ish
-    "Mg-Zn": 0.20, // Structural mismatch (Td preference)
-    "Mg-Cu": 0.18, // Jahn-Teller distortion strain
-    "Mg-Ca": 0.40, // Large ionic radius mismatch
-    "Mg-Cr": 0.50, // Aliovalent (3+) charge mismatch
-    
-    // Interactions between Dopants (approximations)
-    "Ni-Zn": 0.15, "Fe-Zn": 0.15, 
-    "Cu-Zn": 0.12, // Cu and Zn mix poorly in oxides
-    "Ni-Co": 0.01, // Very ideal
-    
-    "Default": 0.05
-};
+        // --- 2. STRUCTURAL MISMATCH (Tetrahedral vs Octahedral preference) ---
+        "Mg-Zn": 0.20, "Ni-Zn": 0.18, "Co2-Zn": 0.15, 
 
+        // --- 3. JAHN-TELLER DISTORTION (Cu2+, Mn3+) ---
+        "Mg-Cu": 0.18, "Ni-Cu": 0.15,
+
+        // --- 4. ALIOVALENT (Charge Mismatch 2+ vs 3+ or 4+) ---
+        // Creates complex defect clusters -> High positive interaction energy (demixing/precipitation)
+        "Mg-Fe3": 0.45, "Mg-Co3": 0.45, "Mg-Cr": 0.50, 
+        "Mg-Sc": 0.40, "Mg-Ti": 0.65,
+
+        // --- 5. SIZE MISMATCH ---
+        "Mg-Ca": 0.40, // Ca is much larger than Mg
+
+        // --- 6. DEFAULT ---
+        "Default": 0.05
+    };
 
     // ---------- WORKER, STATUS, CHART functions (unchanged) ----------
     function createWorker() {
@@ -1423,11 +1475,12 @@ function attachMatrixListeners(){
         if(tab !== 'help') triggerCalculation();
     }
 
-    window.onload = function() { 
-      addElement("Ni"); 
-      // ensure matrices populated initially
+window.onload = function() { 
+      // Changed from "Ni" to "Fe2" or keep "Ni", but do NOT use "Fe"
+      addElement("Fe2"); 
       rebuildMatricesPreserve();
     };
+
 </script>
 
 
