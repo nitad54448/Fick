@@ -620,11 +620,61 @@
             // --- 2. INITIALIZE ---
             updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
 
-            // Time Step Estimation
-            let globalMinQ = Math.min(...matrixQVec);
-            species.forEach(s => globalMinQ = Math.min(globalMinQ, ...s.qVector));
-            let maxD_est = Math.max(matrixD0, ...species.map(s=>s.d0)) * Math.exp(-globalMinQ/kBT);
-            let dt = (0.4 * dx * dx) / maxD_est; 
+            // Time Step Estimation - use actual D*_map (which includes V_factor)
+            // rather than just D0*exp(-Q/kT), otherwise vacancy enhancement
+            // from aliovalent dopants causes instability.
+            let maxD_est = matrixD0 * Math.exp(-Math.min(...matrixQVec) / kBT);
+            species.forEach(s => {
+                for (let i = 0; i < N; i++) {
+                    if (s.D_star_map[i] > maxD_est) maxD_est = s.D_star_map[i];
+                }
+            });
+            // Also include worst-case vacancy enhancement: dopants can separate
+            // spatially during the run, so even if initial profile has co-located
+            // donors and acceptors that compensate, transient peaks can arise.
+            // Conservative: estimate excess as if all donors maxed out alone, OR
+            // all acceptors maxed out alone, whichever is worse.
+            let peakV = 1;
+            {
+                const V_int = 1e-4, f_assoc = 0.5, V_sat = 0.02;
+                let maxDonor = 0, maxAcceptor = 0;
+                species.forEach(s => {
+                    const Z = s.valence ?? 2;
+                    let cMax = 0;
+                    for (let i = 0; i < N; i++) if (s.C[i] > cMax) cMax = s.C[i];
+                    const contrib = cMax * Math.abs(Z - 2) / 2;
+                    if (Z > 2) maxDonor += contrib;
+                    else if (Z < 2) maxAcceptor += contrib;
+                });
+                // Donor side
+                if (maxDonor > 0) {
+                    const Vt = Math.sqrt(V_int*V_int + (maxDonor*0.5)**2);
+                    const Vf = Vt * (1 - f_assoc * Math.tanh(maxDonor / V_sat)) / V_int;
+                    if (Vf > peakV) peakV = Vf;
+                }
+                // Acceptor side: V_factor < 1, doesn't increase D, skip.
+                // Also scan actual current profile in case neither extreme applies
+                for (let i = 0; i < N; i++) {
+                    let exc = 0;
+                    species.forEach(s => { exc += s.C[i] * ((s.valence ?? 2) - 2) / 2; });
+                    if (exc > 0) {
+                        const Vt = Math.sqrt(V_int*V_int + (exc*0.5)**2);
+                        const Vf = Vt * (1 - f_assoc * Math.tanh(exc / V_sat)) / V_int;
+                        if (Vf > peakV) peakV = Vf;
+                    }
+                }
+            }
+            maxD_est = Math.max(maxD_est, matrixD0 * Math.exp(-Math.min(...matrixQVec) / kBT) * peakV);
+            // Also scale species D estimates by peakV (they get the same boost)
+            species.forEach(s => {
+                const Dpeak = s.d0 * Math.exp(-Math.min(...s.qVector) / kBT) * peakV;
+                if (Dpeak > maxD_est) maxD_est = Dpeak;
+            });
+
+            // CFL stability: pure 1D explicit limit is 0.5*dx^2/D, but with
+            // off-diagonal Onsager coupling and thermodynamic factor we need
+            // a tighter margin. 0.2 is safe for typical Omega values.
+            let dt = (0.2 * dx * dx) / maxD_est;
 
             let current_time = 0;
             let step = 0;
@@ -648,31 +698,62 @@
                 for (let i = 0; i < N - 1; i++) {
                     const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
                     let sumC = 0; C_local.forEach(c => sumC += c);
-                    const C_mat = 1.0 - sumC; 
+                    const C_mat = Math.max(0, 1.0 - sumC);
 
-                    let Q_mat_local = matrixQVec[0] * C_mat; 
+                    let Q_mat_local = matrixQVec[0] * C_mat;
                     species.forEach((s, idx) => { Q_mat_local += matrixQVec[idx+1] * C_local[idx]; });
                     const D_star_matrix_local = matrixD0 * Math.exp(-Q_mat_local / kBT);
                     const grads = species.map(s => (s.C[i+1] - s.C[i]) / dx);
-                    
+
+                    // Pre-compute D*_i at this interface for each species
+                    const D_star_arr = species.map(s => (s.D_star_map[i] + s.D_star_map[i+1]) / 2);
+
+                    // Pre-compute thermodynamic factor matrix Phi_ij for regular solution.
+                    // mu_i = mu_i^0 + kT ln(C_i) + sum_k Omega_ik C_k * (something)
+                    // For symmetric regular solution: gamma_i = exp( sum_k Omega_ik C_k^2 / kT )
+                    // -> ∂lnγ_i/∂C_j = -2 Omega_ij C_j / kT  (off-diagonal)
+                    //    Phi_ij = δ_ij + C_i ∂lnγ_i/∂C_j
+                    // Reference: Lupis, Chemical Thermodynamics of Materials (1983).
+                    const Phi = [];
+                    for (let a = 0; a < species.length; a++) {
+                        const row = new Array(species.length);
+                        for (let b = 0; b < species.length; b++) {
+                            // Omega between species a and species b. omegaVector index 0 = matrix.
+                            const Omega_ab = species[a].omegaVector[b + 1];
+                            let dlng_dCb = -2 * Omega_ab * C_local[b] / kBT;
+                            row[b] = (a === b ? 1 : 0) + C_local[a] * dlng_dCb;
+                        }
+                        // Stability clamp: if diagonal goes <= 0 we are inside spinodal;
+                        // explicit scheme would explode. Clamp to a small positive value.
+                        if (row[a] < 0.05) row[a] = 0.05;
+                        Phi.push(row);
+                    }
+
                     species.forEach((s_i, idx_i) => {
-                        const D_star_i = (s_i.D_star_map[i] + s_i.D_star_map[i+1]) / 2;
-                        let flux_onsager = 0;
-                        species.forEach((s_j, idx_j) => {
-                            let D_ij = 0;
-                            if (idx_i === idx_j) D_ij = D_star_i + C_local[idx_i] * (D_star_matrix_local - D_star_i);
-                            else {
-                                const D_star_j = (s_j.D_star_map[i] + s_j.D_star_map[i+1]) / 2;
-                                D_ij = C_local[idx_i] * (D_star_matrix_local - D_star_j);
+                        const D_star_i = D_star_arr[idx_i];
+
+                        // Onsager-Manning kinetic coefficient (matrix reference frame):
+                        //   J_i^kin = - sum_j D_ij^kin * dC_j/dx
+                        //   D_ii^kin = D*_i + C_i (D*_mat - D*_i)
+                        //   D_ij^kin = C_i (D*_mat - D*_j)    (i != j)
+                        //
+                        // Now apply thermodynamic factor: J_i = - sum_j sum_k D_ik^kin * Phi_kj * dC_j/dx
+                        let flux = 0;
+                        for (let idx_j = 0; idx_j < species.length; idx_j++) {
+                            // Compute (D^kin * Phi)_{i,j}
+                            let DPhi_ij = 0;
+                            for (let idx_k = 0; idx_k < species.length; idx_k++) {
+                                let D_ik;
+                                if (idx_i === idx_k) {
+                                    D_ik = D_star_i + C_local[idx_i] * (D_star_matrix_local - D_star_i);
+                                } else {
+                                    D_ik = C_local[idx_i] * (D_star_matrix_local - D_star_arr[idx_k]);
+                                }
+                                DPhi_ij += D_ik * Phi[idx_k][idx_j];
                             }
-                            flux_onsager += -1 * D_ij * grads[idx_j];
-                        });
-                        
-                        // Thermo Factor
-                        let interaction_sum = s_i.omegaVector[0] * C_mat;
-                        species.forEach((s_n, idx_n) => { interaction_sum += s_i.omegaVector[idx_n + 1] * C_local[idx_n]; });
-                        const thermo_term = (2 * interaction_sum * C_local[idx_i] * (1 - C_local[idx_i])) / kBT;
-                        s_i.Flux[i] = flux_onsager * (1 - thermo_term);
+                            flux += -DPhi_ij * grads[idx_j];
+                        }
+                        s_i.Flux[i] = flux;
                     });
                 }
 
@@ -718,19 +799,70 @@
         } catch (err) { self.postMessage({ type: 'error', message: err.message }); }
     };
 
-    function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
-        for (let x = 0; x < N; x++) {
-            let sumC = 0; species.forEach(s => sumC += s.C[x]);
-            const C_mat = Math.max(0, 1 - sumC);
-            const C_vec = [C_mat, ...species.map(s => s.C[x])];
+function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
+    // Saturating vacancy model with both donor (Z>2) and acceptor (Z<2) dopants.
+    //
+    // Charge balance on cation sublattice (per dopant ion of valence Z, matrix is 2+):
+    //   Z > 2 (donor):    creates (Z-2)/2 cation vacancies V''_Mg
+    //   Z < 2 (acceptor): consumes (2-Z)/2 cation vacancies (or equivalently produces
+    //                     interstitials / O-vacancies). Net: reduces free V_Mg.
+    //
+    // Net signed excess:
+    //   excess_signed = sum_i C_i * (Z_i - 2) / 2
+    //
+    // Total free vacancy concentration combines intrinsic Schottky background
+    // with the dopant excess, but cannot go negative — when acceptors dominate,
+    // the free [V_Mg] is suppressed but bounded below by a small floor (because
+    // the system shifts to other compensation mechanisms: O-vacancies, interstitials).
+    //
+    //   [V]_total = sqrt(V_int^2 + (excess_signed/2)^2)        if excess_signed > 0
+    //             = V_int / sqrt(1 + (|excess_signed|/V_int)^2) otherwise (suppression)
+    //
+    // Defect-association factor only applies to donor side (where bound
+    // dopant–vacancy pairs reduce free V).
 
-            species.forEach((s, idx) => {
-                let Q_eff = 0;
-                for(let j=0; j<C_vec.length; j++) Q_eff += C_vec[j] * s.qVector[j];
-                s.D_star_map[x] = s.d0 * Math.exp(-Q_eff / kBT);
-            });
+    const V_int = 1e-4;          // intrinsic background vacancy fraction
+    const f_assoc = 0.5;         // fraction of donor-induced vacancies bound at saturation
+    const V_sat = 0.02;          // characteristic dopant concentration for saturation
+    const V_floor = 1e-6;        // hard floor on free V to avoid total freeze
+
+    for (let x = 0; x < N; x++) {
+        let sumC = 0;
+        let excess_signed = 0;
+
+        species.forEach(s => {
+            sumC += s.C[x];
+            const Z = s.valence ?? 2;
+            excess_signed += s.C[x] * (Z - 2) / 2;
+        });
+
+        const C_mat = Math.max(0, 1 - sumC);
+        const C_vec = [C_mat, ...species.map(s => s.C[x])];
+
+        let V_free;
+        if (excess_signed >= 0) {
+            // Donor regime: vacancies enhanced, but saturate via association
+            const V_total = Math.sqrt(V_int * V_int + (excess_signed * 0.5) * (excess_signed * 0.5));
+            const free_factor = 1 - f_assoc * Math.tanh(excess_signed / V_sat);
+            V_free = V_total * free_factor;
+        } else {
+            // Acceptor regime: vacancies suppressed but floor-bounded
+            const a = -excess_signed; // positive
+            V_free = V_int / Math.sqrt(1 + (a / V_int) * (a / V_int));
         }
+        if (V_free < V_floor) V_free = V_floor;
+
+        const V_factor = V_free / V_int;
+
+        species.forEach((s, idx) => {
+            let Q_eff = 0;
+            for (let j = 0; j < C_vec.length; j++) Q_eff += C_vec[j] * s.qVector[j];
+
+            s.D_star_map[x] = s.d0 * Math.exp(-Q_eff / kBT) * V_factor;
+        });
     }
+}
+
 </script>
 
 <script>
@@ -753,46 +885,75 @@
     // Ref: Wuensch et al. J. Chem. Phys (1973) for Mg, and reviews for transition metals in MgO.
     // D0 values are effective constants for extrinsic regime (~10^-10 range).
     
+    // D0 values updated to be more consistent with literature for MgO matrix
+    // (Wuensch & Vasilos, Van Orman & Crispin 2010 review, RiMG vol. 72)
     const CATION_DB = {
-        "Mg":  { label: "Mg²⁺ (Matrix)",     d0: "1.0e-10" },
-        "Sc":  { label: "Sc³⁺ (Scandium)",   d0: "4.0e-10" },
-        "Ti":  { label: "Ti⁴⁺ (Titanium)",   d0: "2.0e-10" },
-        "V":   { label: "V³⁺ (Vanadium)",    d0: "6.0e-10" },
-        "Cr":  { label: "Cr³⁺ (Chromium)",   d0: "3.5e-10" },
-        "Mn":  { label: "Mn²⁺ (Manganese)",  d0: "1.5e-10" },
-        "Fe2": { label: "Fe²⁺ (Ferrous)",    d0: "8.0e-10" },
-        "Fe3": { label: "Fe³⁺ (Ferric)",     d0: "5.0e-10" },
-        "Co2": { label: "Co²⁺ (Cobalt II)",  d0: "4.0e-10" },
-        "Co3": { label: "Co³⁺ (Cobalt III)", d0: "2.0e-10" },
-        "Ni":  { label: "Ni²⁺ (Nickel)",     d0: "1.0e-10" },
-        "Cu":  { label: "Cu²⁺ (Copper)",     d0: "3.0e-10" },
-        "Zn":  { label: "Zn²⁺ (Zinc)",       d0: "8.0e-10" },
-        "Ga":  { label: "Ga³⁺ (Gallium)",    d0: "4.5e-10" },
-        "Ca":  { label: "Ca²⁺ (Calcium)",    d0: "0.5e-10" }
+        "Mg":  { label: "Mg²⁺ (Matrix)",     d0: 4.0e-9,  valence: 2 },
+
+        // Monovalent (acceptors: consume cation vacancies / promote O-vacancies)
+        "Li":  { label: "Li⁺ (Lithium)",     d0: 2.0e-8,  valence: 1 },
+        "Na":  { label: "Na⁺ (Sodium)",      d0: 5.0e-9,  valence: 1 },
+        "K":   { label: "K⁺ (Potassium)",    d0: 2.0e-9,  valence: 1 },
+        "Cu1": { label: "Cu⁺ (Cuprous)",     d0: 8.0e-9,  valence: 1 },
+        "Ag":  { label: "Ag⁺ (Silver)",      d0: 3.0e-9,  valence: 1 },
+
+        // Divalent
+        "Mn":  { label: "Mn²⁺ (Manganese)",  d0: 1.5e-9,  valence: 2 },
+        "Fe2": { label: "Fe²⁺ (Ferrous)",    d0: 8.0e-10, valence: 2 },
+        "Co2": { label: "Co²⁺ (Cobalt II)",  d0: 4.0e-10, valence: 2 },
+        "Ni":  { label: "Ni²⁺ (Nickel)",     d0: 1.8e-9,  valence: 2 },
+        "Cu":  { label: "Cu²⁺ (Copper)",     d0: 3.0e-10, valence: 2 },
+        "Zn":  { label: "Zn²⁺ (Zinc)",       d0: 8.0e-10, valence: 2 },
+        "Ca":  { label: "Ca²⁺ (Calcium)",    d0: 0.5e-10, valence: 2 },
+
+        // Trivalent (donors: produce cation vacancies)
+        "Sc":  { label: "Sc³⁺ (Scandium)",   d0: 4.0e-10, valence: 3 },
+        "V":   { label: "V³⁺ (Vanadium)",    d0: 6.0e-10, valence: 3 },
+        "Cr":  { label: "Cr³⁺ (Chromium)",   d0: 3.5e-10, valence: 3 },
+        "Fe3": { label: "Fe³⁺ (Ferric)",     d0: 5.0e-10, valence: 3 },
+        "Co3": { label: "Co³⁺ (Cobalt III)", d0: 2.0e-10, valence: 3 },
+        "Ga":  { label: "Ga³⁺ (Gallium)",    d0: 4.5e-10, valence: 3 },
+
+        // Tetravalent (strong donors)
+        "Ti":  { label: "Ti⁴⁺ (Titanium)",   d0: 2.0e-10, valence: 4 }
     };
 
     // Ref: Activation Energies in MgO Matrix (Wuensch 1983 Review)
     // Values derived from tracer diffusion Q where available, or estimated via charge/radius trends.
+    // Activation energies in MgO (eV). Tracer/extrinsic regime.
+    // Refs: Wuensch (1983), Van Orman & Crispin (2010) RiMG 72, 757-825.
+    // Note: aliovalent ions are intrinsically faster (more vacancies); their
+    // *effective* slowdown via defect-association is captured by Omega + the
+    // saturating vacancy model in updateDiffusivities.
     const Q_DEFAULTS = {
-        "Mg": 2.30,  // Matrix Standard
-        "Ni": 2.28,  // Ideal
-        "Co2": 2.06, 
-        "Fe2": 1.76, // Fast
-        "Mn": 2.10,
-        "Zn": 1.85,  // Fast (Tetrahedral)
-        "Cu": 2.15,  // Jahn-Teller
-        "Ca": 2.70,  // Slow (Size mismatch)
-        
-        // Aliovalent / Trivalent (Higher Q due to electrostatic drag/defect association)
-        "Fe3": 2.45, 
-        "Cr": 2.50,
-        "Sc": 2.40, 
-        "V": 2.35,
-        "Ga": 2.30,
-        "Co3": 2.55,
-        
+        "Mg": 2.76,  // Matrix self-diffusion (Wuensch & Vasilos)
+
+        // Monovalent (small ionic radius, fast hops; somewhat offset by image-charge trapping)
+        "Li":  1.50,  // Very fast (small radius)
+        "Na":  1.85,
+        "K":   2.20,  // Larger ion, slower
+        "Cu1": 1.70,
+        "Ag":  1.95,
+
+        // Divalent (isovalent with matrix - "pure" tracer)
+        "Ni":  2.10,  // Wuensch & Vasilos 1968
+        "Co2": 2.05,
+        "Fe2": 1.95,
+        "Mn":  2.20,
+        "Zn":  2.00,
+        "Cu":  2.15,  // Jahn-Teller
+        "Ca":  2.90,  // Slow (large size mismatch)
+
+        // Aliovalent / Trivalent (intrinsic barrier; vacancy boost handled separately)
+        "Fe3": 2.05,
+        "Cr":  2.15,
+        "Sc":  2.30,
+        "V":   2.10,
+        "Ga":  2.10,
+        "Co3": 2.20,
+
         // Tetravalent
-        "Ti": 2.80, 
+        "Ti":  2.40,
 
         "Unk": 2.30
     };
@@ -800,17 +961,27 @@
     // Ref: Thermodynamic Mixing Parameters (Enthalpy of mixing)
     const OMEGA_DEFAULTS = {
         // Ideal-ish Solutions
-        "Mg-Ni": 0.02, "Mg-Co2": 0.02, "Mg-Fe2": 0.03, 
+        "Mg-Ni": 0.02, "Mg-Co2": 0.02, "Mg-Fe2": 0.03,
         "Ni-Co2": 0.01, "Fe2-Co2": 0.02, "Mg-Mn": 0.04,
 
         // Structural/Size Mismatch
         "Mg-Zn": 0.25, "Ni-Zn": 0.20, "Mg-Cu": 0.15,
         "Mg-Ca": 0.65, // Significant immiscibility
 
-        // Aliovalent (Complex defect clusters modelled as repulsion)
+        // Aliovalent Trivalent (Complex defect clusters modelled as repulsion)
         "Mg-Fe3": 0.50, "Mg-Cr": 0.55, "Mg-V": 0.50,
         "Mg-Sc": 0.45, "Mg-Ga": 0.45, "Mg-Co3": 0.50,
         "Mg-Ti": 0.70,
+
+        // Monovalent (large charge mismatch -> strong effective repulsion / image-charge binding)
+        "Mg-Li":  0.40, "Mg-Na":  0.55, "Mg-K":   0.80,
+        "Mg-Cu1": 0.45, "Mg-Ag":  0.50,
+
+        // Cross-charge donor/acceptor pairs (1+ with 3+/4+ should mutually compensate
+        // -> attractive, modeled here as small/zero Omega)
+        "Li-Fe3": 0.05, "Na-Fe3": 0.10,
+        "Li-Cr":  0.05, "Na-Cr":  0.10,
+        "Li-Ti":  0.00, "Na-Ti":  0.05,
 
         "Default": 0.05
     };
@@ -883,6 +1054,7 @@
         elements.push({
             name,
             fullLabel: CATION_DB[name].label,
+            valence: CATION_DB[name].valence ?? 2,
             d0,
             cLeft,
             cRight,
@@ -1041,10 +1213,19 @@ function buildOmegaVector(species) {
 
     // --- INPUTS & DEFAULTS (existing helpers) ---
     function getQValue(diffuser, env) {
-        const dQ = Q_DEFAULTS[diffuser] || Q_DEFAULTS["Unk"];
-        const eQ = Q_DEFAULTS[env] || Q_DEFAULTS["Unk"];
-        // return number (not string)
-        return ((dQ + eQ) / 2);
+        // Convention: Q[diffuser][env] = activation barrier for `diffuser` to
+        // hop in a region whose chemistry is dominated by `env`.
+        //
+        // - For env == "Mg" (matrix): return the intrinsic tracer Q of `diffuser`.
+        //   This guarantees D(infinite dilution in Mg) = d0 * exp(-Q_diff/kT).
+        // - For env == diffuser (self-env, only matters at high concentration):
+        //   also use the intrinsic Q (no extra barrier in own phase).
+        // - For mixed off-diagonal (diffuser X, env Y, both dopants): arithmetic
+        //   mean as a heuristic. Only matters if multiple dopants overlap spatially.
+        const dQ = Q_DEFAULTS[diffuser] ?? Q_DEFAULTS["Unk"];
+        if (env === "Mg" || env === diffuser) return dQ;
+        const eQ = Q_DEFAULTS[env] ?? Q_DEFAULTS["Unk"];
+        return (dQ + eQ) / 2;
     }
 
     function getOmegaValue(s1, s2) {
