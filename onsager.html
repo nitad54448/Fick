@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onsager Diffusion v9.0</title>
+    <title>Onsager Diffusion v9.2</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -236,7 +236,7 @@
     <header class="app-header">
         <div class="brand">
             <div class="brand-icon"><i class="fas fa-project-diagram"></i></div>
-            <div><h1>Onsager Diffusion <span>9.0</span></h1></div>
+            <div><h1>Onsager Diffusion <span>9.2</span></h1></div>
         </div>
         
         <div id="status-area" class="status-area">
@@ -339,7 +339,7 @@
     <div class="help-container">
         <div class="help-header">
             <h1>Theory & Documentation</h1>
-            <p>Onsager Multi-Component Diffusion Solver • v9.0</p>
+            <p>Onsager Multi-Component Diffusion Solver • v9.2</p>
         </div>
 
         <div class="help-section">
@@ -352,39 +352,46 @@
             </p>
         </div>
 
-        <div class="help-section">
+
+<div class="help-section">
             <h2 class="help-title">2. Physical Models</h2>
 
             <div class="theory-box">
                 <h4>2.1 Onsager Flux Equation</h4>
                 <p>
-                    For each species <em>i</em>, the flux is governed by gradients of <em>all</em> concentrations:
+                    For each species $i$, the flux is governed by the gradients of <em>all</em> concentrations, split into kinetic cross-coupling and thermodynamic driving forces:
                 </p>
-                <div class="math-block">$$ J_i = -\sum_j D_{ij} \nabla C_j $$</div>
+                <div class="math-block">$$ J_i = - \sum_{j} \sum_{k} D_{ik}^{kin} \Phi_{kj} \nabla C_j $$</div>
                 <ul>
-                    <li><strong>Diagonal terms:</strong> diffusion of species <em>i</em> down its own gradient.</li>
-                    <li><strong>Off‑diagonal terms:</strong> cross‑coupling due to vacancy sharing (Vacancy Wind).</li>
+                    <li><strong>$D_{ik}^{kin}$:</strong> Onsager-Manning kinetic coefficients (Vacancy Wind / Site sharing).</li>
+                    <li><strong>$\Phi_{kj}$:</strong> Thermodynamic factor matrix derived from the $\Omega$-matrix.</li>
                 </ul>
             </div>
 
             <div class="theory-box" style="border-left-color:#ea580c; background:#fff7ed;">
-                <h4 style="color:#9a3412;"><i class="fas fa-tachometer-alt"></i> 2.2 Kinetics: The Q‑Matrix</h4>
+                <h4 style="color:#9a3412;"><i class="fas fa-tachometer-alt"></i> 2.2 Kinetics: The Q-Matrix & Vacancies</h4>
                 <p>
-                    The effective tracer diffusivity used in the solver is:
+                    The local tracer diffusivity depends on the concentration-weighted activation barrier ($Q$) <strong>and</strong> the dynamic vacancy fraction ($V_{factor}$):
                 </p>
                 <div class="math-block">
-                    $$ D_i^*(x) = D_{0,i}\, \exp\left(-\frac{\sum_j C_j(x)\, Q_{ij}}{k_B T}\right) $$
+                    $$ D_i^*(x) = D_{0,i}\, \exp\left(-\frac{\sum_j C_j(x)\, Q_{ij}}{k_B T}\right) \times V_{factor}(x) $$
                 </div>
+                <p style="font-size:13px; margin-top:8px;">
+                    <em>Note:</em> $V_{factor}$ is calculated dynamically. Aliovalent donors (Valence > 2) increase vacancies, accelerating diffusion. Acceptors (Valence < 2) suppress free vacancies down to the intrinsic Schottky limit.
+                </p>
             </div>
 
             <div class="theory-box" style="border-left-color:#db2777; background:#fdf2f8;">
-                <h4 style="color:#be185d;"><i class="fas fa-magnet"></i> 2.3 Thermodynamics: The Ω‑Matrix</h4>
+                <h4 style="color:#be185d;"><i class="fas fa-magnet"></i> 2.3 Thermodynamics: The Ω-Matrix</h4>
                 <p>
-                    The Ω‑matrix defines enthalpic mixing interactions using a regular‑solution model ($ H_{mix} = \sum \Omega_{ij} X_i X_j $). Positive $\Omega$ implies demixing/clustering.
+                    The $\Omega$-matrix defines enthalpic mixing interactions using a regular-solution model ($ H_{mix} = \sum \Omega_{ij} X_i X_j $). Positive $\Omega$ implies demixing/clustering. This is converted into the thermodynamic matrix $\Phi$:
                 </p>
+                <div class="math-block">
+                    $$ \Phi_{ij} = \delta_{ij} - \frac{2 \Omega_{ij} C_i C_j}{k_B T} $$
+                </div>
             </div>
         </div>
-
+        
         <div class="help-section">
             <h2 class="help-title">3. Reference Values (MgO Host Matrix)</h2>
             <p>
@@ -586,6 +593,9 @@
   </div>
 </div>
 
+
+
+
 <script id="worker-code" type="javascript/worker">
     const KB_EV = 8.617333262145e-5; 
 
@@ -620,20 +630,13 @@
             // --- 2. INITIALIZE ---
             updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
 
-            // Time Step Estimation - use actual D*_map (which includes V_factor)
-            // rather than just D0*exp(-Q/kT), otherwise vacancy enhancement
-            // from aliovalent dopants causes instability.
             let maxD_est = matrixD0 * Math.exp(-Math.min(...matrixQVec) / kBT);
             species.forEach(s => {
                 for (let i = 0; i < N; i++) {
                     if (s.D_star_map[i] > maxD_est) maxD_est = s.D_star_map[i];
                 }
             });
-            // Also include worst-case vacancy enhancement: dopants can separate
-            // spatially during the run, so even if initial profile has co-located
-            // donors and acceptors that compensate, transient peaks can arise.
-            // Conservative: estimate excess as if all donors maxed out alone, OR
-            // all acceptors maxed out alone, whichever is worse.
+            
             let peakV = 1;
             {
                 const V_int = 1e-4, f_assoc = 0.5, V_sat = 0.02;
@@ -646,14 +649,11 @@
                     if (Z > 2) maxDonor += contrib;
                     else if (Z < 2) maxAcceptor += contrib;
                 });
-                // Donor side
                 if (maxDonor > 0) {
                     const Vt = Math.sqrt(V_int*V_int + (maxDonor*0.5)**2);
                     const Vf = Vt * (1 - f_assoc * Math.tanh(maxDonor / V_sat)) / V_int;
                     if (Vf > peakV) peakV = Vf;
                 }
-                // Acceptor side: V_factor < 1, doesn't increase D, skip.
-                // Also scan actual current profile in case neither extreme applies
                 for (let i = 0; i < N; i++) {
                     let exc = 0;
                     species.forEach(s => { exc += s.C[i] * ((s.valence ?? 2) - 2) / 2; });
@@ -665,36 +665,31 @@
                 }
             }
             maxD_est = Math.max(maxD_est, matrixD0 * Math.exp(-Math.min(...matrixQVec) / kBT) * peakV);
-            // Also scale species D estimates by peakV (they get the same boost)
             species.forEach(s => {
                 const Dpeak = s.d0 * Math.exp(-Math.min(...s.qVector) / kBT) * peakV;
                 if (Dpeak > maxD_est) maxD_est = Dpeak;
             });
 
-            // CFL stability: pure 1D explicit limit is 0.5*dx^2/D, but with
-            // off-diagonal Onsager coupling and thermodynamic factor we need
-            // a tighter margin. 0.2 is safe for typical Omega values.
             let dt = (0.2 * dx * dx) / maxD_est;
 
             let current_time = 0;
             let step = 0;
             
-            // FIX: Ensure a minimum number of saved frames regardless of speed
             const estimatedSteps = Math.ceil(Time_s / dt);
             const targetFrames = 40;
             const saveInterval = Math.max(1, Math.floor(estimatedSteps / targetFrames)); 
             const reportInterval = Math.max(100, Math.floor(estimatedSteps / 50));
+            
+            let matrixHistory = [];
 
             // --- 3. LOOP ---
             while (current_time < Time_s) {
-                // ... Physics Update ...
                 updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
 
                 if (step % 1000 === 0) {
                      if (current_time + dt > Time_s) dt = Time_s - current_time;
                 }
 
-                // Onsager Fluxes
                 for (let i = 0; i < N - 1; i++) {
                     const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
                     let sumC = 0; C_local.forEach(c => sumC += c);
@@ -705,42 +700,24 @@
                     const D_star_matrix_local = matrixD0 * Math.exp(-Q_mat_local / kBT);
                     const grads = species.map(s => (s.C[i+1] - s.C[i]) / dx);
 
-                    // Pre-compute D*_i at this interface for each species
                     const D_star_arr = species.map(s => (s.D_star_map[i] + s.D_star_map[i+1]) / 2);
 
-                    // Pre-compute thermodynamic factor matrix Phi_ij for regular solution.
-                    // mu_i = mu_i^0 + kT ln(C_i) + sum_k Omega_ik C_k * (something)
-                    // For symmetric regular solution: gamma_i = exp( sum_k Omega_ik C_k^2 / kT )
-                    // -> ∂lnγ_i/∂C_j = -2 Omega_ij C_j / kT  (off-diagonal)
-                    //    Phi_ij = δ_ij + C_i ∂lnγ_i/∂C_j
-                    // Reference: Lupis, Chemical Thermodynamics of Materials (1983).
                     const Phi = [];
                     for (let a = 0; a < species.length; a++) {
                         const row = new Array(species.length);
                         for (let b = 0; b < species.length; b++) {
-                            // Omega between species a and species b. omegaVector index 0 = matrix.
                             const Omega_ab = species[a].omegaVector[b + 1];
                             let dlng_dCb = -2 * Omega_ab * C_local[b] / kBT;
                             row[b] = (a === b ? 1 : 0) + C_local[a] * dlng_dCb;
                         }
-                        // Stability clamp: if diagonal goes <= 0 we are inside spinodal;
-                        // explicit scheme would explode. Clamp to a small positive value.
                         if (row[a] < 0.05) row[a] = 0.05;
                         Phi.push(row);
                     }
 
                     species.forEach((s_i, idx_i) => {
                         const D_star_i = D_star_arr[idx_i];
-
-                        // Onsager-Manning kinetic coefficient (matrix reference frame):
-                        //   J_i^kin = - sum_j D_ij^kin * dC_j/dx
-                        //   D_ii^kin = D*_i + C_i (D*_mat - D*_i)
-                        //   D_ij^kin = C_i (D*_mat - D*_j)    (i != j)
-                        //
-                        // Now apply thermodynamic factor: J_i = - sum_j sum_k D_ik^kin * Phi_kj * dC_j/dx
                         let flux = 0;
                         for (let idx_j = 0; idx_j < species.length; idx_j++) {
-                            // Compute (D^kin * Phi)_{i,j}
                             let DPhi_ij = 0;
                             for (let idx_k = 0; idx_k < species.length; idx_k++) {
                                 let D_ik;
@@ -757,7 +734,6 @@
                     });
                 }
 
-                // Update C
                 for (let i = 1; i < N - 1; i++) {
                     species.forEach(s => {
                         const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
@@ -765,18 +741,25 @@
                     });
                 }
                 
-                // Boundaries
                 species.forEach(s => { s.C_new[0] = s.C_new[1]; s.C_new[N-1] = s.C_new[N-2]; });
 
-                // Swap & Save
                 species.forEach(s => {
                     const temp = s.C; s.C = s.C_new; s.C_new = temp;
-                    // FIX: Always save if history mode, even if simulation is fast
                     if (inputs.mode === 'history' && (step % saveInterval === 0 || current_time + dt >= Time_s)) {
                         s.history.push(Float64Array.from(s.C));
                         s.fluxHistory.push(Float64Array.from(s.Flux));
                     }
                 });
+                
+                if (inputs.mode === 'history' && (step % saveInterval === 0 || current_time + dt >= Time_s)) {
+                    const currentMatrix = new Float64Array(N);
+                    for(let i=0; i<N; i++) {
+                        let sum = 0; 
+                        species.forEach(s => sum += s.C[i]);
+                        currentMatrix[i] = Math.max(0, 1 - sum);
+                    }
+                    matrixHistory.push(currentMatrix);
+                }
 
                 current_time += dt;
                 step++;
@@ -786,7 +769,6 @@
                 }
             }
 
-            // Cleanup & Final Matrix
             species.forEach(s => delete s.D_star_map);
             const finalMatrix = new Float64Array(N);
             for(let i=0; i<N; i++) {
@@ -794,37 +776,16 @@
                 finalMatrix[i] = Math.max(0, 1 - sum);
             }
 
-            self.postMessage({ type: 'complete', species, matrix: finalMatrix, dx, interfaceX: Source_m });
+            self.postMessage({ type: 'complete', species, matrix: finalMatrix, matrixHistory, dx, interfaceX: Source_m });
 
         } catch (err) { self.postMessage({ type: 'error', message: err.message }); }
     };
 
 function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
-    // Saturating vacancy model with both donor (Z>2) and acceptor (Z<2) dopants.
-    //
-    // Charge balance on cation sublattice (per dopant ion of valence Z, matrix is 2+):
-    //   Z > 2 (donor):    creates (Z-2)/2 cation vacancies V''_Mg
-    //   Z < 2 (acceptor): consumes (2-Z)/2 cation vacancies (or equivalently produces
-    //                     interstitials / O-vacancies). Net: reduces free V_Mg.
-    //
-    // Net signed excess:
-    //   excess_signed = sum_i C_i * (Z_i - 2) / 2
-    //
-    // Total free vacancy concentration combines intrinsic Schottky background
-    // with the dopant excess, but cannot go negative — when acceptors dominate,
-    // the free [V_Mg] is suppressed but bounded below by a small floor (because
-    // the system shifts to other compensation mechanisms: O-vacancies, interstitials).
-    //
-    //   [V]_total = sqrt(V_int^2 + (excess_signed/2)^2)        if excess_signed > 0
-    //             = V_int / sqrt(1 + (|excess_signed|/V_int)^2) otherwise (suppression)
-    //
-    // Defect-association factor only applies to donor side (where bound
-    // dopant–vacancy pairs reduce free V).
-
-    const V_int = 1e-4;          // intrinsic background vacancy fraction
-    const f_assoc = 0.5;         // fraction of donor-induced vacancies bound at saturation
-    const V_sat = 0.02;          // characteristic dopant concentration for saturation
-    const V_floor = 1e-6;        // hard floor on free V to avoid total freeze
+    const V_int = 1e-4;          
+    const f_assoc = 0.5;         
+    const V_sat = 0.02;          
+    const V_floor = 1e-6;        
 
     for (let x = 0; x < N; x++) {
         let sumC = 0;
@@ -841,13 +802,11 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
 
         let V_free;
         if (excess_signed >= 0) {
-            // Donor regime: vacancies enhanced, but saturate via association
             const V_total = Math.sqrt(V_int * V_int + (excess_signed * 0.5) * (excess_signed * 0.5));
             const free_factor = 1 - f_assoc * Math.tanh(excess_signed / V_sat);
             V_free = V_total * free_factor;
         } else {
-            // Acceptor regime: vacancies suppressed but floor-bounded
-            const a = -excess_signed; // positive
+            const a = -excess_signed; 
             V_free = V_int / Math.sqrt(1 + (a / V_int) * (a / V_int));
         }
         if (V_free < V_floor) V_free = V_floor;
@@ -857,13 +816,18 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         species.forEach((s, idx) => {
             let Q_eff = 0;
             for (let j = 0; j < C_vec.length; j++) Q_eff += C_vec[j] * s.qVector[j];
-
             s.D_star_map[x] = s.d0 * Math.exp(-Q_eff / kBT) * V_factor;
         });
     }
 }
-
 </script>
+
+
+
+
+
+
+
 
 <script>
     // --- GLOBAL STATE ---
@@ -1140,75 +1104,85 @@ function buildOmegaVector(species) {
         worker.postMessage(inputs);
     }
 
-    function renderResults(res, inputs) {
-        lastResults = res;
-        lastInputs = inputs;
 
-        if (currentTab === 'profile') {
-            const dx = res.dx * 1e6;
-            const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
-            const datasets = res.species.map(s => ({
-                label: s.fullLabel,
-                data: Array.from(s.C).map(v => v * 100),
-                borderColor: s.color, backgroundColor: s.color + '20',
-                borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4
-            }));
-            datasets.unshift({
-                label: 'Matrix (MgO)',
-                data: Array.from(res.matrix).map(v => v * 100),
-                borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], 
-                pointRadius: 0, fill: false, tension: 0.4
-            });
-            
-            if(chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(document.getElementById('diffusionChart'), {
-                type: 'line', data: { labels, datasets },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, animation: false,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: { 
-                        x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
-                        y: { min: 0, max: 100, title: {display:true, text:'Concentration (%)'} }
-                    }
-                }
-            });
+
+function renderResults(res, inputs) {
+    lastResults = res;
+    lastInputs = inputs;
+
+    if (currentTab === 'profile') {
+        const dx = res.dx * 1e6;
+        const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
+        const datasets = res.species.map(s => ({
+            label: s.fullLabel,
+            data: Array.from(s.C).map(v => v * 100),
+            borderColor: s.color, backgroundColor: s.color + '20',
+            borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4
+        }));
+        datasets.unshift({
+            label: 'Matrix (MgO)',
+            data: Array.from(res.matrix).map(v => v * 100),
+            borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], 
+            pointRadius: 0, fill: false, tension: 0.4
+        });
         
-
-
-        } else if (currentTab === 'flux' || currentTab === 'time3d') {
-            // FIX: Robust check for history
-            if (!res.species[0].history || res.species[0].history.length === 0) {
-                console.warn("History missing. Re-running.");
-                triggerCalculation(); 
-                return;
-            }
-
-            const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
-            const yData = res.species[0].history.map((_, i) => i * (inputs.timeHours / res.species[0].history.length));
-            
-            const traces = res.species.map(s => {
-                let zData;
-                if(currentTab === 'flux') zData = s.fluxHistory.map(row => Array.from(row));
-                else zData = s.history.map(row => Array.from(row).map(v => v*100));
-
-                return {
-                    type: 'surface', x: xData, y: yData, z: zData,
-                    name: s.name, showscale: false, showlegend: true, opacity: 0.85,
-                    colorscale: [ [0, '#ffffff'], [1, s.color] ]
-                };
-            });
-
-            Plotly.newPlot(currentTab === 'flux' ? 'plotly-flux' : 'plotly-time', traces, {
-                margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
-                scene: { 
-                    aspectmode: 'cube',
-                    xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, 
-                    zaxis:{title: currentTab === 'flux' ? 'Flux' : 'Conc (%)'}, 
-                    camera: { eye: { x: 1.5, y: 1.5, z: 1.3 } } 
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(document.getElementById('diffusionChart'), {
+            type: 'line', data: { labels, datasets },
+            options: { 
+                responsive: true, maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: { 
+                    x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
+                    y: { min: 0, max: 100, title: {display:true, text:'Concentration (%)'} }
                 }
+            }
+        });
+
+    } else if (currentTab === 'flux' || currentTab === 'time3d') {
+        if (!res.species[0].history || res.species[0].history.length === 0) {
+            console.warn("History missing. Re-running.");
+            triggerCalculation(); 
+            return;
+        }
+
+        const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
+        const yData = res.species[0].history.map((_, i) => i * (inputs.timeHours / res.species[0].history.length));
+        
+        const traces = res.species.map(s => {
+            let zData;
+            if(currentTab === 'flux') zData = s.fluxHistory.map(row => Array.from(row));
+            else zData = s.history.map(row => Array.from(row).map(v => v*100));
+
+            return {
+                type: 'surface', x: xData, y: yData, z: zData,
+                name: s.name, showscale: false, showlegend: true, opacity: 0.85,
+                colorscale: [ [0, '#ffffff'], [1, s.color] ]
+            };
+        });
+
+        if (res.matrixHistory && currentTab === 'time3d') {
+            traces.unshift({
+                type: 'surface', x: xData, y: yData, 
+                z: res.matrixHistory.map(row => Array.from(row).map(v => v * 100)),
+                name: 'Matrix (MgO)', showscale: false, showlegend: true, opacity: 0.85,
+                colorscale: [ [0, '#ffffff'], [1, '#6366f1'] ]
             });
         }
+
+        Plotly.newPlot(currentTab === 'flux' ? 'plotly-flux' : 'plotly-time', traces, {
+            margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
+            scene: { 
+                aspectmode: 'cube',
+                xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, 
+                zaxis:{title: currentTab === 'flux' ? 'Flux' : 'Conc (%)'}, 
+                camera: { eye: { x: 1.5, y: 1.5, z: 1.3 } } 
+            }
+        });
     }
+}
+
+
 
 
     // --- INPUTS & DEFAULTS (existing helpers) ---
@@ -1558,9 +1532,12 @@ function attachMatrixListeners(){
         const matC = (lastResults.matrix[i] * 100).toFixed(4);
         
         // Map species data for this row
-        const spData = lastResults.species.map(s => {
-            return `${(s.C[i] * 100).toFixed(4)},${s.Flux[i].toExponential(4)}`;
-        }).join(",");
+    const spData = lastResults.species.map(s => {
+    const MOLAR_DENSITY = 88825; // Cation sites in MgO (mol/m³)
+    const trueFlux = s.Flux[i] * MOLAR_DENSITY;
+    return `${(s.C[i] * 100).toFixed(4)},${trueFlux.toExponential(4)}`;
+}).join(",");
+
 
         csv += `${depth},${matC},${spData}\n`;
     }
