@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThermoMigrate v3.4 (Days Timeline)</title>
+    <title>ThermoMigrate v3.5 (Days Timeline)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -50,7 +50,7 @@
                 <i class="fas fa-atom"></i>
             </div>
             <div>
-                <h1 class="font-bold text-lg text-slate-800 leading-tight">ThermoMigrate <span class="text-xs font-normal text-slate-500 ml-1">v3.4</span></h1>
+                <h1 class="font-bold text-lg text-slate-800 leading-tight">ThermoMigrate <span class="text-xs font-normal text-slate-500 ml-1">v3.5</span></h1>
                 <p class="text-[10px] text-slate-400 font-mono leading-none">PbSe Thermocouple Evolution</p>
             </div>
         </div>
@@ -272,7 +272,7 @@
                         </div>
                         <div>
                             <h1 class="text-3xl font-bold text-slate-800 m-0">User Guide</h1>
-                            <p class="text-slate-500 m-0 text-sm">ThermoMigrate v3.4 Documentation</p>
+                            <p class="text-slate-500 m-0 text-sm">ThermoMigrate v3.5 Documentation</p>
                         </div>
                     </div>
 
@@ -461,13 +461,28 @@
         }
       
 
-        self.onmessage = function(e) {
+  self.onmessage = function(e) {
             const p = e.data; 
             
             // 1. DYNAMIC GRID SCALING
-            // For very long times, we slightly coarsen the grid to keep simulation interactive
             let N = 70; // Default grid
-            if(p.duration_s > 1e8) N = 50; // > ~3 years
+            
+            // Estimate max diffusion to predict step count early
+            const maxD_estimate = p.d0 * Math.exp(-p.ea / (KB_EV * p.tHot));
+            const L_m_estimate = p.length_mm * 1e-3;
+            
+            const TARGET_MAX_STEPS = 4000000;
+            let estimated_steps = Infinity;
+            
+            // Iteratively reduce N if the simulation will take too many steps
+            while (N > 20) {
+                let dx_est = L_m_estimate / (N - 1);
+                let dt_est = 0.4 * (dx_est * dx_est) / (maxD_estimate + 1e-30);
+                estimated_steps = p.duration_s / dt_est;
+                
+                if (estimated_steps <= TARGET_MAX_STEPS) break;
+                N -= 10; 
+            }
             
             const L_m = p.length_mm * 1e-3;
             const dx = L_m / (N - 1);
@@ -477,7 +492,6 @@
             const T = new Float64Array(N);
             const dT_dx = (p.tCold - p.tHot) / L_m; 
             for(let i=0; i<N; i++) T[i] = p.tHot + (p.tCold - p.tHot) * (i / (N-1));
-
 
             // 3. Concentration Init (Robust Error Handling)
             const C = new Float64Array(N);
@@ -489,27 +503,17 @@
             // Check if input implies a function (contains 'x')
             if (c0_input.toLowerCase().includes('x')) {
                 try {
-                    // 1. Try to compile the function
-                    // We use a temporary constructor to catch SyntaxErrors (e.g. missing parenthesis)
                     valFunc = new Function('x', `
                         const { exp, log, pow, sin, cos, sqrt } = Math;
                         return ${c0_input};
                     `);
-
-                    // 2. Test Run: Try to execute it once to catch RuntimeErrors (e.g. undefined variable 'y')
                     const testVal = valFunc(0.5);
                     if (isNaN(testVal)) throw new Error("Result is Not a Number (NaN)");
-
                 } catch(e) {
-                    // !! STOP SIMULATION AND REPORT ERROR !!
-                    self.postMessage({ 
-                        type: 'error', 
-                        message: "Invalid Formula: " + e.message 
-                    });
-                    return; // Stop execution here
+                    self.postMessage({ type: 'error', message: "Invalid Formula: " + e.message });
+                    return; 
                 }
             } else {
-                // Constant number path
                 const constVal = parseFloat(c0_input);
                 if (isNaN(constVal)) {
                      self.postMessage({ type: 'error', message: "Invalid Number" });
@@ -518,59 +522,31 @@
                 valFunc = () => constVal;
             }
 
-            // Fill Array safely
             for(let i=0; i<N; i++) {
                 const x_norm = i / (N-1); 
                 let val = valFunc(x_norm);
-                if (isNaN(val) || val < 1e15) val = 1e15; // Floor value
+                if (isNaN(val) || val < 1e15) val = 1e15; 
                 C[i] = val;
             }
 
-
-
-
             // 4. Time Stepping & Stability
             const maxD = p.d0 * Math.exp(-p.ea / (KB_EV * p.tHot));
-            // Stability: dt < 0.5 * dx^2 / D
-            // We use 0.4 safety factor
-            let dt = 0.4 * (dx * dx) / (maxD + 1e-30);
+            const dt = 0.4 * (dx * dx) / (maxD + 1e-30);
+            const steps = Math.ceil(p.duration_s / dt);
             
-            // Safety cap for dt to ensure we don't jump too fast physically
-            // But if diffusion is super slow, dt can be large.
-            
-            let steps = Math.ceil(p.duration_s / dt);
-            
-            // HARD LIMIT on Steps to prevent browser freeze
-            // If steps > 5,000,000, we must increase dt (and risk some error) or stop.
-            // We'll scale dt to fit in 4M steps.
-            const MAX_STEPS = 4000000;
-            if (steps > MAX_STEPS) {
-                dt = p.duration_s / MAX_STEPS;
-                steps = MAX_STEPS;
-                // Note: This technically violates CFL for explicit Euler if dt gets too big.
-                // However, for diffusion, usually D is so small that this condition is rarely hit
-                // unless time is geological.
-            }
-
             // 5. History Saving
-            // We want ~40 frames for the 3D plot
             const historyInterval = Math.max(1, Math.floor(steps / 40));
-            
-            // Structures for 3D plots
             const hist_C = [];
             const hist_S = [];
             const hist_ZT = [];
             const hist_Sig = [];
             const timePoints = [];
 
-            // Pre-calc D array (Time independent part)
             const D = new Float64Array(N);
             for(let i=0; i<N; i++) D[i] = p.d0 * Math.exp(-p.ea / (KB_EV * T[i]));
 
-            // Pre-calc Soret Pre-factors
             const SoretFac = new Float64Array(N);
             for(let i=0; i<N; i++) {
-                // Term: (Q* / (kB * T^2)) * dT/dx
                 SoretFac[i] = (p.qStar / (KB_EV * T[i] * T[i])) * dT_dx;
             }
 
@@ -579,7 +555,6 @@
             
             for (let t = 0; t <= steps; t++) {
                 
-                // Flux Calculation (J at i+1/2)
                 const Flux = new Float64Array(N-1); 
                 for(let i=0; i < N-1; i++) {
                     const C_avg = 0.5 * (C[i] + C[i+1]);
@@ -594,18 +569,14 @@
                     Flux[i] = J_fick + J_soret;
                 }
 
-                // Update C
                 for(let i=1; i < N-1; i++) C_new[i] = C[i] - (dt/dx) * (Flux[i] - Flux[i-1]);
                 
-                // Boundary Conditions (Zero Flux)
                 C_new[0] = C[0] - (dt/dx) * (Flux[0] - 0); 
                 C_new[N-1] = C[N-1] - (dt/dx) * (0 - Flux[N-2]);
                 
-                // Swap
                 for(let i=0; i<N; i++) C[i] = C_new[i];
                 t_accum += dt;
 
-                // SAVE FRAMES
                 if (t % historyInterval === 0 || t === steps) {
                     const row_C = Float64Array.from(C);
                     const row_S = new Float64Array(N);
@@ -626,7 +597,6 @@
                     timePoints.push(t_accum);
                 }
 
-                // Report Progress
                 if (t % 50000 === 0) {
                     const pct = Math.round((t/steps)*100);
                     self.postMessage({ type: 'progress', percent: pct });
@@ -640,6 +610,7 @@
                 params: p
             });
         };
+
     </script>
 
     <script>
@@ -651,6 +622,7 @@
         };
 
         let worker = null;
+        let lastSimulationData = null;
         let chartConc = null, chartZT = null, chartS = null, chartSigma = null;
         let debounceTimer;
 
@@ -694,11 +666,42 @@
             debounceTimer = setTimeout(triggerSimulation, 600);
         }
 
-        function downloadData() {
-            alert("Export feature would go here (CSV generation of history arrays).");
-        }
-
         
+        function downloadData() {
+    if (!lastSimulationData) {
+        alert("No data available. Please wait for the simulation to finish.");
+        return;
+    }
+
+    const { x, timePoints, hist_C, hist_ZT } = lastSimulationData;
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Create column headers using the spatial grid (x in mm)
+    const headerRow = "Time_s," + x.map(pos => `x_${(pos*1000).toFixed(2)}mm`).join(",");
+    
+    // Write Concentration Block
+    csvContent += "--- Concentration (cm^-3) ---\n";
+    csvContent += headerRow + "\n";
+    timePoints.forEach((t, i) => {
+        csvContent += [t.toFixed(1), ...hist_C[i]].join(",") + "\n";
+    });
+
+    // Write ZT Block (Adding a gap for readability in Excel)
+    csvContent += "\n--- Figure of Merit (ZT) ---\n";
+    csvContent += headerRow + "\n";
+    timePoints.forEach((t, i) => {
+        csvContent += [t.toFixed(1), ...hist_ZT[i]].join(",") + "\n";
+    });
+
+    // Create a hidden link and trigger the download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "ThermoMigrate_Export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
 
 
@@ -751,6 +754,7 @@
                 else if(e.data.type === 'complete') {
                     document.getElementById('header-progress').style.width = "100%";
                     setTimeout(() => document.getElementById('status-area').style.opacity = 0, 800);
+                    lastSimulationData = e.data;
                     renderAll(e.data);
                 }
                 else if(e.data.type === 'error') {
@@ -878,28 +882,40 @@
         const charts = {}; // Store instances
 
         function update2DChart(canvasId, labels, datasets, yLeft, yRight) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            
-            if(charts[canvasId]) charts[canvasId].destroy();
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    if(charts[canvasId]) charts[canvasId].destroy();
 
-            const yScales = {
-                x: { title: { display:true, text:'Position (mm)' } },
-                y: { type:'linear', display:true, position:'left', title:{display:!!yLeft, text:yLeft} }
-            };
-            if(yRight) {
-                yScales.y1 = { type:'linear', display:true, position:'right', grid:{display:false}, title:{display:true, text:yRight} };
-            }
-
-            charts[canvasId] = new Chart(ctx, {
-                type: 'line',
-                data: { labels: labels, datasets: datasets.map(d => ({ ...d, borderWidth:2, pointRadius:0, fill:false })) },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: yScales,
-                    interaction: { mode:'index', intersect:false }
+    const yScales = {
+        x: { title: { display:true, text:'Position (mm)' } },
+        y: { 
+            type:'linear', 
+            display:true, 
+            position:'left', 
+            title:{display:!!yLeft, text:yLeft},
+            ticks: {
+                callback: function(value) {
+                    // If the number is large (scientific notation territory), give it 1 decimal place
+                    return Math.abs(value) >= 1e4 ? value.toExponential(1) : value;
                 }
-            });
+            }
         }
+    };
+    if(yRight) {
+        yScales.y1 = { type:'linear', display:true, position:'right', grid:{display:false}, title:{display:true, text:yRight} };
+    }
+
+    charts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: datasets.map(d => ({ ...d, borderWidth:2, pointRadius:0, fill:false })) },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: yScales,
+            interaction: { mode:'index', intersect:false }
+        }
+    });
+}
+
 
         function update3DPlot(divId, xData, yData, zData, zLabel, colorscale, timeUnit) {
             // Convert array of TypedArrays to Array of Arrays
