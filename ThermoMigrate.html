@@ -87,9 +87,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="font-bold text-[15px] text-slate-800 leading-tight tracking-tight">ThermoMigrate</h1>
-                    <span class="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 leading-none">v4.0</span>
+                    
                 </div>
-                <p class="text-[11px] text-slate-400 leading-none mt-1">GPTL &middot; Generate Pre-trained Thermocouple Leg</p>
+                <p class="text-[11px] text-slate-600 leading-none mt-1">version 4.0.2</p>
             </div>
         </div>
         
@@ -335,7 +335,7 @@
                         <div>
                             <h1 class="text-2xl font-bold text-slate-800 m-0 leading-tight">User Guide</h1>
                             <p class="text-slate-500 m-0 text-sm">ThermoMigrate - Thermoelectric dopant-migration simulator</p>
-                            <p class="text-slate-400 m-0 text-sm">version 4.0.1 - NitaD, Univ Paris-Saclay, 12 july 2026</p>
+                            <p class="text-slate-400 m-0 text-sm">version 4.0.2 - NitaD, Univ Paris-Saclay, 12 july 2026</p>
                         </div>
                     </div>
 
@@ -396,7 +396,7 @@
                         </div>
                         <div class="border border-slate-200 rounded-xl p-5 md:col-span-2">
                             <h4 class="text-[12px] font-bold text-slate-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5"><i class="fas fa-file-csv text-xs"></i> Export Data</h4>
-                            <p class="text-[12px] text-slate-500 leading-relaxed m-0">Downloads a CSV with two blocks &mdash; concentration and ZT &mdash; each as a time &times; position grid (time in seconds down the rows, position in mm across the columns), covering every sampled snapshot from the last completed run.</p>
+                            <p class="text-[12px] text-slate-500 leading-relaxed m-0">Downloads a CSV with time, position, concentration, ZT and sigma.</p>
                         </div>
                     </div>
 
@@ -874,10 +874,20 @@
                     S_temp = 550;
                 }
                 
-                const kBT = 8.617e-5 * T;
-                const bipolar_factor = Math.exp( -E_g / (2 * kBT) );
-                const S_uV = S_temp / (1 + 5 * bipolar_factor); 
-                const S = S_uV * 1e-6; 
+
+
+
+                // Guard against division by zero at cryogenic temperatures
+const kBT = Math.max(1e-10, 8.617e-5 * T); 
+let bipolar_factor = Math.exp( -E_g / (2 * kBT) );
+
+// Prevent overflow from destroying the Seebeck calculation
+if (!Number.isFinite(bipolar_factor)) bipolar_factor = 0; 
+
+const S_uV = S_temp / (1 + 5 * bipolar_factor); 
+const S = (Number.isFinite(S_uV) ? S_uV : 0) * 1e-6;
+
+
 
                 const L_num = 2.4e-8; 
                 const k_elec = L_num * (sigma * 100) * T; 
@@ -960,16 +970,23 @@ const maxV = maxD * maxSoret;
             for(let i=0; i<N; i++) {
                 const x_norm = i / (N-1); 
                 let val = valFunc(x_norm);
-                if (isNaN(val) || val < 1e15) val = 1e15; 
+                if (!Number.isFinite(val) || val < 1e15) val = 1e15;
                 C[i] = val;
             }
 
-            const dt_diff = 0.4 * (dx * dx) / (maxD + 1e-30);
-            const dt_adv = maxV > 0 ? (0.25 * dx / maxV) : Infinity;
-            const dt = Math.min(dt_diff, dt_adv);
-            
-            let steps = Math.ceil(p.duration_s / dt);
-            
+
+
+            // Clamp microscopic drift velocity to zero to prevent CFL degradation
+const effectiveMaxV = maxV < 1e-15 ? 0 : maxV;
+const dt_diff = 0.4 * (dx * dx) / (maxD + 1e-30);
+const dt_adv = effectiveMaxV > 0 ? (0.25 * dx / effectiveMaxV) : Infinity;
+const dt = Math.min(dt_diff, dt_adv);
+
+// Ensure at least 1 step runs to prevent undefined history crashes on 0-time anneals
+let steps = Math.max(1, Math.ceil(p.duration_s / dt));
+
+
+
             let truncated = false;
             let actual_sim_time = p.duration_s;
 
@@ -997,82 +1014,132 @@ const maxV = maxD * maxSoret;
                 SoretFac[i] = (p.qStar / (KB_EV * T[i] * T[i])) * dT_dx;
             }
 
-            // --- SIMULATION LOOP ---
-            let t_accum = 0;
-            
-            for (let t = 0; t < steps; t++) {
-                const Flux = new Float64Array(N-1); 
-                for(let i=0; i < N-1; i++) {
-                    const D_avg = 0.5 * (D[i] + D[i+1]);
-                    const Soret_avg = 0.5 * (SoretFac[i] + SoretFac[i+1]);
 
-                    const dC_dx = (C[i+1] - C[i]) / dx;
+            // --- OPTIMIZATION & MASS CONSERVATION SETUP ---
+// 1. Allocate Flux array ONCE outside the loop to prevent GC thrashing
+const Flux = new Float64Array(N - 1);
 
-                    // Upwind the advective (Soret) term instead of averaging C
-                    // across the face. A centered average is only oscillation-free
-                    // while the local cell Peclet number (Soret_avg * dx) stays
-                    // below ~2; grid coarsening (done elsewhere to hit the step
-                    // budget) enlarges dx exactly when that number is already
-                    // large, so a centered scheme can and does go negative for
-                    // strong Q*/steep-gradient cases. Upwinding keeps the scheme
-                    // monotone (no unphysical dips) at the cost of a bit more
-                    // numerical smearing. v_drift > 0 means net drift toward +x.
-                    const v_drift = -1 * D_avg * Soret_avg;
-                    const C_upwind = v_drift >= 0 ? C[i] : C[i+1];
+// 2. Calculate initial integrated mass using half-cell boundary weights
+let initialMass = (C[0] + C[N - 1]) * (dx / 2);
+for (let i = 1; i < N - 1; i++) {
+    initialMass += C[i] * dx;
+}
 
-                    const J_soret = v_drift * C_upwind;
-                    const J_fick = -1 * D_avg * dC_dx;
-                    
-                    Flux[i] = J_fick + J_soret;
-                }
 
-                // Math.max(0, ...) is a belt-and-suspenders floor: with upwinding
-                // the scheme should already stay non-negative under the CFL
-                // limits used above, but this guarantees it regardless of any
-                // floating-point edge case, so the chart/CSV can never show a
-                // physically meaningless negative dopant concentration.
-                for(let i=1; i < N-1; i++) C_new[i] = Math.max(0, C[i] - (dt/dx) * (Flux[i] - Flux[i-1]));
 
-                // Boundary nodes sit exactly at the domain edge, so their control
-                // volume is only a HALF cell (dx/2), not a full one -- e.g. node 0
-                // only "owns" [0, dx/2], since there's no domain on the other side
-                // to own [-dx/2, 0]. Dividing by dx/2 (i.e. multiplying by 2/dx)
-                // instead of dx is what makes the scheme conserve the true
-                // integrated mass ∫C dx exactly, rather than a quantity that
-                // implicitly treats the leg as one extra grid spacing longer than
-                // it really is. (Flux[0] and Flux[N-2] themselves are unaffected --
-                // they're still evaluated over the true node-to-node spacing dx.)
-                C_new[0] = Math.max(0, C[0] - (2 * dt/dx) * (Flux[0] - 0));
-                C_new[N-1] = Math.max(0, C[N-1] - (2 * dt/dx) * (0 - Flux[N-2]));
-                
-                for(let i=0; i<N; i++) C[i] = C_new[i];
-                t_accum += dt;
+// --- NEW: Record exact t=0 baseline before stepping begins ---
+const init_S = new Float64Array(N);
+const init_ZT = new Float64Array(N);
+const init_Sig = new Float64Array(N);
+for (let k = 0; k < N; k++) {
+    const props = getProperties(C[k], T[k]);
+    init_S[k] = props.S;
+    init_ZT[k] = props.ZT;
+    init_Sig[k] = props.sigma;
+}
+hist_C.push(Float64Array.from(C));
+hist_S.push(init_S);
+hist_ZT.push(init_ZT);
+hist_Sig.push(init_Sig);
+timePoints.push(0.0);
 
-                if (t % historyInterval === 0 || t === steps-1) {
-                    const row_C = Float64Array.from(C);
-                    const row_S = new Float64Array(N);
-                    const row_ZT = new Float64Array(N);
-                    const row_Sig = new Float64Array(N);
-                    
-                    for(let k=0; k<N; k++) {
-                        const props = getProperties(C[k], T[k]);
-                        row_S[k] = props.S;
-                        row_ZT[k] = props.ZT;
-                        row_Sig[k] = props.sigma;
-                    }
-                    
-                    hist_C.push(row_C);
-                    hist_S.push(row_S);
-                    hist_ZT.push(row_ZT);
-                    hist_Sig.push(row_Sig);
-                    timePoints.push(t_accum);
-                }
+// --- SIMULATION LOOP ---
+let t_accum = 0;
 
-                if (t % progressInterval === 0) {
-                    const pct = Math.round((t/steps)*100);
-                    self.postMessage({ type: 'progress', percent: pct });
-                }
-            }
+
+for (let t = 0; t < steps; t++) {
+    // Overwrite existing Flux array directly
+    for (let i = 0; i < N - 1; i++) {
+        const D_avg = 0.5 * (D[i] + D[i + 1]);
+        const Soret_avg = 0.5 * (SoretFac[i] + SoretFac[i + 1]);
+        const dC_dx = (C[i + 1] - C[i]) / dx;
+
+        const v_drift = -1 * D_avg * Soret_avg;
+        const C_upwind = v_drift >= 0 ? C[i] : C[i + 1];
+
+        Flux[i] = (-1 * D_avg * dC_dx) + (v_drift * C_upwind);
+    }
+
+    // Update interior nodes without Math.max(0, ...) masking
+    for (let i = 1; i < N - 1; i++) {
+        C_new[i] = C[i] - (dt / dx) * (Flux[i] - Flux[i - 1]);
+    }
+
+    // Update half-cell boundary nodes
+    C_new[0] = C[0] - (2 * dt / dx) * (Flux[0] - 0);
+    C_new[N - 1] = C[N - 1] - (2 * dt / dx) * (0 - Flux[N - 2]);
+
+    // --- RUNTIME STABILITY & CONSERVATION CHECKS ---
+    let currentMass = (C_new[0] + C_new[N - 1]) * (dx / 2);
+
+    for (let i = 0; i < N; i++) {
+        // 1. Detect numerical blow-up (NaN or Infinity)
+        if (!Number.isFinite(C_new[i])) {
+            self.postMessage({ 
+                type: 'error', 
+                message: `Numerical instability: non-finite value detected at x=${(i*dx*1000).toFixed(2)}mm (step ${t}). Try lowering anneal time or easing gradient.` 
+            });
+            return;
+        }
+
+        // 2. Detect unphysical negative oscillations instead of masking them
+        // (Allowing a tiny float-precision epsilon of -1e-10 before triggering)
+        if (C_new[i] < -1e-10) {
+            self.postMessage({ 
+                type: 'error', 
+                message: `Stability failure: concentration dropped below zero (${C_new[i].toExponential(2)}) at step ${t}. Grid resolution or CFL limit breached.` 
+            });
+            return;
+        }
+
+        if (i > 0 && i < N - 1) currentMass += C_new[i] * dx;
+        C[i] = Math.max(0, C_new[i]); // Clean microscopic float drift only
+    }
+
+    // 3. Runtime Mass Conservation Assertion (check every history save)
+    if ((t > 0 && t % historyInterval === 0) || t === steps - 1) {
+        const massDrift = Math.abs((currentMass - initialMass) / initialMass);
+        if (massDrift > 1e-9) {
+            self.postMessage({ 
+                type: 'error', 
+                message: `Conservation assertion failed: total mass drifted by ${(massDrift * 100).toFixed(6)}% at step ${t}.` 
+            });
+            return;
+        }
+    }
+
+    t_accum += dt;
+
+    // --- HISTORY & PROGRESS REPORTING ---
+    if ((t > 0 && t % historyInterval === 0) || t === steps - 1) {
+        const row_C = Float64Array.from(C);
+        const row_S = new Float64Array(N);
+        const row_ZT = new Float64Array(N);
+        const row_Sig = new Float64Array(N);
+
+        for (let k = 0; k < N; k++) {
+            const props = getProperties(C[k], T[k]);
+            row_S[k] = props.S;
+            row_ZT[k] = props.ZT;
+            row_Sig[k] = props.sigma;
+        }
+
+        hist_C.push(row_C);
+        hist_S.push(row_S);
+        hist_ZT.push(row_ZT);
+        hist_Sig.push(row_Sig);
+        timePoints.push(t_accum);
+    }
+
+    if (t % progressInterval === 0) {
+        const pct = Math.round((t / steps) * 100);
+        self.postMessage({ type: 'progress', percent: pct });
+    }
+}
+
+
+
+
 
             self.postMessage({ 
                 type: 'complete', 
@@ -1239,96 +1306,119 @@ const maxV = maxD * maxSoret;
         let debounceTimer;
         let lastSimulationData = null;
 
-        function setPlotMode(mode) {
-            const btn2d = document.getElementById('btn-2d');
-            const btn3d = document.getElementById('btn-3d');
-            
-            if(mode === '2D') {
-                btn2d.className = "px-3 py-1 text-xs font-bold rounded shadow-sm bg-white text-indigo-600 transition-colors";
-                btn3d.className = "px-3 py-1 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition-colors";
-                
-                document.querySelectorAll('.plot-container-2d').forEach(el => el.parentElement.style.display = 'flex');
-                document.querySelectorAll('.plot-container-3d').forEach(el => el.parentElement.style.display = 'none');
-            } else {
-                btn3d.className = "px-3 py-1 text-xs font-bold rounded shadow-sm bg-white text-indigo-600 transition-colors";
-                btn2d.className = "px-3 py-1 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition-colors";
-                
-                document.querySelectorAll('.plot-container-2d').forEach(el => el.parentElement.style.display = 'none');
-                document.querySelectorAll('.plot-container-3d').forEach(el => el.parentElement.style.display = 'flex');
-            }
-            
-            // Force charts to resize into the new space
-            window.dispatchEvent(new Event('resize'));
-        }
 
-        function switchTab(id) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + id).classList.add('active');
-            
-            document.querySelectorAll('.tab-pane').forEach(p => {
-                p.classList.remove('active');
-                p.style.display = 'none'; // Ensure strictly hidden
-            });
-            
-            const activePane = document.getElementById('pane-' + id);
-            activePane.classList.add('active');
-            activePane.style.display = 'flex'; // Ensure strictly shown
-            
-            // Trigger resize for plots
-            window.dispatchEvent(new Event('resize'));
-            // Specifically resize Plotly
-            const plots = ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'];
-            plots.forEach(pid => {
+        function setPlotMode(mode) {
+    const btn2d = document.getElementById('btn-2d');
+    const btn3d = document.getElementById('btn-3d');
+    
+    if(mode === '2D') {
+        btn2d.className = "px-3.5 py-2 text-xs font-bold rounded-md shadow-sm bg-white text-indigo-600 transition-all";
+        btn3d.className = "px-3.5 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all";
+        
+        document.querySelectorAll('.plot-container-2d').forEach(el => el.parentElement.style.display = 'flex');
+        document.querySelectorAll('.plot-container-3d').forEach(el => el.parentElement.style.display = 'none');
+    } else {
+        btn3d.className = "px-3.5 py-2 text-xs font-bold rounded-md shadow-sm bg-white text-indigo-600 transition-all";
+        btn2d.className = "px-3.5 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all";
+        
+        document.querySelectorAll('.plot-container-2d').forEach(el => el.parentElement.style.display = 'none');
+        document.querySelectorAll('.plot-container-3d').forEach(el => el.parentElement.style.display = 'flex');
+    }
+    
+    // Only dispatch resize after layout display changes have settled
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+}
+
+function switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    
+    document.querySelectorAll('.tab-pane').forEach(p => {
+        p.classList.remove('active');
+        p.style.display = 'none'; 
+    });
+    
+    const activePane = document.getElementById('pane-' + id);
+    activePane.classList.add('active');
+    activePane.style.display = 'flex'; 
+    
+    // Only resize plots inside the currently active (visible) pane to prevent WebGL/Canvas layout leaks
+    requestAnimationFrame(() => {
+        Object.values(charts).forEach(c => {
+            if (c.canvas && c.canvas.offsetParent !== null) c.resize();
+        });
+        const plots = ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'];
+        plots.forEach(pid => {
+            const el = document.getElementById(pid);
+            if (el && el.offsetParent !== null) {
                 try { Plotly.Plots.resize(pid); } catch(e){}
-            });
-        }
+            }
+        });
+    });
+}
 
         function debouncedUpdate() {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(triggerSimulation, 600);
         }
 
+
         function downloadData() {
-            if (!lastSimulationData) {
-                alert("No data available. Please wait for the simulation to finish.");
-                return;
-            }
+    if (!lastSimulationData) {
+        alert("No data available. Please wait for the simulation to finish.");
+        return;
+    }
 
-            const { x, timePoints, hist_C, hist_ZT, truncated, actual_sim_time, params } = lastSimulationData;
-            let csvContent = "data:text/csv;charset=utf-8,";
+    const { x, T, timePoints, hist_C, hist_ZT, hist_S, hist_Sig, truncated, actual_sim_time, params } = lastSimulationData;
+    
+    // Use an array to prevent UI-freezing string concatenation memory leaks
+    const rows = [];
 
-            if (truncated) {
-                const reqDays = (params.duration_s / 86400).toFixed(2);
-                const actDays = (actual_sim_time / 86400).toFixed(2);
-                csvContent += `--- NOTE: run hit the step budget; only ${actDays} of the requested ${reqDays} days simulated below ---\n\n`;
-            }
-            
-            // Create column headers using the spatial grid (x in mm)
-            const headerRow = "Time_s," + x.map(pos => `x_${(pos*1000).toFixed(2)}mm`).join(",");
-            
-            // Write Concentration Block
-            csvContent += "--- Concentration (cm^-3) ---\n";
-            csvContent += headerRow + "\n";
-            timePoints.forEach((t, i) => {
-                csvContent += [t.toFixed(1), ...hist_C[i]].join(",") + "\n";
-            });
+    if (truncated) {
+        const reqDays = (params.duration_s / 86400).toFixed(2);
+        const actDays = (actual_sim_time / 86400).toFixed(2);
+        rows.push(`# NOTE: Run hit the step budget; only ${actDays} of requested ${reqDays} days simulated.`);
+    }
 
-            // Write ZT Block (Adding a gap for readability in Excel)
-            csvContent += "\n--- Figure of Merit (ZT) ---\n";
-            csvContent += headerRow + "\n";
-            timePoints.forEach((t, i) => {
-                csvContent += [t.toFixed(1), ...hist_ZT[i]].join(",") + "\n";
-            });
+    // Added missing Temp_K column
+    rows.push("Time_s,Position_mm,Temp_K,Conc_cm3,ZT,Seebeck_uVK,Sigma_Scm");
 
-            // Create a hidden link and trigger the download
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "ThermoMigrate_Export.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+    timePoints.forEach((t, timeIdx) => {
+        const timeFormatted = t.toFixed(1);
+        
+        for (let posIdx = 0; posIdx < x.length; posIdx++) {
+            const posFormatted = (x[posIdx] * 1000).toFixed(3);
+            const tempFormatted = Number(T[posIdx]).toFixed(2);
+            const concFormatted = Number(hist_C[timeIdx][posIdx]).toExponential(4);
+            const ztFormatted = Number(hist_ZT[timeIdx][posIdx]).toFixed(4);
+            const sFormatted = Number(hist_S[timeIdx][posIdx]).toFixed(2);
+            const sigFormatted = Number(hist_Sig[timeIdx][posIdx]).toFixed(2);
+
+            rows.push([
+                timeFormatted,
+                posFormatted,
+                tempFormatted,
+                concFormatted,
+                ztFormatted,
+                sFormatted,
+                sigFormatted
+            ].join(","));
         }
+    });
+
+    // Use a Blob and ObjectURL instead of encodeURI to bypass browser URL length limits
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ThermoMigrate_${params.system}_Export.csv`);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up memory immediately after trigger
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
 
         // --- MAIN SIMULATION ---
         function triggerSimulation() {
@@ -1337,6 +1427,7 @@ const maxV = maxD * maxSoret;
                 if(workerUrl) URL.revokeObjectURL(workerUrl); // Release the memory
             }
             
+            lastSimulationData = null;
             // 1. Reset Error State
             clearError(); 
 
@@ -1649,12 +1740,20 @@ const maxV = maxD * maxSoret;
             triggerSimulation(); 
         }
 
+
         window.onresize = function() { 
-            Object.values(charts).forEach(c => c.resize());
-            ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'].forEach(id => {
-                try { Plotly.Plots.resize(id); } catch(e){}
-            });
+    // Guard against resizing hidden canvases (offsetParent is null if hidden)
+    Object.values(charts).forEach(c => {
+        if (c.canvas && c.canvas.offsetParent !== null) c.resize();
+    });
+    ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.offsetParent !== null) {
+            try { Plotly.Plots.resize(id); } catch(e){}
         }
+    });
+}
+
     </script>
 </body>
 </html>
