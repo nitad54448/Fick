@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThermoMigrate v4.0</title>
-    <link href="./dist/output.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>ThermoMigrate v4.1</title>
+    <link href="thermomigrate_style.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,63 +19,6 @@
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
-                    },
-                    boxShadow: {
-                        'panel': '0 1px 2px rgba(15,23,42,0.04), 0 1px 1px rgba(15,23,42,0.03)',
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        .tab-btn { color: #64748b; padding: 0 1.35rem; transition: all 0.15s ease; font-weight: 600; font-size: 0.82rem; letter-spacing: 0.01em; border-bottom: 2px solid transparent; white-space: nowrap; }
-        .tab-btn:hover { color: #334155; background-color: #f8fafc; }
-        .tab-btn.active { background-color: #eef2ff; color: #4338ca; border-bottom-color: #4338ca; }
-
-        /* Updated Tab Pane Logic */
-        .tab-pane { display: none; width: 100%; height: 100%; animation: fadeIn 0.25s ease-out; }
-        .tab-pane.active { display: flex; flex-direction: column; gap: 1.5rem; }
-        /* Force the inner cards to stretch */
-        .tab-pane > div.bg-white { flex: 1; min-height: 0; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Remove fixed min-heights and allow containers to fill */
-        .plot-container-2d { flex: 1; min-height: 0; position: relative; width: 100%; }
-        .plot-container-3d { flex: 1; min-height: 0; position: relative; width: 100%; border: 1px solid #e2e8f0; border-radius: 0.625rem; background: white; padding: 10px; }
-
-        /* Prose overrides for compact theory section */
-        .prose h2 { margin-top: 1.5em; margin-bottom: 0.5em; }
-        .prose h3 { margin-top: 1.2em; margin-bottom: 0.5em; }
-
-        /* Panel input focus polish */
-        input[type="number"], input[type="text"], select {
-            font-variant-numeric: tabular-nums;
-        }
-        input:focus, select:focus, textarea:focus { outline: none; }
-
-        /* Sidebar section label */
-        .field-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-
-        /* Quick-nav pill for the guide */
-        .guide-nav-link { transition: all 0.15s ease; }
-        .guide-nav-link:hover { background-color: #eef2ff; color: #4338ca; }
-
-        #pane-theory { scroll-behavior: smooth; }
-    </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-slate-800 bg-slate-50 font-sans">
 
@@ -89,7 +32,7 @@
                     <h1 class="font-bold text-[15px] text-slate-800 leading-tight tracking-tight">ThermoMigrate</h1>
                     
                 </div>
-                <p class="text-[11px] text-slate-600 leading-none mt-1">version 4.0.2</p>
+                <p class="text-[11px] text-slate-600 leading-none mt-1">version 4.1.0</p>
             </div>
         </div>
         
@@ -126,6 +69,10 @@
 
     <div id="truncation-warning" style="display:none;" class="bg-amber-50 border-b border-amber-300 px-6 py-2 text-xs font-bold text-amber-800 flex items-center gap-2 shrink-0 z-10">
         <i class="fas fa-triangle-exclamation"></i> <span id="truncation-warning-text"></span>
+    </div>
+
+    <div id="run-error" style="display:none;" role="alert" class="bg-red-50 border-b border-red-200 px-6 py-2 text-xs font-bold text-red-700 flex items-center gap-2 shrink-0 z-10">
+        <i class="fas fa-circle-exclamation"></i> <span id="run-error-text"></span>
     </div>
 
     <div class="flex flex-1 overflow-hidden relative">
@@ -335,7 +282,7 @@
                         <div>
                             <h1 class="text-2xl font-bold text-slate-800 m-0 leading-tight">User Guide</h1>
                             <p class="text-slate-500 m-0 text-sm">ThermoMigrate - Thermoelectric dopant-migration simulator</p>
-                            <p class="text-slate-400 m-0 text-sm">version 4.0.2 - NitaD, Univ Paris-Saclay, 12 july 2026</p>
+                            <p class="text-slate-400 m-0 text-sm">version 4.1.0 - NitaD, Univ Paris-Saclay, 12 july 2026</p>
                         </div>
                     </div>
 
@@ -475,7 +422,7 @@
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-3 font-bold text-slate-700">Step Function</td>
                                     <td class="px-5 py-3.5">
-                                        <code class="bg-slate-100 px-2 py-1 rounded text-pink-600 select-all">x < 0.5 ? 2e19 : 1e18</code>
+                                        <code class="bg-slate-100 px-2 py-1 rounded text-pink-600 select-all">x &lt; 0.5 ? 2e19 : 1e18</code>
                                     </td>
                                     <td class="px-4 py-3 text-slate-500">Simulates a diffusion couple (high conc joined to low conc).</td>
                                 </tr>
@@ -687,14 +634,14 @@
                     <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 my-3 text-sm text-slate-600 text-center">
                         $J_{i+1/2} = \underbrace{-D_{avg}\dfrac{C_{i+1}-C_i}{\Delta x}}_{\text{Fickian, centered}} \; + \; \underbrace{v_{i+1/2}\,C_{upwind}}_{\text{Soret, upwinded}}, \qquad v_{i+1/2} = -D_{avg}\left(\dfrac{Q^*}{k_BT^2}\dfrac{\partial T}{\partial x}\right)_{avg}$
                     </div>
-                    <p class="text-[12px] text-slate-500 leading-relaxed">$C_{upwind}=C_i$ if $v_{i+1/2}\ge0$ (drift toward $+x$), else $C_{i+1}$. A centered average for the Soret term is only oscillation-free while the local cell Péclet number $\big(\frac{Q^*}{k_BT^2}\frac{\partial T}{\partial x}\big)\Delta x$ stays below &asymp;2; grid coarsening (below) enlarges $\Delta x$ exactly when that number is already large from a big $Q^*$ or steep gradient, so a centered scheme can and did produce negative concentrations in that regime. Upwinding trades a bit of numerical smearing for guaranteed monotonicity. A $\max(0,\cdot)$ floor is also applied to every update as a belt-and-suspenders backstop.</p>
+                    <p class="text-[12px] text-slate-500 leading-relaxed">$C_{upwind}=C_i$ if $v_{i+1/2}\ge0$ (drift toward $+x$), else $C_{i+1}$. A centered average for the Soret term is only oscillation-free while the local cell Péclet number $\big(\frac{Q^*}{k_BT^2}\frac{\partial T}{\partial x}\big)\Delta x$ stays below &asymp;2; grid coarsening (below) enlarges $\Delta x$ exactly when that number is already large from a big $Q^*$ or steep gradient, so a centered scheme can and did produce negative concentrations in that regime. Upwinding trades a bit of numerical smearing for guaranteed monotonicity. Together with the combined CFL condition below, the update is provably non-negative; the solver still scans for negative values at every snapshot and aborts with a message rather than hiding one behind a $\max(0,\cdot)$ floor.</p>
 
                     <h3 class="text-lg font-bold text-slate-700 mt-6 mb-2">Adaptive Grid &amp; Stability</h3>
                     <ul class="list-disc pl-5 space-y-2 text-slate-600 text-sm">
                         <li><strong>Adaptive grid:</strong> The spatial grid starts at $N=70$ points and is coarsened in steps of 5 (down to a floor of $N=10$) if the step budget (4,000,000 steps) would otherwise be exceeded &mdash; this keeps very fast dopants tractable without changing the physics. If the budget still can't cover the full requested anneal duration even at the coarsest grid, the run is truncated and <strong>a banner (plus a note in the CSV export) says so</strong> along with how much simulated time you actually got &mdash; it is never left unstated.</li>
-                        <li><strong>CFL stability:</strong> The time step obeys both a diffusive and an advective limit, and the smaller of the two is used: $\Delta t = \min(\Delta t_{diff}, \Delta t_{adv})$, with
-                            <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 my-2 text-sm text-slate-600 text-center">$\Delta t_{diff} = 0.4\,\dfrac{\Delta x^2}{D_{max}} \qquad \Delta t_{adv} = 0.25\,\dfrac{\Delta x}{v_{max}}$</div>
-                            The marginal (exactly-stable) limits are $\Delta x^2/(2D)$ and $\Delta x/(2v)$ respectively &mdash; both figures above already include the boundary nodes' tighter half-cell requirement, so the 0.4 and 0.25 factors are true safety margins (not just margins for the interior nodes), not marginal values themselves.
+                        <li><strong>CFL stability:</strong> Diffusion and advection share a single time step, so their stability limits <em>add</em> &mdash; they are not two separate ceilings to take the minimum of. Writing the boundary node's update as $C_0^{n+1} = (1-\alpha)C_0^n + \ldots$ with
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 my-2 text-sm text-slate-600 text-center">$\alpha = \Delta t\left(\dfrac{2D_{max}}{\Delta x^{2}} + \dfrac{2v_{max}}{\Delta x}\right), \qquad \Delta t = \dfrac{0.8}{\dfrac{2D_{max}}{\Delta x^{2}} + \dfrac{2v_{max}}{\Delta x}}$</div>
+                            the update is monotone (no new extrema, hence no negative concentrations) exactly when $\alpha \le 1$; the solver fixes $\alpha = 0.8$, a 20% margin. The factors of 2 come from the half-cell end nodes, whose limits are twice as strict as the interior's, so this is the binding constraint everywhere in the domain. <em>Earlier versions took $\min(0.4\,\Delta x^2/D,\;0.25\,\Delta x/v)$ instead. Each factor is safe on its own, but when diffusion and advection are both near-binding their coefficients sum to $0.8+0.5=1.3>1$ &mdash; the scheme could and did go non-monotone and abort on a negative concentration. The combined form above cannot.</em>
                         </li>
                         <li><strong>Snapshot sampling:</strong> Roughly 40 evenly spaced snapshots are stored across the run for the 3D Timeline view and CSV export; the 2D Final view compares only the first (t=0) and last snapshot.</li>
                         <li><strong>Boundary conditions:</strong> Both ends of the leg are closed (zero-flux, $J=0$) &mdash; dopant mass is neither absorbed nor emitted at the contacts, and (per the half-cell treatment above) the true integrated mass is conserved exactly, not approximately.</li>
@@ -804,361 +751,359 @@
     </div>
 
     <script id="worker-code" type="javascript/worker">
-        const KB_EV = 8.617333262145e-5; 
-        const KB_J = 1.380649e-23;
-        const E_CHARGE = 1.60217663e-19;
+        'use strict';
+
+        const KB_EV = 8.617333262145e-5;   // Boltzmann constant, eV/K
+        const E_CHARGE = 1.602176634e-19;  // elementary charge, C
+        const LORENZ = 2.4e-8;             // Lorenz number, W*ohm/K^2
+        const BIPOLAR_KAPPA = 20;          // kappa_bi prefactor, W/m/K
+        const BIPOLAR_SEEBECK = 5;         // S suppression prefactor
+        const C_FLOOR = 1e15;              // lowest representable concentration, cm^-3
+        const N_MIN = 1e17, N_MAX = 5e20;  // validity window of the transport fits
 
         self.onmessage = function(e) {
-            const p = e.data; 
+            const p = e.data;
             const sys = p.system || 'PbSe';
 
-            // --- PHYSICS MODEL (Now Multi-System) ---
-            function getProperties(n_cm3, T) {
-                let n_safe = n_cm3;
-                if (n_safe < 1e17) n_safe = 1e17;
-                if (n_safe > 5e20) n_safe = 5e20;
+            // 'kind' lets the UI put the message where it belongs: a bad formula
+            // belongs on the concentration field, a bad time step does not.
+            function fail(kind, message) {
+                self.postMessage({ type: 'error', kind: kind, message: message });
+            }
 
+            // --- 0. PARAMETER VALIDATION ---
+            // Every number arrives from a text or number input, so any of them can
+            // be NaN. Left unchecked, NaN propagates into dt, the step loop never
+            // runs, and the t=0 profile gets rendered as if it were a result.
+            const bad = [
+                ['T_Hot', p.tHot, v => v > 0],
+                ['T_Cold', p.tCold, v => v > 0],
+                ['Leg length', p.length_mm, v => v > 0],
+                ['Anneal duration', p.duration_s, v => v > 0],
+                ['D0', p.d0, v => v > 0],
+                ['Ea', p.ea, v => v >= 0],
+                ['Q*', p.qStar, () => true]
+            ].filter(f => !Number.isFinite(f[1]) || !f[2](f[1]));
+
+            if (bad.length) {
+                fail('input', bad.length === 1
+                    ? `${bad[0][0]} is not a valid positive number.`
+                    : `These inputs are not valid positive numbers: ${bad.map(f => f[0]).join(', ')}.`);
+                return;
+            }
+
+            // --- PHYSICS MODEL (Multi-System) ---
+            function getProperties(n_cm3, T) {
+                const n_safe = Math.min(N_MAX, Math.max(N_MIN, n_cm3));
                 const T_norm = T / 300;
                 const logN = Math.log10(n_safe);
-                
-                let mu, sigma, S_base_300K, E_g, k_lat, s_slope, k_phase = 0;
+
+                let mu, S_base_300K, E_g, k_lat, s_slope, k_phase = 0;
 
                 if (sys === 'SnSe') {
-                    // Calibrated for Single Crystal SnSe (b-axis, Peak zT ~ 2.6 - 2.7)
-                    mu = 250 * Math.pow(T_norm, -2.0); // High pristine hole mobility
-                    sigma = n_safe * 1.602e-19 * mu;
-                    S_base_300K = 350 - 100 * (logN - 18); // Single crystal Seebeck baseline
-                    E_g = 0.86; 
-                    k_lat = 0.55 / T_norm; // Ultra-low single crystal lattice thermal conductivity
-                    s_slope = 0.0016; // Allows Seebeck to climb to experimental peaks
-                    
-                    // Pnma to Cmcm phase transition at ~750K
+                    // Calibrated for single-crystal SnSe (b-axis, peak zT ~2.6-2.7)
+                    mu = 250 * Math.pow(T_norm, -2.0);      // high pristine hole mobility
+                    S_base_300K = 350 - 100 * (logN - 18);  // single-crystal Seebeck baseline
+                    E_g = 0.86;
+                    k_lat = 0.55 / T_norm;                  // ultra-low lattice conductivity
+                    s_slope = 0.0016;
+                    // Pnma -> Cmcm phase transition at ~750 K
                     if (T > 750) k_phase = 0.1 * ((T - 750) / 50);
-                
+
                 } else if (sys === 'MgAgSb') {
-                    // Calibrated for MgAgSb (Peak zT ~ 1.2-1.4 at ~475K)
-                    mu = 80 * Math.pow(T_norm, -1.5); 
-                    sigma = n_safe * 1.602e-19 * mu;
-                    S_base_300K = 250 - 85 * (logN - 19); 
-                    E_g = 0.18; // Narrow bandgap typical of MgAgSb
-                    k_lat = 0.8 / T_norm; // Low inherent lattice thermal conductivity
-                    s_slope = 0.0020; // Seebeck climbs decently fast until rollover
+                    // Calibrated for MgAgSb (peak zT ~1.2-1.4 at ~475 K)
+                    mu = 80 * Math.pow(T_norm, -1.5);
+                    S_base_300K = 250 - 85 * (logN - 19);
+                    E_g = 0.18;                             // narrow gap typical of MgAgSb
+                    k_lat = 0.8 / T_norm;
+                    s_slope = 0.0020;
 
                 } else if (sys === 'Bi2Te3') {
-                    // Calibrated for Bi2(Se,Te)3 (benchmark near-RT alloy; melts 858K).
-                    // Seebeck baseline matched to reported ~287uV/K near 300K for this system.
-                    // Narrow 0.14eV gap -> significant bipolar contribution even near 300K,
-                    // consistent with literature; peak zT ~0.9-1.1 near room temperature in
-                    // this simplified single-band model (optimized nanostructured samples
-                    // report up to ~1.2-1.4 -- not reproduced by this level of model).
+                    // Calibrated for Bi2(Se,Te)3 (benchmark near-RT alloy; melts 858 K).
+                    // Seebeck baseline matched to ~287 uV/K near 300 K. The narrow
+                    // 0.14 eV gap gives a significant bipolar contribution even near
+                    // 300 K; peak zT ~0.9-1.1 in this single-band model (optimized
+                    // nanostructured samples report up to ~1.2-1.4).
                     mu = 700 * Math.pow(T_norm, -1.5);
-                    sigma = n_safe * 1.602e-19 * mu;
                     S_base_300K = 320 - 100 * (logN - 19);
                     E_g = 0.14;
                     k_lat = 0.6 / T_norm;
                     s_slope = 0.0022;
 
                 } else { // PbSe
-                    mu = 1150 * Math.pow(T_norm, -2.2); 
-                    sigma = n_safe * 1.602e-19 * mu; 
-                    S_base_300K = 400 - 130 * (logN - 18); 
-                    E_g = 0.28; 
-                    k_lat = 1.4 / T_norm; 
-                    s_slope = 0.0025; // PbSe SPB growth
+                    mu = 1150 * Math.pow(T_norm, -2.2);
+                    S_base_300K = 400 - 130 * (logN - 18);
+                    E_g = 0.28;
+                    k_lat = 1.4 / T_norm;
+                    s_slope = 0.0025;                       // PbSe SPB growth
                 }
-                
+
+                const sigma = n_safe * E_CHARGE * mu;       // S/cm
                 let S_temp = S_base_300K * (1 + s_slope * (T - 300));
-            
-                // Only cap SnSe to prevent unphysical runaway
-                if (sys === 'SnSe' && S_temp > 550) {
-                    S_temp = 550;
-                }
-                
 
-
+                // Only SnSe is capped, to prevent unphysical runaway
+                if (sys === 'SnSe' && S_temp > 550) S_temp = 550;
 
                 // Guard against division by zero at cryogenic temperatures
-const kBT = Math.max(1e-10, 8.617e-5 * T); 
-let bipolar_factor = Math.exp( -E_g / (2 * kBT) );
+                const kBT = Math.max(1e-10, KB_EV * T);
+                let xi = Math.exp(-E_g / (2 * kBT));
+                if (!Number.isFinite(xi)) xi = 0;
 
-// Prevent overflow from destroying the Seebeck calculation
-if (!Number.isFinite(bipolar_factor)) bipolar_factor = 0; 
+                const S_uV = S_temp / (1 + BIPOLAR_SEEBECK * xi);
+                const S = (Number.isFinite(S_uV) ? S_uV : 0) * 1e-6;   // V/K
 
-const S_uV = S_temp / (1 + 5 * bipolar_factor); 
-const S = (Number.isFinite(S_uV) ? S_uV : 0) * 1e-6;
-
-
-
-                const L_num = 2.4e-8; 
-                const k_elec = L_num * (sigma * 100) * T; 
-                const k_bi = 0.2 * (T/300) * bipolar_factor * 100;
-                
+                const sigma_SI = sigma * 100;                          // S/m
+                const k_elec = LORENZ * sigma_SI * T;
+                const k_bi = BIPOLAR_KAPPA * (T / 300) * xi;
                 const k_tot = k_lat + k_elec + k_bi + k_phase;
-                const ZT = (S * S * (sigma * 100) / k_tot) * T;
+                const ZT = (S * S * sigma_SI / k_tot) * T;
 
                 return { S: S_uV, sigma: sigma, k: k_tot, ZT: Math.max(0, ZT) };
             }
 
-// 1. DYNAMIC GRID SCALING
-let N = 70; 
-const TARGET_MAX_STEPS = 4000000;
-const L_m = Math.max(1e-6, p.length_mm * 1e-3); 
+            // --- 1. GRID SIZE, TIME STEP, STABILITY ---
+            const TARGET_MAX_STEPS = 4000000;
+            const N_START = 70, N_FLOOR = 10, N_COARSEN = 5;
 
-const maxT = Math.max(p.tHot, p.tCold);
-const minT = Math.min(p.tHot, p.tCold); // ADD THIS LINE
-const maxD = p.d0 * Math.exp(-p.ea / (KB_EV * maxT));
+            const L_m = Math.max(1e-6, p.length_mm * 1e-3);
+            const maxT = Math.max(p.tHot, p.tCold);
+            const minT = Math.min(p.tHot, p.tCold);
+            const maxD = p.d0 * Math.exp(-p.ea / (KB_EV * maxT));
+            const dT_dx = (p.tCold - p.tHot) / L_m;
+            // Soret factor peaks at the cold end (1/T^2), D peaks at the hot end,
+            // so pairing the two maxima is deliberately conservative.
+            const maxSoret = Math.abs(p.qStar / (KB_EV * minT * minT)) * Math.abs(dT_dx);
+            const maxV = maxD * maxSoret;
 
-const dT_dx_max = Math.abs((p.tCold - p.tHot) / L_m);
+            // Diffusion and advection share one time step, so their stability
+            // limits ADD -- taking min(dt_diff, dt_adv) with independent safety
+            // factors lets the combined coefficient exceed 1 whenever both terms
+            // are near-binding, which produced the negative concentrations this
+            // solver used to abort on. The boundary nodes own a half cell, which
+            // doubles both coefficients; keeping their sum below SAFETY < 1 is
+            // what makes the update monotone everywhere.
+            const SAFETY = 0.8;
+            function stableDt(cellSize) {
+                return SAFETY / ((2 * maxD) / (cellSize * cellSize) + (2 * maxV) / cellSize);
+            }
 
-// REPLACE THE OLD maxSoret LINE WITH THIS:
-const maxSoret = Math.abs((p.qStar / (KB_EV * minT * minT)) * dT_dx_max); 
-const maxV = maxD * maxSoret;
-
-
-            // Coarsen grid if needed to meet step budget.
-            // dt_adv uses a 0.25 (not 0.5) safety factor: with the exact
-            // half-cell boundary treatment below, the boundary nodes' advective
-            // stability limit is dx/(2v), twice as strict as the interior's
-            // dx/v -- so the same *relative* safety margin that used to apply
-            // to the interior now needs to apply to that tighter number too.
-            while (N > 10) {
-                let dx_est = L_m / (N - 1);
-                let dt_diff = 0.4 * (dx_est * dx_est) / (maxD + 1e-30);
-                let dt_adv = maxV > 0 ? (0.25 * dx_est / maxV) : Infinity;
-                let dt_est = Math.min(dt_diff, dt_adv);
-                
-                if ((p.duration_s / dt_est) <= TARGET_MAX_STEPS) break;
-                N -= 5; 
+            // Coarsen the grid until the run fits the step budget.
+            let N = N_START;
+            while (N > N_FLOOR && p.duration_s / stableDt(L_m / (N - 1)) > TARGET_MAX_STEPS) {
+                N -= N_COARSEN;
             }
 
             const dx = L_m / (N - 1);
-            const x = new Float64Array(N).map((_, i) => i * dx);
+            const rawDt = stableDt(dx);
 
-            // 2. Temp Profile
+            if (!Number.isFinite(rawDt) || rawDt <= 0) {
+                fail('numeric', 'Could not derive a stable time step from these parameters. Check D0, Ea and the thermal gradient.');
+                return;
+            }
+
+            let steps = Math.max(1, Math.ceil(p.duration_s / rawDt));
+            let truncated = false;
+            let dt, actual_sim_time;
+
+            if (steps > TARGET_MAX_STEPS) {
+                steps = TARGET_MAX_STEPS;
+                truncated = true;
+                dt = rawDt;
+                actual_sim_time = steps * dt;
+            } else {
+                // Divide the requested time evenly: dt <= rawDt so the run stays
+                // stable, and it lands exactly on the requested duration instead
+                // of overshooting by up to one step.
+                dt = p.duration_s / steps;
+                actual_sim_time = p.duration_s;
+            }
+
+            // --- 2. TEMPERATURE PROFILE ---
+            const x = new Float64Array(N);
             const T = new Float64Array(N);
-            const dT_dx = (p.tCold - p.tHot) / L_m; 
-            for(let i=0; i<N; i++) T[i] = p.tHot + (p.tCold - p.tHot) * (i / (N-1));
+            for (let i = 0; i < N; i++) {
+                x[i] = i * dx;
+                T[i] = p.tHot + (p.tCold - p.tHot) * (i / (N - 1));
+            }
 
-            // 3. Concentration Init
-            const C = new Float64Array(N);
-            const C_new = new Float64Array(N);
-            
+            // --- 3. INITIAL CONCENTRATION ---
             const c0_input = String(p.c0);
             let valFunc = null;
-            
-            if (c0_input.toLowerCase().includes('x')) {
+
+            if (/x/i.test(c0_input)) {
                 try {
                     valFunc = new Function('x', `
-                        const { exp, log, pow, sin, cos, sqrt } = Math;
-                        return ${c0_input};
+                        "use strict";
+                        const { exp, log, log10, pow, sin, cos, tan, sqrt, abs, min, max, PI, E } = Math;
+                        return (${c0_input});
                     `);
-                    const testVal = valFunc(0.5);
-                    if (isNaN(testVal)) throw new Error("Result is Not a Number (NaN)");
-                } catch(e) {
-                    self.postMessage({ type: 'error', message: "Invalid Formula: " + e.message });
-                    return; 
+                    // Sample across the leg, not just the midpoint: a formula can be
+                    // finite at x=0.5 and blow up at an end.
+                    for (const xs of [0, 0.25, 0.5, 0.75, 1]) {
+                        const probe = valFunc(xs);
+                        if (typeof probe !== 'number' || !Number.isFinite(probe)) {
+                            throw new Error(`gives a non-finite result at x=${xs}`);
+                        }
+                    }
+                } catch (err) {
+                    fail('formula', 'Invalid formula: ' + err.message);
+                    return;
                 }
             } else {
-                const constVal = parseFloat(c0_input);
-                if (isNaN(constVal)) {
-                     self.postMessage({ type: 'error', message: "Invalid Number" });
-                     return;
+                const constVal = Number(c0_input);
+                if (!Number.isFinite(constVal)) {
+                    fail('formula', `"${c0_input}" is not a number or a formula in x.`);
+                    return;
                 }
                 valFunc = () => constVal;
             }
 
-            for(let i=0; i<N; i++) {
-                const x_norm = i / (N-1); 
-                let val = valFunc(x_norm);
-                if (!Number.isFinite(val) || val < 1e15) val = 1e15;
+            let C = new Float64Array(N);
+            let C_next = new Float64Array(N);
+            let cScale = 0;   // largest starting concentration; sets the error tolerances
+
+            for (let i = 0; i < N; i++) {
+                let val = valFunc(i / (N - 1));
+                if (!Number.isFinite(val) || val < C_FLOOR) val = C_FLOOR;
                 C[i] = val;
+                if (val > cScale) cScale = val;
             }
 
+            // Tolerances have to scale with the data: concentrations run around
+            // 1e19, where float cancellation noise alone is of order 1e3. A fixed
+            // absolute epsilon would flag a perfectly healthy depleted region.
+            const NEG_TOL = -1e-9 * cScale;
+            const MASS_TOL = 1e-9;
 
+            // --- 4. MASS BOOKKEEPING ---
+            // The end nodes sit on the domain edge and own a half cell each, which
+            // is what makes the integrated mass exact rather than O(1/N) off.
+            const cellW = new Float64Array(N).fill(dx);
+            cellW[0] = dx / 2;
+            cellW[N - 1] = dx / 2;
 
-            // Clamp microscopic drift velocity to zero to prevent CFL degradation
-const effectiveMaxV = maxV < 1e-15 ? 0 : maxV;
-const dt_diff = 0.4 * (dx * dx) / (maxD + 1e-30);
-const dt_adv = effectiveMaxV > 0 ? (0.25 * dx / effectiveMaxV) : Infinity;
-const dt = Math.min(dt_diff, dt_adv);
-
-// Ensure at least 1 step runs to prevent undefined history crashes on 0-time anneals
-let steps = Math.max(1, Math.ceil(p.duration_s / dt));
-
-
-
-            let truncated = false;
-            let actual_sim_time = p.duration_s;
-
-            // The Hard Cap: Maintain stable dt, but track if we truncate
-            if (steps > TARGET_MAX_STEPS) {
-                steps = TARGET_MAX_STEPS;
-                truncated = true;
-                actual_sim_time = steps * dt;
+            function totalMass(arr) {
+                let m = 0;
+                for (let i = 0; i < N; i++) m += arr[i] * cellW[i];
+                return m;
             }
+            const initialMass = totalMass(C);
 
-            // 5. History Saving
+            // --- 5. HISTORY ---
             const historyInterval = Math.max(1, Math.floor(steps / 40));
             const progressInterval = Math.max(1, Math.floor(steps / 20));
-            const hist_C = [];
-            const hist_S = [];
-            const hist_ZT = [];
-            const hist_Sig = [];
-            const timePoints = [];
+            const hist_C = [], hist_S = [], hist_ZT = [], hist_Sig = [], timePoints = [];
 
+            function snapshot(time) {
+                const row_S = new Float64Array(N);
+                const row_ZT = new Float64Array(N);
+                const row_Sig = new Float64Array(N);
+                for (let k = 0; k < N; k++) {
+                    const props = getProperties(C[k], T[k]);
+                    row_S[k] = props.S;
+                    row_ZT[k] = props.ZT;
+                    row_Sig[k] = props.sigma;
+                }
+                hist_C.push(Float64Array.from(C));
+                hist_S.push(row_S);
+                hist_ZT.push(row_ZT);
+                hist_Sig.push(row_Sig);
+                timePoints.push(time);
+            }
+
+            snapshot(0);   // exact t=0 baseline, before any stepping
+
+            // --- 6. PRECOMPUTED COEFFICIENTS ---
             const D = new Float64Array(N);
-            for(let i=0; i<N; i++) D[i] = p.d0 * Math.exp(-p.ea / (KB_EV * T[i]));
-
             const SoretFac = new Float64Array(N);
-            for(let i=0; i<N; i++) {
+            for (let i = 0; i < N; i++) {
+                D[i] = p.d0 * Math.exp(-p.ea / (KB_EV * T[i]));
                 SoretFac[i] = (p.qStar / (KB_EV * T[i] * T[i])) * dT_dx;
             }
 
+            const Flux = new Float64Array(N - 1);
+            const dtdx = dt / dx;
 
-            // --- OPTIMIZATION & MASS CONSERVATION SETUP ---
-// 1. Allocate Flux array ONCE outside the loop to prevent GC thrashing
-const Flux = new Float64Array(N - 1);
+            // Elapsed time is derived, not accumulated: summing dt four million
+            // times drifts by ~1e-10 relative, so the last snapshot would land
+            // just past the duration the UI reports.
+            const elapsedAt = (step) => (step === steps - 1) ? actual_sim_time : (step + 1) * dt;
 
-// 2. Calculate initial integrated mass using half-cell boundary weights
-let initialMass = (C[0] + C[N - 1]) * (dx / 2);
-for (let i = 1; i < N - 1; i++) {
-    initialMass += C[i] * dx;
-}
+            // --- 7. SIMULATION LOOP ---
+            // Two passes per step and a buffer swap, no copy. The finite/negative
+            // scan and the mass assertion run at snapshot points rather than every
+            // step: an instability grows fast enough to be caught within one
+            // interval, and scanning N nodes 4e6 times was pure overhead.
+            for (let t = 0; t < steps; t++) {
+                for (let i = 0; i < N - 1; i++) {
+                    const D_avg = 0.5 * (D[i] + D[i + 1]);
+                    const Soret_avg = 0.5 * (SoretFac[i] + SoretFac[i + 1]);
+                    const dC_dx = (C[i + 1] - C[i]) / dx;
 
+                    const v_drift = -D_avg * Soret_avg;
+                    const C_upwind = v_drift >= 0 ? C[i] : C[i + 1];
 
+                    Flux[i] = (-D_avg * dC_dx) + (v_drift * C_upwind);
+                }
 
-// --- NEW: Record exact t=0 baseline before stepping begins ---
-const init_S = new Float64Array(N);
-const init_ZT = new Float64Array(N);
-const init_Sig = new Float64Array(N);
-for (let k = 0; k < N; k++) {
-    const props = getProperties(C[k], T[k]);
-    init_S[k] = props.S;
-    init_ZT[k] = props.ZT;
-    init_Sig[k] = props.sigma;
-}
-hist_C.push(Float64Array.from(C));
-hist_S.push(init_S);
-hist_ZT.push(init_ZT);
-hist_Sig.push(init_Sig);
-timePoints.push(0.0);
+                for (let i = 1; i < N - 1; i++) {
+                    C_next[i] = C[i] - dtdx * (Flux[i] - Flux[i - 1]);
+                }
+                // Half-cell end nodes, with zero flux imposed at the true edges.
+                C_next[0] = C[0] - 2 * dtdx * Flux[0];
+                C_next[N - 1] = C[N - 1] + 2 * dtdx * Flux[N - 2];
 
-// --- SIMULATION LOOP ---
-let t_accum = 0;
+                const swap = C; C = C_next; C_next = swap;
 
+                if ((t > 0 && t % historyInterval === 0) || t === steps - 1) {
+                    for (let i = 0; i < N; i++) {
+                        const v = C[i];
+                        if (!Number.isFinite(v)) {
+                            fail('numeric', `Numerical instability: non-finite value at x=${(i * dx * 1000).toFixed(2)} mm (step ${t + 1}). Try a shorter anneal, a slower dopant, or a gentler gradient.`);
+                            return;
+                        }
+                        if (v < NEG_TOL) {
+                            fail('numeric', `Stability failure: concentration reached ${v.toExponential(2)} cm^-3 at x=${(i * dx * 1000).toFixed(2)} mm (step ${t + 1}). The CFL limit was breached.`);
+                            return;
+                        }
+                        if (v < 0) C[i] = 0;   // scrub float noise only
+                    }
 
-for (let t = 0; t < steps; t++) {
-    // Overwrite existing Flux array directly
-    for (let i = 0; i < N - 1; i++) {
-        const D_avg = 0.5 * (D[i] + D[i + 1]);
-        const Soret_avg = 0.5 * (SoretFac[i] + SoretFac[i + 1]);
-        const dC_dx = (C[i + 1] - C[i]) / dx;
+                    const drift = Math.abs((totalMass(C) - initialMass) / initialMass);
+                    if (drift > MASS_TOL) {
+                        fail('numeric', `Conservation check failed: total dopant mass drifted by ${(drift * 100).toExponential(2)}% at step ${t + 1}.`);
+                        return;
+                    }
 
-        const v_drift = -1 * D_avg * Soret_avg;
-        const C_upwind = v_drift >= 0 ? C[i] : C[i + 1];
+                    snapshot(elapsedAt(t));
+                }
 
-        Flux[i] = (-1 * D_avg * dC_dx) + (v_drift * C_upwind);
-    }
+                if (t % progressInterval === 0) {
+                    self.postMessage({ type: 'progress', percent: Math.round((t / steps) * 100) });
+                }
+            }
 
-    // Update interior nodes without Math.max(0, ...) masking
-    for (let i = 1; i < N - 1; i++) {
-        C_new[i] = C[i] - (dt / dx) * (Flux[i] - Flux[i - 1]);
-    }
-
-    // Update half-cell boundary nodes
-    C_new[0] = C[0] - (2 * dt / dx) * (Flux[0] - 0);
-    C_new[N - 1] = C[N - 1] - (2 * dt / dx) * (0 - Flux[N - 2]);
-
-    // --- RUNTIME STABILITY & CONSERVATION CHECKS ---
-    let currentMass = (C_new[0] + C_new[N - 1]) * (dx / 2);
-
-    for (let i = 0; i < N; i++) {
-        // 1. Detect numerical blow-up (NaN or Infinity)
-        if (!Number.isFinite(C_new[i])) {
-            self.postMessage({ 
-                type: 'error', 
-                message: `Numerical instability: non-finite value detected at x=${(i*dx*1000).toFixed(2)}mm (step ${t}). Try lowering anneal time or easing gradient.` 
-            });
-            return;
-        }
-
-        // 2. Detect unphysical negative oscillations instead of masking them
-        // (Allowing a tiny float-precision epsilon of -1e-10 before triggering)
-        if (C_new[i] < -1e-10) {
-            self.postMessage({ 
-                type: 'error', 
-                message: `Stability failure: concentration dropped below zero (${C_new[i].toExponential(2)}) at step ${t}. Grid resolution or CFL limit breached.` 
-            });
-            return;
-        }
-
-        if (i > 0 && i < N - 1) currentMass += C_new[i] * dx;
-        C[i] = Math.max(0, C_new[i]); // Clean microscopic float drift only
-    }
-
-    // 3. Runtime Mass Conservation Assertion (check every history save)
-    if ((t > 0 && t % historyInterval === 0) || t === steps - 1) {
-        const massDrift = Math.abs((currentMass - initialMass) / initialMass);
-        if (massDrift > 1e-9) {
-            self.postMessage({ 
-                type: 'error', 
-                message: `Conservation assertion failed: total mass drifted by ${(massDrift * 100).toFixed(6)}% at step ${t}.` 
-            });
-            return;
-        }
-    }
-
-    t_accum += dt;
-
-    // --- HISTORY & PROGRESS REPORTING ---
-    if ((t > 0 && t % historyInterval === 0) || t === steps - 1) {
-        const row_C = Float64Array.from(C);
-        const row_S = new Float64Array(N);
-        const row_ZT = new Float64Array(N);
-        const row_Sig = new Float64Array(N);
-
-        for (let k = 0; k < N; k++) {
-            const props = getProperties(C[k], T[k]);
-            row_S[k] = props.S;
-            row_ZT[k] = props.ZT;
-            row_Sig[k] = props.sigma;
-        }
-
-        hist_C.push(row_C);
-        hist_S.push(row_S);
-        hist_ZT.push(row_ZT);
-        hist_Sig.push(row_Sig);
-        timePoints.push(t_accum);
-    }
-
-    if (t % progressInterval === 0) {
-        const pct = Math.round((t / steps) * 100);
-        self.postMessage({ type: 'progress', percent: pct });
-    }
-}
-
-
-
-
-
-            self.postMessage({ 
-                type: 'complete', 
-                x, T, 
+            self.postMessage({
+                type: 'complete',
+                x, T,
                 hist_C, hist_S, hist_ZT, hist_Sig, timePoints,
                 params: p,
                 truncated: truncated,
-                actual_sim_time: actual_sim_time
+                actual_sim_time: actual_sim_time,
+                grid: { nodes: N, dx_mm: dx * 1000, dt_s: dt, steps: steps }
             });
         };
     </script>
 
     <script>
+        'use strict';
+
         const SYSTEM_PRESETS = {
             'PbSe': {
-                'Na': { name: "Na (p-type)", d0: "2.3e-7", ea: 0.60, qStar: 0.20, c0: "1e19" }, 
-                'Ag': { name: "Ag (Fast)", d0: "5.0e-7", ea: 0.45, qStar: 0.15, c0: "5e18" }, 
+                'Na': { name: "Na (p-type)", d0: "2.3e-7", ea: 0.60, qStar: 0.20, c0: "1e19" },
+                'Ag': { name: "Ag (Fast)", d0: "5.0e-7", ea: 0.45, qStar: 0.15, c0: "5e18" },
                 'Cu': { name: "Cu (Ultra-Fast)", d0: "8.0e-7", ea: 0.35, qStar: 0.12, c0: "3e18" },
-                'Cl': { name: "Cl (n-type)", d0: "1.0e-8", ea: 0.80, qStar: -0.10, c0: "2e19" }, 
+                'Cl': { name: "Cl (n-type)", d0: "1.0e-8", ea: 0.80, qStar: -0.10, c0: "2e19" },
                 'custom': { name: "Custom Params", d0: "1.0e-7", ea: 0.5, qStar: 0.0, c0: "1e19" }
             },
             'SnSe': {
@@ -1188,11 +1133,10 @@ for (let t = 0; t < steps; t++) {
         };
 
         // Real material limits, so the tool can't simulate a molten/decomposed
-        // sample. meltK/limitLabel are informational only; tMax is what's enforced
-        // and is set a safety margin below the literal melting point (except
-        // MgAgSb, which is capped at its alpha-phase transition instead, since
-        // that phase -- not the true melting point -- is what the dopant/ZT
-        // model here actually represents).
+        // sample. The note is informational; tMax is what's enforced and sits a
+        // safety margin below the literal melting point (except MgAgSb, which is
+        // capped at its alpha-phase transition instead, since that phase -- not
+        // the true melting point -- is what the transport model represents).
         const MATERIAL_LIMITS = {
             'PbSe':   { tMin: 300, tMax: 1300, note: 'melts ~1345 K' },
             'SnSe':   { tMin: 300, tMax: 1100, note: 'melts 1134 K' },
@@ -1201,9 +1145,62 @@ for (let t = 0; t < steps; t++) {
         };
         const MAX_GRADIENT_K_PER_MM = 40;
 
-        // Applies the selected material's valid T range to the T_Hot/T_Cold
-        // inputs (updating the min/max attributes), clamps any out-of-range
-        // value that's already in the fields, and refreshes the info line.
+        // Fields the solver needs as numbers, with the label used in error text.
+        const NUMERIC_FIELDS = [
+            { id: 'tHot',      label: 'T_Hot' },
+            { id: 'tCold',     label: 'T_Cold' },
+            { id: 'legLength', label: 'Leg Length', positive: true },
+            { id: 'timeValue', label: 'Anneal Duration', positive: true },
+            { id: 'd0',        label: 'D₀', positive: true },
+            { id: 'ea',        label: 'Ea', min: 0 },
+            { id: 'qStar',     label: 'Q*' }
+        ];
+
+        const charts = {};              // live Chart.js instances, by canvas id
+        const PLOT_IDS = ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'];
+
+        let worker = null;
+        let workerUrl = null;
+        let debounceTimer = null;
+        let lastSimulationData = null;
+        let isReady = false;            // suppresses runs while the UI is being built
+
+        // ---------------------------------------------------------------
+        // INPUT HANDLING
+        // ---------------------------------------------------------------
+
+        // Reads one field as a number. Returns {ok:false} rather than NaN: an
+        // empty or malformed field used to sail through as NaN, silently produce
+        // zero simulation steps, and render the t=0 profile as if it were a result.
+        function readNumber(field) {
+            const el = document.getElementById(field.id);
+            if (!el) {
+                console.error('Missing HTML id:', field.id);
+                return { ok: false, label: field.label };
+            }
+            const raw = String(el.value).trim();
+            if (raw === '') return { ok: false, label: field.label };
+
+            let v = Number(raw);
+            if (!Number.isFinite(v)) return { ok: false, label: field.label };
+
+            // Honour the limits declared on the element itself.
+            if (el.hasAttribute('min')) {
+                const lo = Number(el.min);
+                if (Number.isFinite(lo)) v = Math.max(lo, v);
+            }
+            if (el.hasAttribute('max')) {
+                const hi = Number(el.max);
+                if (Number.isFinite(hi)) v = Math.min(hi, v);
+            }
+
+            if (field.positive && !(v > 0)) return { ok: false, label: field.label };
+            if (field.min !== undefined && v < field.min) return { ok: false, label: field.label };
+            return { ok: true, value: v };
+        }
+
+        // Applies the selected material's valid T range to the T_Hot/T_Cold inputs,
+        // clamps anything already out of range, and refreshes the info line.
         function applyThermalLimits() {
             const sys = document.getElementById('systemSelect').value;
             const limits = MATERIAL_LIMITS[sys] || MATERIAL_LIMITS['PbSe'];
@@ -1213,8 +1210,8 @@ for (let t = 0; t < steps; t++) {
             [tHotEl, tColdEl].forEach(el => {
                 el.min = limits.tMin;
                 el.max = limits.tMax;
-                const v = parseFloat(el.value);
-                if (!isNaN(v)) {
+                const v = Number(String(el.value).trim());
+                if (Number.isFinite(v)) {
                     el.value = Math.min(limits.tMax, Math.max(limits.tMin, v));
                 }
             });
@@ -1225,27 +1222,28 @@ for (let t = 0; t < steps; t++) {
             }
         }
 
-        // Cross-field check: |T_Hot - T_Cold| / legLength must stay under the
-        // 40 K/mm cap. Shown as a blocking error (like the concentration-formula
-        // error) rather than silently overridden, so a violation is never hidden
-        // from the user -- unlike the old truncation bug, this should always be
-        // visible when it happens.
+        // Cross-field check: |T_Hot - T_Cold| / legLength must stay under the cap.
+        // Shown as a blocking error rather than silently overridden, so a violation
+        // is never hidden.
         function validateGradient() {
-            const tHot = parseFloat(document.getElementById('tHot').value);
-            const tCold = parseFloat(document.getElementById('tCold').value);
-            const legLength = parseFloat(document.getElementById('legLength').value);
+            const tHot = Number(document.getElementById('tHot').value);
+            const tCold = Number(document.getElementById('tCold').value);
+            const legLength = Number(document.getElementById('legLength').value);
             const errBox = document.getElementById('gradient-error');
             const errText = document.getElementById('gradient-error-text');
 
-            if (isNaN(tHot) || isNaN(tCold) || isNaN(legLength) || legLength <= 0) {
-                return true; // let the normal number-input validation handle blank/invalid fields
+            if (!Number.isFinite(tHot) || !Number.isFinite(tCold) ||
+                !Number.isFinite(legLength) || legLength <= 0) {
+                if (errBox) errBox.style.display = 'none';
+                return true;   // the per-field check reports blank/invalid values
             }
 
             const gradient = Math.abs(tHot - tCold) / legLength;
             if (gradient > MAX_GRADIENT_K_PER_MM) {
                 const maxSpanHere = (MAX_GRADIENT_K_PER_MM * legLength).toFixed(0);
                 const minLenNeeded = (Math.abs(tHot - tCold) / MAX_GRADIENT_K_PER_MM).toFixed(2);
-                if (errText) errText.innerText = `Gradient is ${gradient.toFixed(1)} K/mm, over the ${MAX_GRADIENT_K_PER_MM} K/mm limit. ` +
+                if (errText) errText.innerText =
+                    `Gradient is ${gradient.toFixed(1)} K/mm, over the ${MAX_GRADIENT_K_PER_MM} K/mm limit. ` +
                     `At ${legLength} mm, keep |T_Hot-T_Cold| under ${maxSpanHere} K, or use a leg of at least ${minLenNeeded} mm.`;
                 if (errBox) errBox.style.display = 'block';
                 return false;
@@ -1268,8 +1266,8 @@ for (let t = 0; t < steps; t++) {
         function updateDopantList() {
             const sys = document.getElementById('systemSelect').value;
             const select = document.getElementById('presetSelect');
-            select.innerHTML = ''; // Clear current options
-            
+            select.innerHTML = '';
+
             const dopants = SYSTEM_PRESETS[sys];
             for (const [key, data] of Object.entries(dopants)) {
                 const opt = document.createElement('option');
@@ -1277,347 +1275,308 @@ for (let t = 0; t < steps; t++) {
                 opt.textContent = data.name;
                 select.appendChild(opt);
             }
-            loadPreset(); // Load properties for the first dopant in the new list
+            loadPreset();   // load properties for the first dopant in the new list
         }
 
         function loadPreset() {
             const sys = document.getElementById('systemSelect').value;
             const key = document.getElementById('presetSelect').value;
             const data = SYSTEM_PRESETS[sys][key];
-            
-            if(data) {
-                document.getElementById('d0').value = data.d0;
-                document.getElementById('ea').value = data.ea;
-                document.getElementById('qStar').value = data.qStar;
-                
-                // Only update c0 if switching away from custom to avoid overwriting user math
-                if (key !== 'custom') {
-                    document.getElementById('c0').value = data.c0;
-                }
-                
-                // Force the simulation to run with the new values
-                debouncedUpdate();
-            }
+            if (!data) return;
+
+            document.getElementById('d0').value = data.d0;
+            document.getElementById('ea').value = data.ea;
+            document.getElementById('qStar').value = data.qStar;
+
+            // Keep whatever the user typed when they're on Custom Params.
+            if (key !== 'custom') document.getElementById('c0').value = data.c0;
+
+            debouncedUpdate();
         }
 
-        let worker = null;
-        let workerUrl = null;
-        let chartConc = null, chartZT = null, chartS = null, chartSigma = null;
-        let debounceTimer;
-        let lastSimulationData = null;
-
+        // ---------------------------------------------------------------
+        // VIEW SWITCHING
+        // ---------------------------------------------------------------
 
         function setPlotMode(mode) {
-    const btn2d = document.getElementById('btn-2d');
-    const btn3d = document.getElementById('btn-3d');
-    
-    if(mode === '2D') {
-        btn2d.className = "px-3.5 py-2 text-xs font-bold rounded-md shadow-sm bg-white text-indigo-600 transition-all";
-        btn3d.className = "px-3.5 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all";
-        
-        document.querySelectorAll('.plot-container-2d').forEach(el => el.parentElement.style.display = 'flex');
-        document.querySelectorAll('.plot-container-3d').forEach(el => el.parentElement.style.display = 'none');
-    } else {
-        btn3d.className = "px-3.5 py-2 text-xs font-bold rounded-md shadow-sm bg-white text-indigo-600 transition-all";
-        btn2d.className = "px-3.5 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all";
-        
-        document.querySelectorAll('.plot-container-2d').forEach(el => el.parentElement.style.display = 'none');
-        document.querySelectorAll('.plot-container-3d').forEach(el => el.parentElement.style.display = 'flex');
-    }
-    
-    // Only dispatch resize after layout display changes have settled
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-}
+            const btn2d = document.getElementById('btn-2d');
+            const btn3d = document.getElementById('btn-3d');
+            const on = "px-3.5 py-2 text-xs font-bold rounded-md shadow-sm bg-white text-indigo-600 transition-all";
+            const off = "px-3.5 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700 transition-all";
+            const show2D = (mode === '2D');
 
-function switchTab(id) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.add('active');
-    
-    document.querySelectorAll('.tab-pane').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none'; 
-    });
-    
-    const activePane = document.getElementById('pane-' + id);
-    activePane.classList.add('active');
-    activePane.style.display = 'flex'; 
-    
-    // Only resize plots inside the currently active (visible) pane to prevent WebGL/Canvas layout leaks
-    requestAnimationFrame(() => {
-        Object.values(charts).forEach(c => {
-            if (c.canvas && c.canvas.offsetParent !== null) c.resize();
-        });
-        const plots = ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'];
-        plots.forEach(pid => {
-            const el = document.getElementById(pid);
-            if (el && el.offsetParent !== null) {
-                try { Plotly.Plots.resize(pid); } catch(e){}
-            }
-        });
-    });
-}
+            btn2d.className = show2D ? on : off;
+            btn3d.className = show2D ? off : on;
+            btn2d.setAttribute('aria-pressed', String(show2D));
+            btn3d.setAttribute('aria-pressed', String(!show2D));
+
+            document.querySelectorAll('.plot-container-2d').forEach(
+                el => el.parentElement.style.display = show2D ? 'flex' : 'none');
+            document.querySelectorAll('.plot-container-3d').forEach(
+                el => el.parentElement.style.display = show2D ? 'none' : 'flex');
+
+            // Resize only once the display changes have been laid out.
+            requestAnimationFrame(resizeVisiblePlots);
+        }
+
+        function switchTab(id) {
+            const btn = document.getElementById('tab-' + id);
+            const activePane = document.getElementById('pane-' + id);
+            if (!btn || !activePane) return;
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.tab-pane').forEach(p => {
+                p.classList.remove('active');
+                p.style.display = 'none';
+            });
+            activePane.classList.add('active');
+            activePane.style.display = 'flex';
+
+            requestAnimationFrame(resizeVisiblePlots);
+        }
+
+        // Resizing a hidden canvas gives it a zero box, so only touch what's on
+        // screen (offsetParent is null for anything with display:none above it).
+        function resizeVisiblePlots() {
+            Object.values(charts).forEach(c => {
+                if (c.canvas && c.canvas.offsetParent !== null) c.resize();
+            });
+            PLOT_IDS.forEach(pid => {
+                const el = document.getElementById(pid);
+                if (el && el.offsetParent !== null) {
+                    try { Plotly.Plots.resize(pid); } catch (err) { /* not yet drawn */ }
+                }
+            });
+        }
 
         function debouncedUpdate() {
+            if (!isReady) return;   // ignore the cascade fired while building the UI
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(triggerSimulation, 600);
         }
 
+        // ---------------------------------------------------------------
+        // ERROR REPORTING
+        // ---------------------------------------------------------------
 
-        function downloadData() {
-    if (!lastSimulationData) {
-        alert("No data available. Please wait for the simulation to finish.");
-        return;
-    }
+        // Formula problems belong on the concentration field; everything else
+        // belongs in the banner, where it isn't mistaken for a bad expression.
+        function showFormulaError(message) {
+            const errBox = document.getElementById('conc-error');
+            const errText = document.getElementById('conc-error-text');
+            const inputField = document.getElementById('c0');
 
-    const { x, T, timePoints, hist_C, hist_ZT, hist_S, hist_Sig, truncated, actual_sim_time, params } = lastSimulationData;
-    
-    // Use an array to prevent UI-freezing string concatenation memory leaks
-    const rows = [];
-
-    if (truncated) {
-        const reqDays = (params.duration_s / 86400).toFixed(2);
-        const actDays = (actual_sim_time / 86400).toFixed(2);
-        rows.push(`# NOTE: Run hit the step budget; only ${actDays} of requested ${reqDays} days simulated.`);
-    }
-
-    // Added missing Temp_K column
-    rows.push("Time_s,Position_mm,Temp_K,Conc_cm3,ZT,Seebeck_uVK,Sigma_Scm");
-
-    timePoints.forEach((t, timeIdx) => {
-        const timeFormatted = t.toFixed(1);
-        
-        for (let posIdx = 0; posIdx < x.length; posIdx++) {
-            const posFormatted = (x[posIdx] * 1000).toFixed(3);
-            const tempFormatted = Number(T[posIdx]).toFixed(2);
-            const concFormatted = Number(hist_C[timeIdx][posIdx]).toExponential(4);
-            const ztFormatted = Number(hist_ZT[timeIdx][posIdx]).toFixed(4);
-            const sFormatted = Number(hist_S[timeIdx][posIdx]).toFixed(2);
-            const sigFormatted = Number(hist_Sig[timeIdx][posIdx]).toFixed(2);
-
-            rows.push([
-                timeFormatted,
-                posFormatted,
-                tempFormatted,
-                concFormatted,
-                ztFormatted,
-                sFormatted,
-                sigFormatted
-            ].join(","));
-        }
-    });
-
-    // Use a Blob and ObjectURL instead of encodeURI to bypass browser URL length limits
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `ThermoMigrate_${params.system}_Export.csv`);
-    document.body.appendChild(link);
-    link.click();
-    
-    // Clean up memory immediately after trigger
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
-
-        // --- MAIN SIMULATION ---
-        function triggerSimulation() {
-            if(worker) {
-                worker.terminate();
-                if(workerUrl) URL.revokeObjectURL(workerUrl); // Release the memory
+            if (errText) errText.innerText = message;
+            if (errBox) errBox.style.display = 'block';
+            if (inputField) {
+                inputField.classList.add('border-red-500', 'bg-red-50');
+                inputField.classList.remove('border-emerald-200', 'bg-white');
             }
-            
-            lastSimulationData = null;
-            // 1. Reset Error State
-            clearError(); 
-
-            // 1b. Gradient must be checked before we even build params -- if it's
-            // invalid we show the error and stop, we never silently clamp or run
-            // with different numbers than what's displayed.
-            if (!validateGradient()) {
-                document.getElementById('status-area').style.opacity = 0;
-                document.getElementById('header-progress').style.width = "0%";
-                return;
-            }
-
-            // 2. Safely Get Inputs
-            const getVal = (id) => {
-                const el = document.getElementById(id);
-                if (!el) { console.error("Missing HTML ID:", id); return 0; }
-                let val = parseFloat(el.value);
-                
-                // Enforce HTML-defined limits
-                if (el.hasAttribute('min')) val = Math.max(parseFloat(el.min), val);
-                if (el.hasAttribute('max')) val = Math.min(parseFloat(el.max), val);
-                
-                return val;
-            };
-
-            const durationInput = getVal('timeValue');
-            const durationSeconds = durationInput * 86400;
-
-            const params = {
-                system: document.getElementById('systemSelect').value,
-                tHot: getVal('tHot'),
-                tCold: getVal('tCold'),
-                length_mm: getVal('legLength'),
-                duration_s: durationSeconds,
-                d0: getVal('d0'),
-                ea: getVal('ea'),
-                qStar: getVal('qStar'),
-                c0: document.getElementById('c0').value.trim() 
-            };
-
-            // 3. Update UI Status
-            document.getElementById('status-area').style.opacity = 1;
-            document.getElementById('header-status').innerText = "Calculating...";
-            document.getElementById('header-progress').style.width = "0%";
-            
-            // 4. Initialize Worker
-            const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
-            workerUrl = window.URL.createObjectURL(blob); // Store the reference
-            worker = new Worker(workerUrl);
-            
-            // 5. Handle Worker Messages
-            worker.onmessage = (e) => {
-                if(e.data.type === 'progress') {
-                    document.getElementById('header-progress').style.width = e.data.percent + "%";
-                }
-                else if(e.data.type === 'complete') {
-                    document.getElementById('header-progress').style.width = "100%";
-                    setTimeout(() => document.getElementById('status-area').style.opacity = 0, 800);
-                    renderAll(e.data);
-                }
-                else if(e.data.type === 'error') {
-                    // Stop Status
-                    document.getElementById('status-area').style.opacity = 0;
-                    document.getElementById('header-progress').style.width = "0%";
-                    
-                    // Show Error Box
-                    const errBox = document.getElementById('conc-error');
-                    const errText = document.getElementById('conc-error-text');
-                    const inputField = document.getElementById('c0');
-                    
-                    if(errText) errText.innerText = e.data.message;
-                    if(errBox) errBox.style.display = 'block';
-                    
-                    if(inputField) {
-                        inputField.classList.add('border-red-500', 'bg-red-50');
-                        inputField.classList.remove('border-emerald-200', 'bg-white');
-                    }
-                }
-            };
-            
-            worker.postMessage(params);
         }
 
         function clearError() {
             const errBox = document.getElementById('conc-error');
             const inputField = document.getElementById('c0');
-            
-            if(errBox) errBox.style.display = 'none';
-            
-            if(inputField) {
+
+            if (errBox) errBox.style.display = 'none';
+            if (inputField) {
                 inputField.classList.remove('border-red-500', 'bg-red-50');
                 inputField.classList.add('border-emerald-200', 'bg-white');
             }
         }
 
+        function showRunError(message) {
+            const box = document.getElementById('run-error');
+            const text = document.getElementById('run-error-text');
+            if (text) text.innerText = message;
+            if (box) box.style.display = 'flex';
+        }
+
+        function clearRunError() {
+            const box = document.getElementById('run-error');
+            if (box) box.style.display = 'none';
+        }
+
+        function stopStatus() {
+            document.getElementById('status-area').style.opacity = 0;
+            document.getElementById('header-progress').style.width = "0%";
+        }
+
+        // Stops the running solver and releases its blob URL. The URL has to
+        // outlive the Worker constructor -- revoking it inline is not reliably
+        // safe -- so it's tied to the worker's lifetime instead, and released on
+        // every terminal state so the last run doesn't leak either.
+        function disposeWorker() {
+            if (worker) { worker.terminate(); worker = null; }
+            if (workerUrl) { URL.revokeObjectURL(workerUrl); workerUrl = null; }
+        }
+
+        // ---------------------------------------------------------------
+        // MAIN SIMULATION
+        // ---------------------------------------------------------------
+
+        function triggerSimulation() {
+            clearTimeout(debounceTimer);
+            disposeWorker();
+
+            lastSimulationData = null;
+            clearError();
+            clearRunError();
+
+            // The gradient cap is checked before anything is built: if it's
+            // violated we say so and stop, rather than quietly running different
+            // numbers from the ones on screen.
+            if (!validateGradient()) {
+                stopStatus();
+                return;
+            }
+
+            const readings = NUMERIC_FIELDS.map(f => ({ field: f, result: readNumber(f) }));
+            const invalid = readings.filter(r => !r.result.ok).map(r => r.result.label);
+            if (invalid.length) {
+                stopStatus();
+                showRunError(invalid.length === 1
+                    ? `${invalid[0]} needs a valid number before the simulation can run.`
+                    : `These fields need valid numbers: ${invalid.join(', ')}.`);
+                return;
+            }
+
+            const v = {};
+            readings.forEach(r => { v[r.field.id] = r.result.value; });
+
+            const params = {
+                system: document.getElementById('systemSelect').value,
+                tHot: v.tHot,
+                tCold: v.tCold,
+                length_mm: v.legLength,
+                duration_s: v.timeValue * 86400,
+                d0: v.d0,
+                ea: v.ea,
+                qStar: v.qStar,
+                c0: document.getElementById('c0').value.trim()
+            };
+
+            document.getElementById('status-area').style.opacity = 1;
+            document.getElementById('header-status').innerText = "Calculating...";
+            document.getElementById('header-progress').style.width = "0%";
+
+            try {
+                const blob = new Blob([document.getElementById('worker-code').textContent],
+                                      { type: "text/javascript" });
+                workerUrl = URL.createObjectURL(blob);
+                worker = new Worker(workerUrl);
+            } catch (err) {
+                disposeWorker();
+                stopStatus();
+                showRunError('Could not start the solver: ' + err.message);
+                return;
+            }
+
+            worker.onerror = (err) => {
+                disposeWorker();
+                stopStatus();
+                showRunError('Solver failed to start or crashed: ' + (err.message || 'unknown error'));
+            };
+
+            worker.onmessage = (e) => {
+                const msg = e.data;
+
+                if (msg.type === 'progress') {
+                    document.getElementById('header-progress').style.width = msg.percent + "%";
+                    return;
+                }
+
+                // Everything else is terminal, so the worker and its URL go now.
+                disposeWorker();
+
+                if (msg.type === 'complete') {
+                    document.getElementById('header-progress').style.width = "100%";
+                    setTimeout(() => { document.getElementById('status-area').style.opacity = 0; }, 800);
+                    renderAll(msg);
+
+                } else if (msg.type === 'error') {
+                    stopStatus();
+                    if (msg.kind === 'formula') {
+                        showFormulaError(msg.message);
+                    } else {
+                        showRunError(msg.message);
+                    }
+                }
+            };
+
+            worker.postMessage(params);
+        }
+
+        // ---------------------------------------------------------------
+        // RENDERING
+        // ---------------------------------------------------------------
+
         function renderAll(data) {
             lastSimulationData = data;
-            const { x, T, hist_C, hist_S, hist_ZT, hist_Sig, timePoints, params, truncated, actual_sim_time } = data;
-            const labels = x.map(val => (val*1000).toFixed(1)); // mm
+            const { x, T, hist_C, hist_S, hist_ZT, hist_Sig, timePoints,
+                    params, truncated, actual_sim_time } = data;
 
-            // 0. Truncation warning: the worker caps steps at a fixed budget, so a
-            // fast/steep-gradient run can finish short of the requested anneal
-            // duration. That must never happen silently.
+            // Array.from, not x.map: x is a Float64Array, and TypedArray.map
+            // coerces the callback's return back to a number -- so .toFixed()
+            // strings were silently turning back into floats. Two decimals keeps
+            // neighbouring nodes distinguishable on a short leg.
+            const labels = Array.from(x, val => (val * 1000).toFixed(2));
+
+            // Truncation must never be silent: a fast dopant or a steep gradient
+            // can finish short of the requested anneal.
             const warnBox = document.getElementById('truncation-warning');
             const warnText = document.getElementById('truncation-warning-text');
             if (truncated) {
-                const requestedDays = (params.duration_s / 86400);
-                const actualDays = (actual_sim_time / 86400);
+                const requestedDays = params.duration_s / 86400;
+                const actualDays = actual_sim_time / 86400;
                 if (warnText) warnText.innerText =
                     `Simulation stopped at the step budget: only ${actualDays.toFixed(2)} of the requested ${requestedDays.toFixed(2)} days were simulated. ` +
-                    `The chart/CSV below reflect t=${actualDays.toFixed(2)} days, not the full anneal. Try a shorter duration or a coarser tolerance.`;
+                    `The charts and CSV below show t=${actualDays.toFixed(2)} days, not the full anneal. Shorten the anneal, pick a slower dopant, or ease the gradient.`;
                 if (warnBox) warnBox.style.display = 'flex';
-            } else {
-                if (warnBox) warnBox.style.display = 'none';
+            } else if (warnBox) {
+                warnBox.style.display = 'none';
             }
 
-            // 1. Get Snapshot Data
-            const initial_C = hist_C[0];                // <--- NEW: Initial State (t=0)
-            const final_C = hist_C[hist_C.length-1];    // Final State (t=End)
-            const final_S = hist_S[hist_S.length-1];
-            const final_ZT = hist_ZT[hist_ZT.length-1];
-            const final_Sig = hist_Sig[hist_Sig.length-1];
+            const initial_C = hist_C[0];
+            const final_C = hist_C[hist_C.length - 1];
+            const final_S = hist_S[hist_S.length - 1];
+            const final_ZT = hist_ZT[hist_ZT.length - 1];
+            const final_Sig = hist_Sig[hist_Sig.length - 1];
 
-            // 2. Calculate & Display Average ZT
-            const avgZT = final_ZT.reduce((a,b)=>a+b, 0) / final_ZT.length;
-            document.getElementById('avg-zt-display').innerText = `Avg ZT: ${avgZT.toFixed(2)}`;
+            let ztSum = 0;
+            for (let i = 0; i < final_ZT.length; i++) ztSum += final_ZT[i];
+            document.getElementById('avg-zt-display').innerText =
+                `Avg ZT: ${(ztSum / final_ZT.length).toFixed(2)}`;
 
-            // --- 2D CHARTS ---
-            
-            // Chart 1: Concentration Profile (Initial vs Final)
+            // --- 2D charts ---
             update2DChart('chartConc', labels, [
-                { 
-                    label: 'Initial (t=0)', 
-                    data: initial_C, 
-                    borderColor: '#94a3b8', // Slate Grey
-                    borderDash: [5, 5],     // Dashed Line
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    yAxisID: 'y' 
-                },
-                { 
-                    label: 'Final (t=End)', 
-                    data: final_C, 
-                    borderColor: '#4f46e5', // Indigo Blue
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    yAxisID: 'y' 
-                },
-                { 
-                    label: 'Temperature (K)', 
-                    data: T, 
-                    borderColor: '#ef4444', // Red
-                    borderDash: [2, 2],     // Dotted
-                    borderWidth: 1,
-                    pointRadius: 0,
-                    yAxisID: 'y1' 
-                }
+                { label: 'Initial (t=0)', data: initial_C, borderColor: '#94a3b8', borderDash: [5, 5], yAxisID: 'y' },
+                { label: 'Final (t=End)', data: final_C, borderColor: '#4f46e5', yAxisID: 'y' },
+                { label: 'Temperature (K)', data: T, borderColor: '#ef4444', borderDash: [2, 2], borderWidth: 1, yAxisID: 'y1' }
             ], 'Conc (cm⁻³)', 'Temp (K)');
 
-            // Chart 2: Figure of Merit ZT
             update2DChart('chartZT', labels, [
                 { label: 'Figure of Merit (ZT)', data: final_ZT, borderColor: '#d97706', yAxisID: 'y' }
             ], 'ZT', '');
 
-            // Chart 3: Seebeck Coefficient
             update2DChart('chartS', labels, [
                 { label: 'Seebeck (µV/K)', data: final_S, borderColor: '#9333ea', yAxisID: 'y' }
             ], 'Seebeck (µV/K)', '');
 
-            // Chart 4: Conductivity
             update2DChart('chartSigma', labels, [
                 { label: 'Conductivity (S/cm)', data: final_Sig, borderColor: '#2563eb', yAxisID: 'y' }
             ], 'Sigma (S/cm)', '');
 
-            // --- 3D PLOTS ---
-            // Prepare Axis Data
-            const xPlot = x.map(v => v*1000); // mm
-            
-            // Determine Time Unit (Hours, Days, or Years) based on duration
-            const maxTime = timePoints[timePoints.length-1];
-            let tDiv = 3600; 
-            let tUnit = 'h';
-            
-            if(maxTime > 3.15e7) {      // > 1 Year
-                tDiv = 3.15e7; tUnit = 'y'; 
-            } else if(maxTime > 1e5) {  // > ~1 Day
-                tDiv = 86400; tUnit = 'd'; 
-            }
-            
-            const yPlot = timePoints.map(t => t/tDiv);
+            // --- 3D surfaces ---
+            const xPlot = Array.from(x, v => v * 1000);   // mm
+
+            const maxTime = timePoints[timePoints.length - 1];
+            let tDiv = 3600, tUnit = 'h';
+            if (maxTime > 3.15e7) { tDiv = 3.15e7; tUnit = 'y'; }
+            else if (maxTime > 1e5) { tDiv = 86400; tUnit = 'd'; }
+            const yPlot = timePoints.map(t => t / tDiv);
 
             update3DPlot('plotlyConc', xPlot, yPlot, hist_C, 'Concentration', 'Viridis', tUnit);
             update3DPlot('plotlyZT', xPlot, yPlot, hist_ZT, 'ZT', 'Plasma', tUnit);
@@ -1625,135 +1584,181 @@ function switchTab(id) {
             update3DPlot('plotlySigma', xPlot, yPlot, hist_Sig, 'Sigma (S/cm)', 'Jet', tUnit);
         }
 
-        // --- CHART HELPERS ---
-        const charts = {}; // Store instances
-
-
         function update2DChart(canvasId, labels, datasets, yLeft, yRight) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    
-    if(charts[canvasId]) charts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
 
-    const yScales = {
-        x: { title: { display:true, text:'Position (mm)' } },
-        y: { 
-            type:'linear', 
-            display:true, 
-            position:'left', 
-            title:{display:!!yLeft, text:yLeft},
-            ticks: {
-                callback: function(value) {
-                    if (yLeft && yLeft.includes('Conc')) {
-                        return Number(value).toExponential(2);
-                    }
-                    return parseFloat(Number(value).toFixed(3));
+            const isConc = !!yLeft && yLeft.includes('Conc');
+            const fmt = (value) => isConc
+                ? Number(value).toExponential(2)
+                : parseFloat(Number(value).toFixed(3));
+
+            const scales = {
+                x: { title: { display: true, text: 'Position (mm)' } },
+                y: {
+                    type: 'linear', display: true, position: 'left',
+                    title: { display: !!yLeft, text: yLeft },
+                    ticks: { callback: fmt }
                 }
+            };
+            if (yRight) {
+                scales.y1 = {
+                    type: 'linear', display: true, position: 'right',
+                    grid: { display: false },
+                    title: { display: true, text: yRight }
+                };
             }
-        }
-    };
-    if(yRight) {
-        yScales.y1 = { type:'linear', display:true, position:'right', grid:{display:false}, title:{display:true, text:yRight} };
-    }
 
-    charts[canvasId] = new Chart(ctx, {
-        type: 'line',
-        data: { labels: labels, datasets: datasets.map(d => ({ ...d, borderWidth:2, pointRadius:0, fill:false })) },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: yScales,
-            interaction: { mode:'index', intersect:false },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                // Apply exponential format to the tooltip if it's the Concentration chart
-                                if (yLeft && yLeft.includes('Conc')) {
-                                    label += Number(context.parsed.y).toExponential(2);
-                                } else {
-                                    // Apply standard rounding for ZT, Seebeck, Sigma
-                                    label += parseFloat(Number(context.parsed.y).toFixed(3));
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets.map(d => Object.assign(
+                        { borderWidth: 2, pointRadius: 0, fill: false }, d))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: scales,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const name = context.dataset.label ? context.dataset.label + ': ' : '';
+                                    return context.parsed.y === null ? name : name + fmt(context.parsed.y);
                                 }
                             }
-                            return label;
                         }
                     }
                 }
-            }
+            });
         }
-    });
-}
+
+        // Min/max over every snapshot. A loop, not Math.min(...arr): spreading a
+        // flattened surface passes one argument per point and blows the call
+        // stack once the grid or snapshot count grows.
+        function surfaceExtent(rows) {
+            let lo = Infinity, hi = -Infinity;
+            for (const row of rows) {
+                for (let i = 0; i < row.length; i++) {
+                    const v = row[i];
+                    if (v < lo) lo = v;
+                    if (v > hi) hi = v;
+                }
+            }
+            if (!Number.isFinite(lo) || !Number.isFinite(hi)) return [0, 1];
+            if (lo === hi) {
+                // A perfectly flat surface would otherwise get a zero-height axis.
+                const pad = Math.abs(lo) * 0.05 || 1;
+                return [lo - pad, hi + pad];
+            }
+            return [lo, hi];
+        }
 
         function update3DPlot(divId, xData, yData, zData, zLabel, colorscale, timeUnit) {
-    // Convert array of TypedArrays to Array of Arrays
-    const zArr = zData.map(row => Array.from(row));
-    
-    // 1. Force X and Y minimums to exactly 0
-    const xMin = 0;
-    const xMax = Math.max(...xData);
-    const yMin = 0;
-    const yMax = Math.max(...yData);
-    
-    // 2. Flatten Z data to find absolute min and max for tight bounding
-    const zFlat = zArr.flat();
-    const zMin = Math.min(...zFlat);
-    const zMax = Math.max(...zFlat);
-    
-    const data = [{
-        type: 'surface',
-        x: xData,
-        y: yData,
-        z: zArr,
-        colorscale: colorscale,
-        showscale: false,
-        contours: {
-            z: { show:true, usecolormap: true, highlightcolor:"#42f462", project:{z: true} }
-        }
-    }];
+            const zArr = zData.map(row => Array.from(row));
+            const [zMin, zMax] = surfaceExtent(zArr);
 
-    const layout = {
-        title: false,
-        autosize: true,
-        margin: {l:50, r:20, b:50, t:50},
-        scene: {
-            // 3. Apply the strict ranges to the axes
-            xaxis: {title: 'Pos (mm)', range: [xMin, xMax]},
-            yaxis: {title: `Time (${timeUnit})`, range: [yMin, yMax]},
-            zaxis: {title: zLabel, range: [zMin, zMax]},
-            camera: { eye: {x: -1.7, y: -1.7, z: 1.2} }
-        }
-    };
-    
-    const config = { displaylogo: false, responsive: true };
-    
-    Plotly.react(divId, data, layout, config);
-}
+            const data = [{
+                type: 'surface',
+                x: xData,
+                y: yData,
+                z: zArr,
+                colorscale: colorscale,
+                showscale: false,
+                contours: {
+                    z: { show: true, usecolormap: true, highlightcolor: "#42f462", project: { z: true } }
+                }
+            }];
 
-        window.onload = function() { 
+            const layout = {
+                autosize: true,
+                margin: { l: 50, r: 20, b: 50, t: 50 },
+                // uirevision keeps the camera where the user left it across re-runs.
+                uirevision: divId,
+                scene: {
+                    xaxis: { title: 'Pos (mm)', range: [0, xData[xData.length - 1]] },
+                    yaxis: { title: `Time (${timeUnit})`, range: [0, yData[yData.length - 1]] },
+                    zaxis: { title: zLabel, range: [zMin, zMax] },
+                    camera: { eye: { x: -1.7, y: -1.7, z: 1.2 } }
+                }
+            };
+
+            Plotly.react(divId, data, layout, { displaylogo: false, responsive: true });
+        }
+
+        // ---------------------------------------------------------------
+        // EXPORT
+        // ---------------------------------------------------------------
+
+        function downloadData() {
+            if (!lastSimulationData) {
+                showRunError('No data to export yet. Wait for the current run to finish.');
+                return;
+            }
+
+            const { x, T, timePoints, hist_C, hist_ZT, hist_S, hist_Sig,
+                    truncated, actual_sim_time, params, grid } = lastSimulationData;
+
+            // Build an array and join once; repeated string concatenation over
+            // ~40 snapshots x N nodes is what used to stall the tab.
+            const rows = [];
+
+            rows.push(`# ThermoMigrate export - system ${params.system}`);
+            if (grid) {
+                rows.push(`# Grid: ${grid.nodes} nodes, dx=${grid.dx_mm.toFixed(4)} mm, dt=${grid.dt_s.toExponential(3)} s, ${grid.steps} steps`);
+            }
+            if (truncated) {
+                const reqDays = (params.duration_s / 86400).toFixed(2);
+                const actDays = (actual_sim_time / 86400).toFixed(2);
+                rows.push(`# NOTE: run hit the step budget; only ${actDays} of the requested ${reqDays} days were simulated.`);
+            }
+            rows.push("Time_s,Position_mm,Temp_K,Conc_cm3,ZT,Seebeck_uVK,Sigma_Scm");
+
+            timePoints.forEach((t, timeIdx) => {
+                const timeFormatted = t.toFixed(1);
+                for (let posIdx = 0; posIdx < x.length; posIdx++) {
+                    rows.push([
+                        timeFormatted,
+                        (x[posIdx] * 1000).toFixed(3),
+                        T[posIdx].toFixed(2),
+                        hist_C[timeIdx][posIdx].toExponential(4),
+                        hist_ZT[timeIdx][posIdx].toFixed(4),
+                        hist_S[timeIdx][posIdx].toFixed(2),
+                        hist_Sig[timeIdx][posIdx].toFixed(2)
+                    ].join(","));
+                }
+            });
+
+            // A Blob rather than a data: URI, which has a length ceiling.
+            const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `ThermoMigrate_${params.system}_Export.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Revoking synchronously can cancel the download in some browsers.
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        // ---------------------------------------------------------------
+        // STARTUP
+        // ---------------------------------------------------------------
+
+        window.addEventListener('load', function() {
             applyThermalLimits();
-            updateDopantList(); 
+            updateDopantList();     // fires debouncedUpdate, ignored while !isReady
             setPlotMode('2D');
-            triggerSimulation(); 
-        }
+            isReady = true;
+            triggerSimulation();    // exactly one run on startup
+        });
 
-
-        window.onresize = function() { 
-    // Guard against resizing hidden canvases (offsetParent is null if hidden)
-    Object.values(charts).forEach(c => {
-        if (c.canvas && c.canvas.offsetParent !== null) c.resize();
-    });
-    ['plotlyConc', 'plotlyZT', 'plotlyS', 'plotlySigma'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.offsetParent !== null) {
-            try { Plotly.Plots.resize(id); } catch(e){}
-        }
-    });
-}
-
+        window.addEventListener('resize', resizeVisiblePlots);
     </script>
 </body>
 </html>
