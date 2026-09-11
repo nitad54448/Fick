@@ -1,337 +1,430 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cation Interdiffusion Simulator v5.4 (Auto-Params)</title>
-    <link href="./dist/output.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    
-    <script>
-    window.MathJax = {
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
-    };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diffusion Studio — Cation diffusion</title>
+<style>
+:root{color-scheme:light;--ink:#152e39;--muted:#57707a;--line:#dce6e8;--accent:#087f82;--paper:#fff;--bg:#f0f5f5}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);padding:9px 13px;font-weight:600}button:hover{background:#e9f4f3}button:disabled{opacity:.5;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #68c7cd;outline-offset:2px}header{padding:23px 30px;background:#123742;color:white;display:flex;align-items:center;justify-content:space-between;gap:20px}h1{font-size:24px;letter-spacing:-.7px;margin:0}header p{margin:3px 0;color:#bdd8dd}.badge{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#b9e5de;border:1px solid #456771;padding:6px 10px;border-radius:20px}.layout{display:grid;grid-template-columns:340px minmax(0,1fr);max-width:1800px;margin:auto}aside{padding:22px;border-right:1px solid var(--line);background:#f9fbfb}section.controls{margin-bottom:24px}h2{font-size:15px;margin:0 0 12px}h3{font-size:15px;margin:22px 0 8px}.section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.section-title h2{margin:0}.number{color:var(--accent);margin-right:9px;font-size:12px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}.wide{grid-column:1/-1}label{display:block;color:var(--muted);font-size:12px}input:not([type=checkbox]):not([type=color]),select{display:block;width:100%;border:1px solid #cbdadd;border-radius:7px;padding:8px 9px;margin-top:4px;background:#fff;color:var(--ink);min-width:0}input[type=color]{width:32px;height:32px;padding:2px;border:1px solid var(--line);border-radius:6px}input[type=checkbox]{accent-color:var(--accent)}.check{display:flex;align-items:center;gap:8px;margin-top:12px}.hint{font-size:12px;color:var(--muted);margin:8px 0}.element-card{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:13px;background:white;margin-bottom:12px}.card-top{display:flex;gap:8px;align-items:center;margin-bottom:12px}.card-top label{flex:1;min-width:0}.remove{padding:5px 8px;font-size:18px}.primary{background:var(--accent);color:white;border-color:var(--accent)}.primary:hover{background:#06676a}.actions{display:flex;gap:8px}.actions button{flex:1}main{padding:26px;min-width:0}.intro{display:flex;justify-content:space-between;align-items:start;gap:12px}.intro h2{font-size:23px;letter-spacing:-.5px;margin:0}.intro p{color:var(--muted);margin:5px 0 18px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:4px 0 22px}.metric{background:white;border:1px solid var(--line);border-radius:10px;padding:14px 18px}.metric small{display:block;color:var(--muted)}.metric strong{font-size:20px;font-weight:600}.tabs{display:flex;gap:4px;overflow:auto;border-bottom:1px solid var(--line);margin-bottom:18px}.tabs button{white-space:nowrap;border:0;border-radius:7px 7px 0 0;padding:11px 13px;background:transparent;color:var(--muted)}.tabs button[aria-selected=true]{color:var(--accent);background:#e0efed;box-shadow:inset 0 -3px var(--accent)}.panel{background:white;border:1px solid var(--line);border-radius:12px;padding:20px;min-height:480px;box-shadow:0 7px 24px #193c4406}[hidden]{display:none!important}.chart{width:100%;height:auto;display:block;min-height:280px}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:4px 0 12px}.swatch{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:6px}.status{padding:10px 13px;margin-bottom:15px;border-radius:7px;background:#e3f0ed;color:#205f51;overflow-wrap:anywhere}.status.error{background:#fff0ec;color:#9a3825}.status.busy{background:#e7f0fc;color:#325888}.model-note{margin-top:15px;font-size:12px;color:var(--muted)}.docs{max-width:850px}.docs p,.docs li{color:var(--muted)}.equation{padding:14px;background:var(--bg);border-radius:8px;overflow:auto;font-family:monospace}.plot{height:530px;width:100%}.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:10px}.toolbar label{min-width:180px}a{color:var(--accent)}@media(max-width:1000px){.layout{grid-template-columns:300px minmax(0,1fr)}main{padding:18px}.metrics{gap:7px}.metric{padding:10px}.metric strong{font-size:17px}}@media(max-width:720px){header{padding:19px}.badge{display:none}.layout{display:flex;flex-direction:column}aside{border-right:0;border-bottom:1px solid var(--line);padding:18px}main{padding:18px}.panel{padding:12px;min-height:350px}.plot{height:410px}.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.metric strong{font-size:16px}.metric small{font-size:10px}.intro h2{font-size:21px}}
+</style></head><body>
+<header><div><h1>Diffusion Studio</h1><p>Explore cation transport across a one-dimensional couple.</p></div><span class="badge">Fick’s second law · v6</span></header>
+<div class="layout"><aside><form id="controls" novalidate>
+<section class="controls"><h2><span class="number">01</span>Couple geometry</h2><div class="fields">
+<label>Temperature (K)<input id="temp" type="number" value="1250" min="300" max="2500"></label>
+<label>Annealing time (h)<input id="time" type="number" value="120" min="0" step="0.1"></label>
+<label>Source length (µm)<input id="sourceLength" type="number" value="0.5" min="0" step="0.01"></label>
+<label>Total length (µm)<input id="totalLength" type="number" value="2" min="0" step="0.1"></label>
+<label>Grid cells<input id="gridPoints" type="number" value="150" min="20" max="400" step="1"></label></div></section>
+<section class="controls"><h2><span class="number">02</span>Matrix reference</h2><div class="fields"><label class="wide">Balance species<input id="targetName" value="Mg (Matrix)" maxlength="80"></label><label>D₀ (m²/s)<input id="targetD0" value="1.0e-12"></label><label>Q (eV)<input id="targetQ" type="number" value="2.5" min="0" step="0.1"></label></div><label class="check"><input id="blockingEnabled" type="checkbox" checked>Enable phenomenological site blocking</label><p class="hint">Matrix fraction scales dopant mobility, with a 1% floor. Matrix D is a reference only.</p></section>
+<section class="controls"><div class="section-title"><h2><span class="number">03</span>Source composition</h2><button id="add" type="button">+ Cation</button></div><div id="elementsList"></div><p class="hint">Presets are illustrative estimates, not validated material data. Up to four distinct cations; total ≤ 100%.</p></section>
+<div class="actions"><button class="primary" type="submit">Run simulation</button><button id="cancel" type="button" disabled>Cancel</button></div><button id="save" type="button" style="width:100%;margin-top:10px" disabled>Download data (.txt)</button>
+</form></aside><main>
+<div class="intro"><div><h2>From interface to equilibrium</h2><p>A closed diffusion couple with composition-dependent mobility.</p></div></div>
+<div class="metrics"><div class="metric"><small>Annealing temperature</small><strong id="metricTemp">—</strong></div><div class="metric"><small>Simulated duration</small><strong id="metricTime">—</strong></div><div class="metric"><small>Max. inventory error</small><strong id="metricMass">—</strong></div></div>
+<div id="status" class="status" role="status" aria-live="polite">Ready to simulate.</div>
+<nav class="tabs" role="tablist" aria-label="Result views">
+<button id="tab-profile" role="tab" aria-selected="true" aria-controls="pane-profile" data-tab="profile">Concentration</button><button id="tab-diffusivity" role="tab" aria-selected="false" aria-controls="pane-diffusivity" data-tab="diffusivity">Diffusivity</button><button id="tab-time3d" role="tab" aria-selected="false" aria-controls="pane-time3d" data-tab="time3d">3D · Time</button><button id="tab-temp3d" role="tab" aria-selected="false" aria-controls="pane-temp3d" data-tab="temp3d">3D · Temperature</button><button id="tab-help" role="tab" aria-selected="false" aria-controls="pane-help" data-tab="help">Model & notes</button></nav>
+<div class="panel" id="pane-profile" role="tabpanel" aria-labelledby="tab-profile"><h2>Concentration profile</h2><div id="profileLegend" class="legend"></div><div id="profileChart"></div><p class="hint">Dashed vertical line: original interface. Values are cell averages.</p></div>
+<div class="panel" id="pane-diffusivity" role="tabpanel" aria-labelledby="tab-diffusivity" hidden><h2>Final local diffusivity</h2><div id="diffLegend" class="legend"></div><div id="diffChart"></div><p class="hint">Zero diffusivities are omitted from the logarithmic axis.</p></div>
+<div class="panel" id="pane-time3d" role="tabpanel" aria-labelledby="tab-time3d" hidden><div class="toolbar"><label>Cation surface<select id="timeSpecies"></select></label></div><div id="plotly-time" class="plot"></div></div>
+<div class="panel" id="pane-temp3d" role="tabpanel" aria-labelledby="tab-temp3d" hidden><div class="toolbar"><label>Cation surface<select id="tempSpecies"></select></label></div><div id="plotly-temp" class="plot"></div><p class="hint">Eight independent runs over ±200 K, clipped to 300–2500 K.</p></div>
 
-</head>
-<body class="h-screen flex flex-col overflow-hidden">
+<div class="panel docs" id="pane-help" role="tabpanel"
+     aria-labelledby="tab-help" hidden>
 
-    <div class="bg-white border-b border-gray-200 px-4 flex items-center justify-between shrink-0 h-12 shadow-sm z-20">
-        <div class="flex space-x-1 h-full overflow-x-auto no-scrollbar">
-            <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn active h-full flex items-center">
-                <i class="fas fa-chart-line mr-2"></i> 2D Profile
-            </button>
-            <button onclick="switchTab('diffusivity')" id="tab-diffusivity" class="tab-btn h-full flex items-center">
-                <i class="fas fa-wave-square mr-2"></i> Diffusivity
-            </button>
-            <button onclick="switchTab('time3d')" id="tab-time3d" class="tab-btn h-full flex items-center">
-                <i class="fas fa-cube mr-2"></i> 3D Time
-            </button>
-            <button onclick="switchTab('temp3d')" id="tab-temp3d" class="tab-btn h-full flex items-center">
-                <i class="fas fa-temperature-high mr-2"></i> 3D Temp
-            </button>
-            <button onclick="switchTab('help')" id="tab-help" class="tab-btn h-full flex items-center text-emerald-600">
-                <i class="fas fa-book mr-2"></i> Documentation
-            </button>
-        </div>
-        <div class="text-xs text-gray-400 font-mono hidden md:block">
-            DiffusionCouple v5.4 (Auto-Params)
-        </div>
-    </div>
+  <h2>Simulator documentation</h2>
+  <p>
+    This simulator explores one-dimensional cation diffusion between a
+    source layer and a surrounding matrix. You can compare concentration
+    profiles, local diffusivities, time evolution and temperature sensitivity.
+  </p>
+  <p>
+    The calculations use a phenomenological, composition-dependent form
+    of Fick’s second law. The model is intended for exploring diffusion
+    behaviour; quantitative predictions require appropriate material
+    parameters and numerical convergence checks.
+  </p>
 
-    <div class="flex flex-1 overflow-hidden relative">
-        
-        <aside class="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] shrink-0 overflow-y-auto">
-            
-            <div class="p-4 space-y-6">
-                <div class="bg-slate-50 p-3 rounded border border-slate-200">
-                    <h3 class="section-header">1. Couple Geometry</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="input-group">
-                            <label title="Annealing Temperature">Temp (K)</label>
-                            <input type="number" id="temp" value="1250" min="300" max="2500" oninput="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label title="Annealing Duration">Time (Hours)</label>
-                            <input type="number" id="time" value="120" min="0.1" step="0.1" oninput="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label title="Length of the Source material">Source Len (µm)</label>
-                            <input type="number" id="sourceLength" value="0.5" min="0.01" step="0.01" oninput="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label title="Total simulation domain length">Total Len (µm)</label>
-                            <input type="number" id="totalLength" value="2.0" min="0.1" step="0.1" oninput="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label title="Higher points = More precision, slower speed">Grid Points</label>
-                            <input type="number" id="gridPoints" value="150" min="50" max="400" oninput="debouncedUpdate()">
-                        </div>
-                    </div>
-                </div>
+  <h3>1. Defining the diffusion couple</h3>
+  <p>
+    The domain extends from <strong>x = 0</strong> to
+    <strong>x = L</strong>. Initially, the source occupies
+    <strong>0 ≤ x &lt; a</strong>, where <strong>a</strong> is the
+    source length. The remaining domain initially contains only the matrix.
+  </p>
 
-                <div class="bg-blue-50 p-3 rounded border border-blue-100">
-                    <h3 class="section-header text-blue-800">2. Target (Matrix) Properties</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="col-span-2 input-group">
-                            <label>Name (Balance Species)</label>
-                            <input type="text" id="targetName" value="Mg (Matrix)" oninput="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label title="Matrix Pre-exponential factor">Matrix D₀</label>
-                            <input type="text" id="targetD0" value="1.0e-12" oninput="debouncedUpdate()">
-                        </div>
-                        <div class="input-group">
-                            <label title="Matrix Activation Energy">Matrix Q (eV)</label>
-                            <input type="number" id="targetQ" value="2.5" step="0.1" oninput="debouncedUpdate()">
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3 flex items-start space-x-2 bg-white p-2 rounded border border-blue-200">
-                        <div class="flex items-center h-5">
-                            <input id="blockingEnabled" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" onchange="debouncedUpdate()">
-                        </div>
-                        <div class="ml-1 text-xs">
-                            <label for="blockingEnabled" class="font-medium text-gray-700 cursor-pointer">Enable Vacancy/Site Blocking</label>
-                            <p class="text-gray-500 text-[10px] leading-tight mt-1">
-                                Cations slow down if the lattice is crowded (High Cation %).
-                            </p>
-                        </div>
-                    </div>
-                </div>
+  <ul>
+    <li>
+      <strong>Temperature (K):</strong>
+      The uniform annealing temperature, between 300 and 2500 K.
+      Temperature remains constant during each individual simulation.
+    </li>
+    <li>
+      <strong>Annealing time (h):</strong>
+      The duration of diffusion. Enter zero to inspect the initial state.
+      The solver converts hours to seconds internally.
+    </li>
+    <li>
+      <strong>Source length (µm):</strong>
+      The initial thickness of the cation-containing layer.
+      It must be positive and smaller than the total length.
+    </li>
+    <li>
+      <strong>Total length (µm):</strong>
+      The length of the closed simulation domain.
+      Lengths are converted to metres for the calculations.
+    </li>
+    <li>
+      <strong>Grid cells:</strong>
+      The number of equal-width computational cells, from 20 to 400.
+      More cells resolve sharper spatial features but generally require
+      more time steps.
+    </li>
+  </ul>
 
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="section-header mb-0 border-0">3. Source Composition</h3>
-                        <button onclick="addElement()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition shadow-sm">
-                            <i class="fas fa-plus"></i> Add Cation
-                        </button>
-                    </div>
-                    <div id="elementsList" class="space-y-3">
-                        </div>
-                </div>
+  <p>
+    Both ends are impermeable: no species enters or leaves the domain.
+    The source is therefore a <strong>finite reservoir</strong>;
+    its concentration is allowed to decrease during diffusion.
+  </p>
 
-                <div class="pt-2">
-                    <button onclick="saveData()" id="saveBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow transition flex justify-center items-center gap-2 text-sm">
-                        <i class="fas fa-download"></i> Save Data (.txt)
-                    </button>
-                    <div id="saveStatus" class="text-center text-[10px] text-gray-500 mt-1 h-4"></div>
-                </div>
-            </div>
-        </aside>
+  <h3>2. Source composition and matrix balance</h3>
+  <p>
+    Add up to four distinct cations. Each source concentration is expressed
+    as a percentage on the same composition basis. The sum of the entered
+    cation concentrations must not exceed 100%.
+  </p>
 
-        <main class="flex-1 flex flex-col h-full relative bg-slate-50 overflow-hidden">
-            
-            <div id="loading-overlay">
-                <div class="flex flex-col items-center">
-                    <div class="spinner mb-2"></div>
-                    <span class="text-sm font-semibold text-gray-600">Simulating Physics...</span>
-                </div>
-            </div>
+  <div class="equation">
+    Cᵢ(x, 0) = C₀,ᵢ inside the source<br>
+    Cᵢ(x, 0) = 0 outside the source<br><br>
+    Cmatrix(x, t) = 100 − Σᵢ Cᵢ(x, t)
+  </div>
 
-            <div id="pane-profile" class="tab-pane active relative w-full h-full">
-                <div class="absolute inset-0 p-4">
-                    <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 relative flex flex-col">
-                        <div class="text-xs text-center text-gray-400 font-mono mb-2 flex justify-center gap-4">
-                             <span><i class="fas fa-minus text-red-600" style="border-bottom: 2px dashed red;"></i> Kirkendall Marker</span>
-                             <span><i class="fas fa-minus text-slate-400" style="border-bottom: 2px dashed #94a3b8;"></i> Original Interface</span>
-                        </div>
-                        <div class="flex-1 relative">
-                            <canvas id="diffusionChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <p>
+    For example, a source containing 25% Ni and 15% Co initially contains
+    60% matrix. Outside the source, the initial matrix concentration is 100%.
+  </p>
+  <p>
+    Concentrations are stored as <strong>cell averages</strong>.
+    If the source interface crosses a cell, that cell receives the
+    corresponding fractional source loading. This preserves the entered
+    source inventory without rounding the source length to a grid boundary.
+  </p>
 
-            <div id="pane-diffusivity" class="tab-pane relative w-full h-full">
-                <div class="absolute inset-0 p-4">
-                    <div class="bg-white w-full h-full rounded-lg shadow-sm border border-gray-200 p-4 relative flex flex-col">
-                         <h3 class="text-sm font-bold text-gray-700 mb-2">Local Diffusivity Profile (Log Scale)</h3>
-                        <div class="flex-1 relative">
-                            <canvas id="diffusivityChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <h4>Cation parameters</h4>
+  <ul>
+    <li>
+      <strong>Cation preset:</strong>
+      Selecting an element fills its D₀, Q and β fields.
+      These values remain editable.
+    </li>
+    <li>
+      <strong>D₀ (m²/s):</strong>
+      The Arrhenius pre-exponential factor. Setting it to zero makes
+      that cation immobile.
+    </li>
+    <li>
+      <strong>Q (eV):</strong>
+      The activation energy used in the thermal mobility factor.
+    </li>
+    <li>
+      <strong>Source concentration (%):</strong>
+      The initial concentration of that cation inside the source layer.
+    </li>
+    <li>
+      <strong>β:</strong>
+      A dimensionless empirical parameter controlling how mobility
+      changes with the cation’s own local concentration.
+    </li>
+    <li>
+      <strong>Colour:</strong>
+      The colour used to identify the cation in the plots.
+      It does not affect the calculation.
+    </li>
+  </ul>
 
-            <div id="pane-time3d" class="tab-pane w-full h-full relative">
-                 <div id="plotly-time" class="w-full h-full"></div>
-            </div>
+  <p>
+    <strong>Preset values are illustrative, unreferenced estimates.</strong>
+    An element name alone does not determine its diffusivity.
+    Use parameters appropriate to the host material, phase, composition
+    and temperature range being studied.
+  </p>
 
-            <div id="pane-temp3d" class="tab-pane w-full h-full relative">
-                <div id="plotly-temp" class="w-full h-full"></div>
-            </div>
+  <h4>Matrix reference parameters</h4>
+  <p>
+    The matrix name labels the balance species. Its D₀ and Q define
+    an Arrhenius reference diffusivity:
+  </p>
 
+  <div class="equation">
+    Dmatrix,ref(T) = D₀,matrix exp[−Qmatrix / (kBT)]
+  </div>
 
-<div id="pane-help" class="tab-pane w-full h-full overflow-y-auto p-8 bg-white">
-                <div class="max-w-4xl mx-auto help-content pb-20">
-                    <div class="flex items-center space-x-3 border-b-2 border-slate-200 pb-4 mb-6">
-                        <i class="fas fa-book-reader text-3xl text-blue-600"></i>
-                        <h1 class="text-3xl font-extrabold text-slate-800 m-0 border-0 p-0">Simulator Documentation</h1>
-                    </div>
-                    
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-r">
-                        <p class="text-blue-900 font-medium text-sm m-0">
-                            <strong>Version 5.4 Update:</strong> This simulator now utilizes adaptive time-stepping to ensure accuracy at both low and high temperatures. It solves the non-linear Fick's 2nd Law using the Finite Difference Method (FDM) on a 1D grid.
-                        </p>
-                    </div>
+  <p>
+    This reference appears in the diffusivity plot and exported data.
+    It does not drive the cation profiles. The matrix concentration is
+    calculated by composition balance, rather than by solving a separate
+    matrix diffusion equation.
+  </p>
 
-                    <h2>1. User Guide & Controls</h2>
-                    <p>This tool simulates the interdiffusion of cations between a "Source" material (left) and a "Matrix" material (right).</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 mb-6">
-                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
-                            <h4 class="font-bold text-slate-700 mb-2">Defining the Couple</h4>
-                            <ul class="text-sm space-y-2 text-slate-600">
-                                <li><strong>Temp & Time:</strong> Controls the thermodynamics (speed) and duration of the anneal.</li>
-                                <li><strong>Source Len:</strong> The thickness of the dopant layer on the left side (0 to $x$).</li>
-                                <li><strong>Grid Points:</strong> Resolution ($N$). Higher $N$ is more accurate but requires smaller time steps (slower).</li>
-                            </ul>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
-                            <h4 class="font-bold text-slate-700 mb-2">Visualization Tabs</h4>
-                            <ul class="text-sm space-y-2 text-slate-600">
-                                <li><strong>2D Profile:</strong> Standard Concentration vs. Depth plot.</li>
-                                <li><strong>Diffusivity:</strong> Plots $\log(D)$ vs. Depth to show how speed changes locally.</li>
-                                <li><strong>3D Time:</strong> A surface plot showing evolution ($t=0 \to t_{end}$).</li>
-                                <li><strong>3D Temp:</strong> Sweeps temperature $\pm 200K$ to show thermal sensitivity.</li>
-                            </ul>
-                        </div>
-                    </div>
+  <h3>3. Composition-dependent diffusivity</h3>
+  <p>
+    For each cation i, the solver evaluates a local diffusion coefficient
+    from temperature, its own concentration and the optional blocking factor:
+  </p>
 
-                    <h2>2. The Physics Model</h2>
-                    <p>The simulator moves beyond simple error-function solutions. It calculates a <strong>Local Diffusivity</strong> $D_i(x,t)$ that changes based on local composition and temperature.</p>
+  <div class="equation">
+    Dᵢ(C, T) = D₀,ᵢ exp[−Qᵢ / (kBT)] exp[βᵢ Cᵢ / 100] φ<br><br>
+    kB = 8.617333262145 × 10⁻⁵ eV/K
+  </div>
 
-                    <h3>A. The Master Diffusivity Equation</h3>
-                    <p>For any cation $i$, the diffusion coefficient is modeled as:</p>
-                    
-                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
-                        $$ D_i(C, T) = \underbrace{D_{0,i} \exp\left(\frac{-Q_i}{k_B T}\right)}_{\text{Arrhenius (Thermal)}} \cdot \underbrace{\exp\left(\beta_i \frac{C_i}{100}\right)}_{\text{Thermodynamic Interaction}} \cdot \underbrace{\phi_{vac}}_{\text{Vacancy Factor}} $$
-                    </div>
+  <h4>Thermal activation</h4>
+  <p>
+    For positive Q, increasing temperature increases the Arrhenius
+    diffusivity. At a fixed temperature and D₀, increasing Q decreases
+    it. Q is entered in eV, so the solver uses Boltzmann’s constant
+    in eV/K.
+  </p>
 
-                    <h3>B. Term 1: Thermal Activation (Arrhenius)</h3>
-                    <p>
-                        Atoms vibrate in potential wells. To jump to a neighbor site, they must overcome an energy barrier $Q$ (Activation Energy). 
-                        <br><br>
-                        <span class="block text-center text-lg">$$ P_{jump} \propto \exp(-Q/k_BT) $$</span>
-                        <br>
-                        <strong>Key Insight:</strong> A high $Q$ means the element is very sluggish at low temps but speeds up drastically as $T$ rises.
-                    </p>
+  <h4>Concentration sensitivity</h4>
+  <ul>
+    <li>
+      <strong>β &gt; 0:</strong>
+      The self-concentration factor increases with cation concentration.
+    </li>
+    <li>
+      <strong>β &lt; 0:</strong>
+      The self-concentration factor decreases with cation concentration.
+    </li>
+    <li>
+      <strong>β = 0:</strong>
+      The self-concentration factor equals one.
+      Diffusivity is spatially constant at fixed temperature only
+      when blocking is also disabled.
+    </li>
+  </ul>
 
-                    <h3>C. Term 2: Interaction Parameter ($\beta$)</h3>
-                    <p>
-                        In non-ideal solutions, the "Activity" of an atom is not equal to its concentration. The parameter $\beta$ approximates the <strong>Margules interaction parameter</strong> in regular solution theory.
-                    </p>
-                    <ul class="list-disc pl-5 mt-2">
-                        <li><strong>$\beta > 0$ (Plasticizing):</strong> The presence of the dopant loosens the lattice or lowers the melting point locally. This makes diffusion <em>faster</em> in high-concentration regions.</li>
-                        <li><strong>$\beta < 0$ (Hardening):</strong> The dopant stiffens the lattice, increasing the energy barrier. Diffusion is slower where concentration is high.</li>
-                        <li><strong>$\beta = 0$ (Ideal):</strong> Fickian diffusion with a constant D.</li>
-                    </ul>
+  <p>
+    β is an empirical mobility parameter. The exponential factor is
+    not a thermodynamic factor derived from an activity or free-energy model.
+    When blocking is enabled, the combined diffusivity also depends
+    on the matrix fraction.
+  </p>
 
-                    <h3>D. Term 3: The Vacancy Mechanism ($\phi_{vac}$)</h3>
-                    <p>
-                        In substitutional diffusion (common in oxides and alloys), an atom cannot move unless there is an empty site (vacancy) next to it.
-                    </p>
-                    <div class="bg-yellow-50 p-4 border-l-4 border-yellow-400 my-4 text-sm text-yellow-800">
-                        <strong>Simulation Logic:</strong> We assume the "Matrix" species represents the host lattice solvent. If the matrix concentration drops (due to high dopant loading), the lattice quality degrades or sites become "stuffed". 
-                        <br><br>
-                        The simulator uses: $$ \phi_{vac} \approx \frac{C_{Matrix} \%}{100} $$
-                        If the Matrix concentration approaches 0%, diffusion halts because there are no solvent lattice sites/vacancies available to facilitate the jump.
-                    </div>
+  <h4>Phenomenological site blocking</h4>
+  <div class="equation">
+    Blocking enabled: φ = max(0.01, Cmatrix / 100)<br>
+    Blocking disabled: φ = 1
+  </div>
 
-                    <h2>3. Numerical Implementation (FDM)</h2>
-                    <p>We solve the Partial Differential Equation (PDE) using an <strong>Explicit Finite Difference Scheme</strong>.</p>
+  <p>
+    With blocking enabled, decreasing the matrix fraction reduces cation
+    mobility. For example, a matrix concentration of 60% gives φ = 0.60.
+    Below 1% matrix, φ remains fixed at 0.01.
+  </p>
+  <p>
+    <strong>Matrix fraction is not vacancy concentration.</strong>
+    This factor is a simplified description of composition-dependent
+    blocking, not a calculated vacancy population. Its 1% floor means
+    blocking alone never completely stops diffusion.
+  </p>
 
-                    <h3>Fick's Second Law</h3>
-                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
-                        $$ \frac{\partial C}{\partial t} = \frac{\partial}{\partial x} \left( D(C,x) \frac{\partial C}{\partial x} \right) $$
-                    </div>
+  <h3>4. Transport equation and boundary conditions</h3>
+  <p>
+    Each cation evolves according to Fick’s second law in conservative form:
+  </p>
 
-                    <h3>Discretization</h3>
-                    <p>The continuous domain is chopped into $N$ nodes. The flux $J$ is calculated at the half-steps ($i+1/2$) using the harmonic mean of diffusivity:</p>
-                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
-                        $$ C_i^{t+1} = C_i^t + \frac{\Delta t}{\Delta x} \left( J_{in} - J_{out} \right) $$
-                    </div>
+  <div class="equation">
+    Jᵢ = −Dᵢ ∂Cᵢ/∂x<br><br>
+    ∂Cᵢ/∂t = −∂Jᵢ/∂x = ∂/∂x [Dᵢ ∂Cᵢ/∂x]<br><br>
+    Jᵢ(0, t) = Jᵢ(L, t) = 0
+  </div>
 
-                    <h3>Boundary Conditions</h3>
-                    <p>We apply <strong>Neumann (No-Flux) Boundary Conditions</strong> at both ends of the simulation domain:</p>
-                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
-                        $$ \left.\frac{\partial C}{\partial x}\right|_{x=0} = 0 \quad \text{and} \quad \left.\frac{\partial C}{\partial x}\right|_{x=L} = 0 $$
-                    </div>
-                    <p>This means atoms cannot leave the simulation box; mass is perfectly conserved.</p>
+  <p>
+    The negative sign makes each diffusive flux point down that species’
+    concentration gradient. Since D may vary with position and composition,
+    the solver retains it inside the spatial derivative.
+  </p>
+  <p>
+    Here C is expressed in percentage units. The numerical flux therefore
+    has units of percentage points × m/s; it is not directly a molar flux.
+    Converting it to mol/(m²·s) would require a specified concentration basis
+    and an appropriate molar or site density.
+  </p>
 
-                    <h3>Stability & Adaptive Time Stepping</h3>
-                    <p>Explicit FDM is only stable if the time step $\Delta t$ satisfies the Courant-Friedrichs-Lewy (CFL) condition:</p>
-                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
-                        $$ \Delta t \le \frac{0.4 \cdot (\Delta x)^2}{D_{max}} $$
-                    </div>
-                    <p>
-                        <strong>How this Code Works:</strong> If $D$ is very low (low Temp), $\Delta t$ can become theoretically huge. To prevent calculating the entire simulation in a single step (which loses time resolution), the code clamps $\Delta t$ to be at most 1/200th of the total simulation time.
-                    </p>
+  <h3>5. Conservative numerical method</h3>
+  <p>
+    The domain is divided into N equal-width finite-volume cells.
+    Positions reported in plots and downloads are the cell centres:
+  </p>
 
-                    <h2>4. The Kirkendall Effect</h2>
-                    <p>
-                        When two species diffuse at different rates ($J_A \neq -J_B$), there is a net flow of mass across the interface. To conserve lattice planes (and prevent void formation), the lattice itself must drift.
-                    </p>
-                    <p>
-                        We track the position of the original interface (Marker) by integrating the net flux over time:
-                    </p>
-                    <div class="my-6 text-center text-slate-800 overflow-x-auto">
-                        $$ v_{marker} = - V_m (J_{net}) \approx - V_m \sum J_i $$
-                    </div>
-                    <p>If the Marker moves <strong>Left</strong>, it means the Source atoms (moving Right) are faster than the Matrix atoms (moving Left).</p>
+  <div class="equation">
+    Δx = L / N<br>
+    xⱼ = (j + ½) Δx, for j = 0, …, N − 1
+  </div>
 
-                </div>
-            </div>
+  <p>
+    At every internal face, diffusivity is the harmonic mean of the
+    adjacent cell values. If either adjacent diffusivity is zero,
+    the face diffusivity is zero.
+  </p>
 
+  <div class="equation">
+    Dᵢ,ⱼ₊½ = 2 Dᵢ,ⱼ Dᵢ,ⱼ₊₁ / (Dᵢ,ⱼ + Dᵢ,ⱼ₊₁)<br><br>
+    Jᵢ,ⱼ₊½ = −Dᵢ,ⱼ₊½ (Cᵢ,ⱼ₊₁ − Cᵢ,ⱼ) / Δx<br><br>
+    Cᵢ,ⱼ,new = Cᵢ,ⱼ + (Δt / Δx) (Jᵢ,ⱼ₋½ − Jᵢ,ⱼ₊½)
+  </div>
 
-        </main>
-    </div>
+  <p>
+    A face flux is shared by its two neighbouring cells: the amount
+    leaving one enters the other. Exterior face fluxes are exactly zero.
+    Consequently, each cation’s integrated concentration is conserved
+    to floating-point precision.
+  </p>
 
-    <template id="elementTemplate">
-        <div class="element-card bg-white p-3 rounded border border-gray-300 shadow-sm relative group border-l-4">
-            <input type="hidden" class="el-color">
-            <button class="delete-btn absolute top-1 right-2 text-gray-300 hover:text-red-500 hidden group-hover:block transition" title="Remove">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div class="col-span-2 input-group">
-                    <label>Cation Name</label>
-                    <select class="el-name border border-gray-300 rounded text-xs w-full p-1" onchange="updateElementParams(this)">
-                        </select>
-                </div>
-                <div class="input-group">
-                    <label title="Diffusion Coeff at infinite T">D₀ (m²/s)</label>
-                    <input type="text" class="el-d0" value="1.8e-9" oninput="debouncedUpdate()">
-                </div>
-                <div class="input-group">
-                    <label title="Activation Energy">Q (eV)</label>
-                    <input type="number" class="el-q" value="2.1" step="0.1" min="0.1" oninput="debouncedUpdate()">
-                </div>
-                <div class="input-group">
-                    <label title="Starting % in Source">Init Source %</label>
-                    <input type="number" class="el-c0" value="25" min="0" max="100" oninput="debouncedUpdate()">
-                </div>
-                <div class="input-group">
-                     <label title="Interaction Param (Beta)">β (Interact)</label>
-                     <input type="number" class="el-beta" value="2.0" step="0.5" oninput="debouncedUpdate()">
-                </div>
-            </div>
-        </div>
-    </template>
+  <h4>Adaptive explicit time stepping</h4>
+  <p>
+    The solver recalculates local diffusivities before each step.
+    It chooses the smallest of the stability limit, the time-resolution
+    limit and the time remaining to the next output:
+  </p>
 
-    <script>
-        const KB_EV = 8.617333262145e-5; 
-        let chartInstance = null;
-        let diffChartInstance = null;
-        let currentTab = 'profile';
-        let debounceTimer;
+  <div class="equation">
+    Δt = min[0.45 Δx² / Dmax, tend / 200, tnext − t]
+  </div>
 
-        // --- DATABASE: 3D Transition Metals (Estimated Oxide Values) ---
-        const CATION_DB = {
+  <p>
+    Dmax is the largest current cation diffusivity. When all cation
+    diffusivities are zero, the stability restriction is unnecessary.
+    A zero-duration run returns the initial state without taking steps.
+  </p>
+  <p>
+    Positive-duration history runs record 26 states: the initial state
+    and 25 equally spaced output times, including the requested final time.
+    Steps are shortened to reach those output times.
+  </p>
+  <p>
+    Each individual run has a limit of 500,000 steps. Exceeding this limit
+    produces an error, not a result falsely labelled with the requested
+    duration. Reducing grid resolution, annealing time or diffusivity
+    can reduce the required number of steps.
+  </p>
+
+  <h4>Conservation is not an accuracy estimate</h4>
+  <p>
+    The inventory-error indicator measures numerical conservation.
+    A very small value does not establish that the profile is sufficiently
+    resolved. Compare results on progressively finer grids and check that
+    features relevant to your interpretation change negligibly.
+  </p>
+
+  <h3>6. Understanding the result views</h3>
+  <ul>
+    <li>
+      <strong>Concentration:</strong>
+      Final cation concentrations and matrix balance versus depth.
+      The dashed vertical line marks the original source interface;
+      it is not a moving marker.
+    </li>
+    <li>
+      <strong>Diffusivity:</strong>
+      Final local cation diffusivities and the matrix reference.
+      The vertical coordinate is log₁₀[D / (m²/s)].
+      Zero values cannot appear on this logarithmic scale.
+    </li>
+    <li>
+      <strong>3D · Time:</strong>
+      Concentration versus depth and elapsed annealing time.
+      Select one cation at a time to inspect its surface.
+    </li>
+    <li>
+      <strong>3D · Temperature:</strong>
+      Eight independent simulations spanning ±200 K around the selected
+      temperature, restricted to 300–2500 K. Each run uses the same
+      initial composition and annealing duration. This is a temperature
+      comparison, not a heating ramp.
+    </li>
+  </ul>
+
+  <h3>7. Automatic updates, cancellation and downloads</h3>
+  <ul>
+    <li>
+      <strong>Automatic updates:</strong>
+      Parameter edits start a new calculation after a short pause.
+      Previous results are cleared so they are not mistaken for results
+      from the new inputs.
+    </li>
+    <li>
+      <strong>Run simulation:</strong>
+      Starts immediately, skipping the automatic-update delay.
+      It also allows a cancelled calculation to be restarted without
+      changing a parameter.
+    </li>
+    <li>
+      <strong>Cancel:</strong>
+      Stops the active background calculation. Cancelling a temperature
+      sweep preserves an already completed base run.
+    </li>
+    <li>
+      <strong>Download data:</strong>
+      Exports the completed base run’s parameters, actual duration,
+      cell-centre positions, concentrations and final diffusivities
+      as tab-separated text. The download does not contain the full
+      time history or temperature sweep.
+    </li>
+  </ul>
+
+  <p>
+    Calculations run in a background worker to keep the interface responsive.
+    The concentration and diffusivity plots work offline.
+    Interactive 3D plots require an internet connection to load Plotly.
+  </p>
+
+  <h3>8. Physical scope and limitations</h3>
+  <p>
+    The cation equations interact through the optional matrix-dependent
+    blocking factor, but they do not constitute a complete multicomponent
+    transport model. The solver does not include cross-diffusion
+    coefficients, electrostatic fields, charge compensation, reactions,
+    phase changes or an evolving vacancy population.
+  </p>
+  <p>
+    The matrix is an algebraic balance species. If a parameter set produces
+    a local cation sum above 100% beyond numerical tolerance, the simulation
+    is rejected. Clipping the matrix to zero would conceal an inconsistent
+    composition and would not fix the underlying transport model.
+  </p>
+
+  <h4>Why no Kirkendall marker is shown</h4>
+  <p>
+    The earlier marker calculation used an arbitrary scaling factor.
+    It has been removed because it did not provide a physically justified
+    displacement. Predicting Kirkendall motion requires a consistent
+    intrinsic-flux and lattice-velocity formulation with an appropriate
+    volume or site-density basis. The present concentration-balance
+    model does not supply that formulation.
+  </p>
+
+  <h3>9. Corrections from version 5.4</h3>
+  <ul>
+    <li>Replaced mass-losing endpoint updates with conservative boundary fluxes.</li>
+    <li>Removed silent truncation of runs at the computational step limit.</li>
+    <li>Corrected time overshoot and inaccurate history timestamps.</li>
+    <li>Recalculated final diffusivities at every cell, including boundary cells.</li>
+    <li>Added validation for geometry, numerical inputs and source composition.</li>
+    <li>Removed hidden matrix clipping and the unsupported marker displacement.</li>
+    <li>Clarified the empirical blocking factor, its floor and the preset limitations.</li>
+    <li>Replaced Tailwind with embedded CSS and 2D chart dependencies with native SVG.</li>
+  </ul>
+
+  <p class="hint" style="margin-top: 28px; padding-top: 14px;
+                         border-top: 1px solid var(--line);">
+    Diffusion_main.html · NitaD · Univ Paris-Saclay · September 2026
+  </p>
+
+</div>
+
+<p class="model-note">Illustrative model · No-flux boundaries · Cell-centered finite volumes</p>
+</main></div><script>
+'use strict';
+const CATION_DB = {
             "Sc": { label: "Scandium (Sc3+)", d0: "3.2e-8", q: 3.1, beta: 0.5 },
             "Ti": { label: "Titanium (Ti4+)", d0: "1.5e-7", q: 3.4, beta: 0.0 },
             "V":  { label: "Vanadium (V5+)",  d0: "8.0e-8", q: 3.2, beta: 0.2 },
@@ -343,607 +436,145 @@
             "Cu": { label: "Copper (Cu2+)",   d0: "6.0e-10", q: 2.0, beta: 1.0 },
             "Zn": { label: "Zinc (Zn2+)",     d0: "3.0e-9",  q: 1.8, beta: 1.2 }
         };
+// Pure solver: also executed inside a disposable worker.
+function calculateDiffusionMap(p, mode='history', overrideTemp=null, overrideTime=null) {
+ const T=overrideTemp??p.temp, end=(overrideTime??p.timeHours)*3600, n=p.N, dx=p.totalLength*1e-6/n;
+ const base=e=>e.d0*Math.exp(-e.q/(8.617333262145e-5*T));
+ const els=p.elements.map(e=>({...e,D_base:base(e),C:Float64Array.from({length:n},(_,j)=>e.c0*Math.max(0,Math.min(1,(p.sourceLength-j*p.totalLength/n)/(p.totalLength/n)))),finalD:new Float64Array(n),next:new Float64Array(n),flux:new Float64Array(n+1),history:[]}));
+ const initial=els.map(e=>e.C.reduce((a,b)=>a+b,0)), matrix=new Float64Array(n), times=[0];
+ if(mode==='history')els.forEach(e=>e.history.push(Array.from(e.C)));
+ let t=0,steps=0;
+ function mobility(){
+  for(let j=0;j<n;j++){
+   matrix[j]=100-els.reduce((sum,e)=>sum+e.C[j],0);
+   if(!Number.isFinite(matrix[j])||matrix[j]<-1e-8)throw Error('This parameter set exceeds 100% local cation concentration. A coupled transport model is required.');
+  }
+  let max=0;
+  for(const e of els)for(let j=0;j<n;j++){
+   const d=e.D_base*Math.exp(e.beta*e.C[j]/100)*(p.blockingEnabled?Math.max(.01,matrix[j]/100):1);
+   if(!Number.isFinite(d)||d<0)throw Error('Diffusivity is not finite. Reduce D₀ or β.');
+   e.finalD[j]=d;max=Math.max(max,d);
+  }
+  return max;
+ }
+ const frames=end===0?0:25;
+ for(let frame=1;frame<=frames;frame++){
+  const target=end*frame/frames;
+  while(t<target){
+   if(++steps>500000)throw Error('The explicit solver exceeded 500,000 steps. Reduce time, grid cells or diffusivity. No incomplete result has been displayed.');
+   const max=mobility(), dt=Math.min(max>0?.45*dx*dx/max:Infinity,end/200,target-t);
+   if(!(dt>0)||t+dt===t)throw Error('Time step is below floating-point resolution. Reduce the parameter range.');
+   for(const e of els){
+    e.flux[0]=0;e.flux[n]=0;
+    for(let j=1;j<n;j++){
+     const a=e.finalD[j-1],b=e.finalD[j],lo=Math.min(a,b),hi=Math.max(a,b);
+     const d=hi===0?0:lo*(2/(1+lo/hi));
+     e.flux[j]=-d*(e.C[j]-e.C[j-1])/dx;
+    }
+    for(let j=0;j<n;j++){
+     e.next[j]=e.C[j]+dt/dx*(e.flux[j]-e.flux[j+1]);
+     if(!Number.isFinite(e.next[j])||e.next[j]<-1e-8)throw Error('Numerical concentration bounds failed.');
+    }
+   }
+   els.forEach(e=>{const old=e.C;e.C=e.next;e.next=old;});
+   t=dt===target-t?target:t+dt;
+  }
+  if(mode==='history'){times.push(t/3600);els.forEach(e=>e.history.push(Array.from(e.C)));}
+ }
+ mobility();
+ const massError=Math.max(...els.map((e,i)=>Math.abs(e.C.reduce((a,b)=>a+b,0)-initial[i])/Math.max(initial[i],1)*100));
+ return {elements:els.map(({next,flux,...e})=>e),matrix,matrixD:new Float64Array(n).fill(p.targetD0*Math.exp(-p.targetQ/(8.617333262145e-5*T))),times,actualTimeHours:t/3600,steps,massError,x:Array.from({length:n},(_,j)=>(j+.5)*p.totalLength/n)};
+}
+const $=id=>document.getElementById(id);
+let timer,worker=null,generation=0,result=null,runInputs=null,sweep=null,currentTab='profile',plotPromise=null;
+const palette=['#087f82','#b45d32','#7758b0','#bd4777'];
+function status(message,kind=''){ $('status').textContent=message;$('status').className='status '+kind; }
+function addElement(key){
+ const list=$('elementsList');if(list.children.length>=4)return;
+ const used=[...list.querySelectorAll('select')].map(s=>s.value);
+ key=key||Object.keys(CATION_DB).find(k=>!used.includes(k));
+ const card=document.createElement('div');card.className='element-card';
 
-        // --- Core Physics Engine ---
-        function calculateDiffusionMap(inputs, mode = 'snapshot', overrideTemp = null, overrideTime = null) {
-            const Temp = overrideTemp || inputs.temp;
-            const Time_h = overrideTime || inputs.timeHours;
-            const Time_s = Time_h * 3600;
-            const L_m = inputs.totalLength * 1e-6; 
-            const dx = L_m / (inputs.N - 1);
-            const sourceNodes = Math.ceil((inputs.sourceLength * 1e-6) / dx);
+ card.innerHTML = `
+  <div class="card-top" style="align-items: flex-end;">
+    <label>
+      Cation preset
+      <select class="el-name" style="height: 38px;"></select>
+    </label>
+    <input type="color" class="el-color" aria-label="Plot color"
+           style="width: 38px; height: 38px; flex-shrink: 0;">
+    <button class="remove" type="button" aria-label="Remove cation"
+            style="width: 38px; height: 38px; flex-shrink: 0;">×</button>
+  </div>
+  <div class="fields">
+    <label>D₀ (m²/s)<input class="el-d0"></label>
+    <label>Q (eV)<input class="el-q" type="number" min="0" step="0.1"></label>
+    <label>Source conc. (%)<input class="el-c0" type="number" min="0" max="100" value="25"></label>
+    <label>β (dimensionless)<input class="el-beta" type="number" min="-20" max="20" step="0.1"></label>
+  </div>
+`;
 
-            // Matrix (Target) Properties
-            const matExp = -inputs.targetQ / (KB_EV * Temp);
-            const D_mat_base = inputs.targetD0 * Math.exp(matExp);
 
-            const snapshots = 25; 
-            const historyStep = Time_s / snapshots;
-            let nextHistoryTime = historyStep; // Start recording AFTER t=0
-            
-            let markerPos = inputs.sourceLength * 1e-6; 
-            const trackMarker = (mode === 'snapshot'); 
-
-            // Initialize Dopants
-            const elementSims = inputs.elements.map(el => {
-                let C = new Float64Array(inputs.N);
-                for(let i=0; i<inputs.N; i++) C[i] = (i < sourceNodes) ? el.c0 : 0.0;
-                
-                const exponent = -el.q / (KB_EV * Temp);
-                const D_base = el.d0 * Math.exp(exponent);
-                
-                // Initialize history array
-                const history = mode === 'history' ? [] : null;
-                
-                // FIX: Explicitly record the initial state (Time=0) so the graph starts correctly
-                if (history) {
-                    history.push(Float64Array.from(C));
-                }
-
-                return { 
-                    ...el, C, C_next: new Float64Array(inputs.N),
-                    D_base, history,
-                    finalD: new Float64Array(inputs.N)
-                };
-            });
-
-            // Initialize Matrix (Calculated as Balance)
-            let C_mat = new Float64Array(inputs.N);
-            let finalD_mat = new Float64Array(inputs.N); 
-
-            // Stability Check (CFL Condition)
-            let maxD = D_mat_base; 
-            elementSims.forEach(el => {
-                const d = el.D_base * Math.exp(Math.abs(el.beta));
-                if(d > maxD) maxD = d;
-            });
-            if(maxD < 1e-30) maxD = 1e-30;
-
-            // --- THE FIX IS HERE ---
-            // 1. Calculate the max stable step allowed by physics
-            const stability_dt = (0.4 * dx * dx) / maxD;
-            
-            // 2. Ensure we take at least 200 steps per simulation to get smooth time evolution
-            //    This prevents "overshooting" low-temp/low-diffusivity simulations in one giant step.
-            const resolution_dt = Time_s / 200;
-            
-            // 3. Use the smaller of the two
-            const dt = Math.min(stability_dt, resolution_dt);
-
-            let totalSteps = Math.ceil(Time_s / dt);
-            // Safety cap to prevent browser freezing on extreme high-res runs
-            if(totalSteps > 2000000) totalSteps = 2000000; 
-
-            let currentTime = 0;
-
-            for(let t=0; t<totalSteps; t++) {
-                currentTime += dt;
-
-                // 1. Calculate Matrix Concentration Profile FIRST (Available Sites)
-                for(let i=0; i<inputs.N; i++) {
-                    let sum = 0;
-                    for(let el of elementSims) sum += el.C[i];
-                    C_mat[i] = 100 - sum;
-                }
-
-                let netFluxAtMarker = 0;
-                const markerNode = Math.min(Math.max(1, Math.round(markerPos / dx)), inputs.N - 2);
-
-                // 2. Dopant Diffusion
-                for(let el of elementSims) {
-                    // Optimization: If D is essentially zero, skip calculation to save CPU
-                    if (el.D_base <= 1e-30) {
-                        if(t === totalSteps - 1) el.finalD.fill(0);
-                        continue;
-                    }
-
-                    for(let i=1; i < inputs.N - 1; i++) {
-                        
-                        // -- Interpolations --
-                        const C_right = (el.C[i+1] + el.C[i]) / 2;
-                        const C_left = (el.C[i] + el.C[i-1]) / 2;
-                        
-                        // -- Base D with Self-Interaction (Beta) --
-                        let D_right = el.D_base * Math.exp(el.beta * (C_right / inputs.maxConc));
-                        let D_left  = el.D_base * Math.exp(el.beta * (C_left / inputs.maxConc));
-
-                        // -- Site Blocking / Vacancy Mechanism --
-                        if(inputs.blockingEnabled) {
-                            const Mat_right = (C_mat[i+1] + C_mat[i]) / 2;
-                            const Mat_left = (C_mat[i] + C_mat[i-1]) / 2;
-                            
-                            const factor_right = Math.max(0.01, Mat_right / 100.0);
-                            const factor_left = Math.max(0.01, Mat_left / 100.0);
-
-                            D_right *= factor_right;
-                            D_left *= factor_left;
-                        }
-
-                        if(t === totalSteps - 1) el.finalD[i] = (D_right + D_left) / 2;
-
-                        const flux_right = -D_right * (el.C[i+1] - el.C[i]) / dx; 
-                        const flux_left  = -D_left  * (el.C[i] - el.C[i-1]) / dx;
-                        
-                        el.C_next[i] = el.C[i] - (dt / dx) * (flux_right - flux_left);
-
-                        if(trackMarker && i === markerNode) {
-                            netFluxAtMarker += flux_right;
-                        }
-                    }
-                    el.C_next[0] = el.C_next[1];
-                    el.C_next[inputs.N-1] = el.C_next[inputs.N-2];
-                }
-
-                // 3. Matrix Flux (for Kirkendall)
-                if(trackMarker && D_mat_base > 1e-30) {
-                     const i = markerNode;
-                     const flux_mat_right = -D_mat_base * (C_mat[i+1] - C_mat[i]) / dx;
-                     netFluxAtMarker += flux_mat_right;
-                     
-                     if(t === totalSteps - 1) finalD_mat.fill(D_mat_base);
-                }
-
-                // 4. Update Marker
-                if(trackMarker) {
-                    const Vm_Vis = 2e-6; 
-                    markerPos += (-netFluxAtMarker * dt * Vm_Vis);
-                }
-
-                // 5. Swap
-                for(let el of elementSims) {
-                     // Only swap if we actually calculated something (optimization)
-                     if (el.D_base > 1e-30) {
-                        let temp = el.C; el.C = el.C_next; el.C_next = temp;
-                     }
-                }
-
-                // 6. Record History (Check time)
-                if(mode === 'history' && currentTime >= nextHistoryTime) {
-                    elementSims.forEach(el => el.history.push(Float64Array.from(el.C)));
-                    nextHistoryTime += historyStep;
-                }
-            }
-
-            // Ensure the final state is recorded in history if we missed the exact second
-            if(mode === 'history') {
-                 // Check if the last frame is significantly different from the last saved one, or just overwrite/append
-                 // For simplicity, we just ensure the user gets the final result.
-                 // (Optional: You could check length to avoid duplicates)
-                 elementSims.forEach(el => {
-                    // Force push final state
-                    el.history.push(Float64Array.from(el.C));
-                 });
-            }
-
-            return { 
-                elements: elementSims, 
-                markerShift: (markerPos * 1e6), 
-                originalInterface: inputs.sourceLength,
-                matrixD: finalD_mat
-            };
-        }
-
-        // --- UI Logic ---
-
-        function debouncedUpdate() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => { triggerCalculation(); }, 600);
-        }
-
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
-            
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            document.getElementById('pane-' + tab).classList.add('active');
-
-            if(tab === 'time3d' || tab === 'temp3d') window.dispatchEvent(new Event('resize'));
-            if(tab === 'help' && window.MathJax) MathJax.typesetPromise();
-            
-            if(tab !== 'help') triggerCalculation();
-        }
-
-        function validateInputs() {
-            let t = parseFloat(document.getElementById('temp').value);
-            const l_src = parseFloat(document.getElementById('sourceLength').value);
-            const l_tot = parseFloat(document.getElementById('totalLength').value);
-            
-            // Matrix Inputs
-            const matD0 = parseFloat(document.getElementById('targetD0').value);
-            const matQ = parseFloat(document.getElementById('targetQ').value);
-            const blocking = document.getElementById('blockingEnabled').checked;
-
-            let isValid = true;
-            if (isNaN(t) || t < 300 || t > 3500) isValid = false;
-            if (l_src <= 0 || l_tot <= 0 || l_src >= l_tot) isValid = false;
-            if (isNaN(matD0) || matD0 <= 0 || isNaN(matQ)) isValid = false;
-
-            const elCards = document.querySelectorAll('.element-card');
-            const elements = [];
-            elCards.forEach((card, idx) => {
-                const c0 = parseFloat(card.querySelector('.el-c0').value);
-                const d0 = parseFloat(card.querySelector('.el-d0').value);
-                
-                // Handle SELECT name extraction
-                const nameSelect = card.querySelector('.el-name');
-                const name = nameSelect.options[nameSelect.selectedIndex].text;
-
-                if (isNaN(c0) || c0 < 0 || c0 > 100) isValid = false;
-                if (isNaN(d0) || d0 <= 0) isValid = false;
-                elements.push({
-                    name: name,
-                    d0: d0, q: parseFloat(card.querySelector('.el-q').value),
-                    c0: c0, beta: parseFloat(card.querySelector('.el-beta').value),
-                    color: card.querySelector('.el-color').value
-                });
-            });
-
-            if (!isValid) return null;
-
-            return { 
-                temp: t, timeHours: parseFloat(document.getElementById('time').value),
-                sourceLength: l_src, totalLength: l_tot,
-                N: parseInt(document.getElementById('gridPoints').value),
-                targetName: document.getElementById('targetName').value,
-                targetD0: matD0, targetQ: matQ,
-                maxConc: 100, elements: elements,
-                blockingEnabled: blocking
-            };
-        }
-
-        function triggerCalculation() {
-            const inputs = validateInputs();
-            if(!inputs) return;
-            
-            const overlay = document.getElementById('loading-overlay');
-            if(currentTab !== 'help') overlay.style.display = 'flex';
-            
-            setTimeout(() => {
-                try {
-                    if (currentTab === 'profile') render2D(inputs);
-                    else if (currentTab === 'diffusivity') renderDiffusivity(inputs);
-                    else if (currentTab === 'time3d') render3DTime(inputs);
-                    else if (currentTab === 'temp3d') render3DTemp(inputs);
-                } catch (e) { 
-                    console.error("Simulation Error:", e); 
-                } finally { 
-                    overlay.style.display = 'none'; 
-                }
-            }, 50);
-        }
-
-        async function saveData() {
-            const inputs = validateInputs();
-            if(!inputs) return;
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true;
-            btn.innerHTML = 'Generating...';
-
-            setTimeout(() => {
-                try {
-                    const simRes = calculateDiffusionMap(inputs, 'snapshot');
-                    let content = `CATION DIFFUSION SIM v5.4 - EXPORT\n`;
-                    content += `Temp(K): ${inputs.temp}, Time(h): ${inputs.timeHours}\n`;
-                    content += `Site Blocking Enabled: ${inputs.blockingEnabled}\n`;
-                    content += `Marker Position: ${simRes.markerShift.toFixed(4)} um\n\n`;
-
-                    content += `Depth(um)\tMatrix_D(m2/s)\tMatrix_Conc(%)\t`;
-                    inputs.elements.forEach(el => content += `${el.name}_Conc(%)\t${el.name}_D(m2/s)\t`);
-                    content += `\n`;
-
-                    const dx_um = inputs.totalLength / (inputs.N - 1);
-                    for(let i=0; i<inputs.N; i++) {
-                        let depth = (i * dx_um).toFixed(4);
-                        let dopantSum = 0;
-                        simRes.elements.forEach(el => dopantSum += el.C[i]);
-                        let matC = Math.max(0, 100 - dopantSum).toFixed(4);
-                        
-                        let line = `${depth}\t${simRes.matrixD[i]?.toExponential(3) || 0}\t${matC}\t`;
-                        simRes.elements.forEach(el => {
-                            line += `${el.C[i].toFixed(4)}\t${el.finalD[i].toExponential(3)}\t`;
-                        });
-                        content += line + `\n`;
-                    }
-
-                    const blob = new Blob([content], { type: 'text/plain' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `DiffusionData_v5.4.txt`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                } catch(e) { console.error(e); } finally { btn.disabled = false; btn.innerText = 'Save Data (.txt)'; }
-            }, 100);
-        }
-
-        // --- Renderers ---
-        function render2D(inputs) {
-            const res = calculateDiffusionMap(inputs, 'snapshot');
-            const xLabels = [];
-            const dx_um = inputs.totalLength / (inputs.N - 1);
-            for(let i=0; i<inputs.N; i++) xLabels.push(i * dx_um);
-
-            const datasets = [];
-            let C_target = new Float64Array(inputs.N).fill(inputs.maxConc);
-
-            res.elements.forEach(el => {
-                datasets.push({
-                    label: el.name,
-                    data: Array.from(el.C),
-                    borderColor: el.color,
-                    backgroundColor: el.color + '33',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.4
-                });
-                for(let i=0; i<inputs.N; i++) C_target[i] -= el.C[i];
-            });
-
-            for(let i=0; i<inputs.N; i++) if(C_target[i] < 0) C_target[i] = 0;
-            datasets.unshift({
-                label: inputs.targetName,
-                data: Array.from(C_target),
-                borderColor: '#94a3b8',
-                backgroundColor: '#f1f5f988',
-                borderWidth: 2,
-                borderDash: [5, 5],
-                pointRadius: 0,
-                fill: true,
-                tension: 0.4
-            });
-
-            const ctx = document.getElementById('diffusionChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: { labels: xLabels, datasets: datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    interaction: { mode: 'nearest', intersect: false },
-                    scales: {
-                        x: { type: 'linear', title: {display:true, text:'Depth (µm)'}, ticks:{callback: v=>v.toFixed(2)} },
-                        y: { title: {display:true, text:'Concentration (%)'}, beginAtZero: true, max: 100 }
-                    },
-                    plugins: { 
-                        interfaceLine: { 
-                            originalX: res.originalInterface,
-                            markerX: res.markerShift
-                        },
-                        legend: { position: 'top' }
-                    }
-                }
-            });
-        }
-
-        function renderDiffusivity(inputs) {
-            const res = calculateDiffusionMap(inputs, 'snapshot');
-            const xLabels = [];
-            const dx_um = inputs.totalLength / (inputs.N - 1);
-            for(let i=0; i<inputs.N; i++) xLabels.push(i * dx_um);
-
-            const datasets = res.elements.map(el => ({
-                label: el.name,
-                data: Array.from(el.finalD).map(v => v > 1e-25 ? Math.log10(v) : null),
-                borderColor: el.color,
-                borderWidth: 2, pointRadius: 0, fill: false
-            }));
-
-            if(res.matrixD && res.matrixD[0] > 0) {
-                 datasets.unshift({
-                    label: inputs.targetName,
-                    data: Array.from(res.matrixD).map(v => Math.log10(v)),
-                    borderColor: '#94a3b8',
-                    borderWidth: 2, borderDash: [5,5], pointRadius: 0, fill: false
-                });
-            }
-
-            const ctx = document.getElementById('diffusivityChart').getContext('2d');
-            if (diffChartInstance) diffChartInstance.destroy();
-            diffChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: { labels: xLabels, datasets: datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false, animation: false,
-                    scales: {
-                        x: { type: 'linear', title: {display:true, text:'Depth (µm)'}, ticks:{callback: v=>v.toFixed(2)} },
-                        y: { title: {display:true, text:'Log10(D) [m²/s]'} }
-                    }
-                }
-            });
-        }
-
-        function render3DTime(inputs) {
-            const res = calculateDiffusionMap(inputs, 'history');
-            const traces = [];
-            const xData = Array.from({length: inputs.N}, (_, i) => i * (inputs.totalLength / (inputs.N-1)));
-            const numSnapshots = res.elements[0].history.length;
-            const timeStep = inputs.timeHours / Math.max(1, numSnapshots - 1);
-            const yData = Array.from({length: numSnapshots}, (_, i) => i * timeStep);
-            
-            res.elements.forEach(el => {
-                traces.push({
-                    type: 'surface',
-                    x: xData, y: yData, z: el.history,
-                    name: el.name, showlegend: true, showscale: false, opacity: 0.8,
-                    colorscale: [ [0, '#ffffff'], [1, el.color] ],
-                    contours: {
-                        z: { show: true, usecolormap: true, highlightcolor: "#42f462", project: { z: true } }
-                    }
-                });
-            });
-            const layout = {
-                title: 'Concentration Evolution vs Time',
-                autosize: true, margin: { l: 0, r: 0, b: 0, t: 30 },
-                showlegend: true,
-                legend: { x: 0.02, y: 0.98, xanchor: 'left', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.7)' },
-                scene: {
-                    xaxis: { title: 'Depth (µm)' }, 
-                    yaxis: { title: 'Time (h)' },
-                    zaxis: { title: 'Conc (%)', range: [0, 100] },
-                    camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
-                }
-            };
-            Plotly.newPlot('plotly-time', traces, layout, {displayModeBar: true});
-        }
-
-        function render3DTemp(inputs) {
-            const tempSteps = 8;
-            const range = 200; 
-            let startT = Math.max(inputs.temp - range, 300);
-            let endT = Math.min(inputs.temp + range, 2500);
-            const stepT = (endT - startT) / (tempSteps - 1);
-            const xData = Array.from({length: inputs.N}, (_, i) => i * (inputs.totalLength / (inputs.N-1)));
-            const yData = []; 
-            const zGrids = inputs.elements.map(() => []);
-            
-            for(let i=0; i<tempSteps; i++) {
-                const T = startT + (i * stepT);
-                yData.push(T);
-                const res = calculateDiffusionMap(inputs, 'snapshot', T);
-                res.elements.forEach((el, idx) => zGrids[idx].push(Array.from(el.C)));
-            }
-            
-            const traces = inputs.elements.map((el, idx) => ({
-                type: 'surface',
-                x: xData, y: yData, z: zGrids[idx],
-                name: el.name, showlegend: true, showscale: false, opacity: 0.9,
-                colorscale: [ [0, '#ffffff'], [1, el.color] ]
-            }));
-            
-            const layout = {
-                title: `Sensitivity: ${startT.toFixed(0)}K to ${endT.toFixed(0)}K`,
-                autosize: true, margin: { l: 0, r: 0, b: 0, t: 30 },
-                showlegend: true,
-                legend: { x: 0.02, y: 0.98, xanchor: 'left', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.7)' },
-                scene: {
-                    xaxis: { title: 'Depth (µm)' }, 
-                    yaxis: { title: 'Temp (K)' },
-                    zaxis: { title: 'Conc (%)', range: [0, 100] },
-                    camera: { eye: { x: 1.5, y: -1.5, z: 1.5 } }
-                }
-            };
-            Plotly.newPlot('plotly-temp', traces, layout, {displayModeBar: true});
-        }
-
-        const interfaceLinePlugin = {
-            id: 'interfaceLine',
-            afterDraw: (chart, args, options) => {
-                const ctx = chart.ctx;
-                const xAxis = chart.scales.x;
-                const yAxis = chart.scales.y;
-                
-                function drawLine(xVal, color, text, isDashed, yTextOffset) {
-                    const xPixel = xAxis.getPixelForValue(xVal);
-                    if (xPixel < xAxis.left || xPixel > xAxis.right) return;
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 2;
-                    if(isDashed) ctx.setLineDash([5, 5]);
-                    ctx.moveTo(xPixel, yAxis.top);
-                    ctx.lineTo(xPixel, yAxis.bottom);
-                    ctx.stroke();
-                    
-                    ctx.fillStyle = color;
-                    ctx.font = 'bold 10px Inter';
-                    ctx.textAlign = 'right';
-                    ctx.fillText(text, xPixel - 4, yAxis.top + yTextOffset);
-                    ctx.restore();
-                }
-                
-                if (options.originalX) drawLine(options.originalX, '#94a3b8', 'Orig. Interface', true, 15);
-                if (options.markerX) drawLine(options.markerX, '#dc2626', 'Marker', true, 30);
-            }
-        };
-        Chart.register(interfaceLinePlugin);
-
-        // --- New Logic: Add Elements with Dropdown & Auto-fill ---
-
-        function addElement(initialKey = null) {
-            const list = document.getElementById('elementsList');
-            if (list.children.length >= 4) { alert("Max 4 dopants allowed."); return; }
-            
-            const template = document.getElementById('elementTemplate');
-            const clone = template.content.cloneNode(true);
-            const card = clone.querySelector('.element-card');
-            
-            // Random Color
-            const finalColor = getRandomColor();
-            card.style.borderLeftColor = finalColor;
-            clone.querySelector('.el-color').value = finalColor;
-            
-            // Populate Dropdown
-            const select = clone.querySelector('.el-name');
-            Object.keys(CATION_DB).forEach(k => {
-                const opt = document.createElement('option');
-                opt.value = k;
-                opt.text = CATION_DB[k].label;
-                select.appendChild(opt);
-            });
-
-            // Set Initial Selection (Default to Ni if null, or passed key)
-            // If passed key is unavailable, default to first.
-            if(initialKey && CATION_DB[initialKey]) {
-                select.value = initialKey;
-            } else {
-                // Heuristic: try to pick one that isn't already used? 
-                // For simplicity, default to Ni or the first one.
-                select.value = "Ni"; 
-            }
-            
-            // Initial Param Fill based on selection
-            const key = select.value;
-            const data = CATION_DB[key];
-            clone.querySelector('.el-d0').value = data.d0;
-            clone.querySelector('.el-q').value = data.q;
-            clone.querySelector('.el-beta').value = data.beta;
-            clone.querySelector('.el-c0').value = 25; // Default 25%
-
-            // Setup Delete
-            clone.querySelector('.delete-btn').onclick = function(e) { 
-                e.target.closest('.element-card').remove(); debouncedUpdate();
-            };
-            
-            list.appendChild(clone);
-            debouncedUpdate();
-        }
-
-        function updateElementParams(selectElem) {
-            const key = selectElem.value;
-            const data = CATION_DB[key];
-            if(!data) return;
-
-            // Find parent card
-            const card = selectElem.closest('.element-card');
-            card.querySelector('.el-d0').value = data.d0;
-            card.querySelector('.el-q').value = data.q;
-            card.querySelector('.el-beta').value = data.beta;
-            
-            // Trigger update
-            debouncedUpdate();
-        }
-
-        function getRandomColor() {
-            const colors = ['#e11d48', '#2563eb', '#16a34a', '#d97706', '#9333ea', '#db2777'];
-            return colors[Math.floor(Math.random() * colors.length)];
-        }
-
-        window.onload = function() {
-            // Default Demo Setup: ONLY NICKEL
-            addElement("Ni"); 
-            
-            setTimeout(triggerCalculation, 500);
-            
-            window.addEventListener('resize', () => {
-                if(currentTab === 'time3d') Plotly.Plots.resize('plotly-time');
-                if(currentTab === 'temp3d') Plotly.Plots.resize('plotly-temp');
-            });
-        };
-    </script>
-</body>
-</html>
+ const select=card.querySelector('select');Object.entries(CATION_DB).forEach(([k,e])=>select.add(new Option(e.label,k)));select.value=key;
+ const available=palette.find(c=>![...list.querySelectorAll('.el-color')].some(i=>i.value===c))||palette[0];
+ card.querySelector('.el-color').value=available;card.style.borderLeftColor=available;
+ function preset(){const e=CATION_DB[select.value];for(const [cls,value]of [['d0',e.d0],['q',e.q],['beta',e.beta]])card.querySelector('.el-'+cls).value=value;}
+ preset();select.addEventListener('change',()=>{preset();schedule();});
+ card.querySelector('.el-color').addEventListener('input',e=>card.style.borderLeftColor=e.target.value);
+ card.querySelector('.remove').onclick=()=>{card.remove();$('add').disabled=false;schedule();};
+ list.append(card);$('add').disabled=list.children.length>=4;
+}
+function readInputs(){
+ const number=(el,label,min,max=Infinity)=>{const raw=el.value.trim(),v=Number(raw);if(!raw||!Number.isFinite(v)||v<min||v>max)throw Error(label+' must be a finite number in '+min+'…'+(max===Infinity?'∞':max)+'.');return v;};
+ const get=(id,label,min,max)=>number($(id),label,min,max);
+ const p={temp:get('temp','Temperature (K)',300,2500),timeHours:get('time','Time (h)',0,1e7),sourceLength:get('sourceLength','Source length',1e-9,1e6),totalLength:get('totalLength','Total length',1e-9,1e6),N:get('gridPoints','Grid cells',20,400),targetName:$('targetName').value.trim(),targetD0:get('targetD0','Matrix D₀',0,1),targetQ:get('targetQ','Matrix Q',0,100),blockingEnabled:$('blockingEnabled').checked};
+ if(!Number.isInteger(p.N))throw Error('Grid cells must be an integer.');
+ if(p.sourceLength>=p.totalLength)throw Error('Source length must be smaller than total length.');
+ if(!p.targetName)throw Error('Enter a matrix name.');
+ p.elements=[...document.querySelectorAll('.element-card')].map(card=>{
+  const v=(c,l,min,max)=>number(card.querySelector('.el-'+c),l,min,max),key=card.querySelector('.el-name').value;
+  return {key,name:CATION_DB[key].label,d0:v('d0','Cation D₀',0,1),q:v('q','Cation Q',0,100),c0:v('c0','Source concentration',0,100),beta:v('beta','β',-20,20),color:card.querySelector('.el-color').value};
+ });
+ if(!p.elements.length)throw Error('Add at least one cation.');
+ if(new Set(p.elements.map(e=>e.key)).size!==p.elements.length)throw Error('Select distinct cations; duplicate species would double-count concentration.');
+ if(p.elements.reduce((s,e)=>s+e.c0,0)>100+1e-10)throw Error('Source cation concentrations must sum to 100% or less.');
+ return p;
+}
+function stop(){if(worker){worker.terminate();worker=null;}generation++;$('cancel').disabled=true;}
+function invalidate(){stop();result=null;runInputs=null;sweep=null;$('save').disabled=true;for(const id of ['metricTemp','metricTime','metricMass'])$(id).textContent='—';for(const id of ['profileChart','diffChart','profileLegend','diffLegend'])$(id).replaceChildren();for(const id of ['plotly-time','plotly-temp']){if(window.Plotly&&$(id).data)Plotly.purge(id);$(id).textContent='Run the simulation to view results.';}}
+function schedule(){clearTimeout(timer);invalidate();status('Inputs changed. Waiting to run…','busy');timer=setTimeout(run,500);}
+function task(p,temperatureSweep,callback){
+ stop();const ticket=generation;
+ const src=calculateDiffusionMap.toString()+`;onmessage=({data})=>{try{if(data.sweep){const lo=Math.max(300,data.p.temp-200),hi=Math.min(2500,data.p.temp+200),rows=[];for(let k=0;k<8;k++){const T=lo+(hi-lo)*k/7;rows.push({T,res:calculateDiffusionMap(data.p,'snapshot',T)});}postMessage({ok:true,value:rows});}else postMessage({ok:true,value:calculateDiffusionMap(data.p)});}catch(e){postMessage({ok:false,error:e.message});}};`;
+ const url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
+ try{worker=new Worker(url);}catch(e){URL.revokeObjectURL(url);status('Unable to start the simulation worker: '+e.message,'error');return;}URL.revokeObjectURL(url);$('cancel').disabled=false;
+ worker.onmessage=({data})=>{if(ticket!==generation)return;stop();if(!data.ok){status(data.error,'error');return;}callback(data.value);};
+ worker.onerror=e=>{if(ticket!==generation)return;stop();status('Worker error: '+e.message,'error');};
+ worker.postMessage({p,sweep:temperatureSweep});
+}
+function run(){clearTimeout(timer);invalidate();let p;try{p=readInputs();}catch(e){status(e.message,'error');return;}status('Calculating diffusion…','busy');task(p,false,res=>{result=res;runInputs=p;$('save').disabled=false;$('metricTemp').textContent=p.temp+' K';$('metricTime').textContent=res.actualTimeHours.toLocaleString(undefined,{maximumFractionDigits:3})+' h';$('metricMass').textContent=res.massError.toExponential(1)+'%';status('Complete · '+res.steps.toLocaleString()+' steps · Closed-boundary inventory conserved.');populateSpecies();render2D();renderActive();});}
+function populateSpecies(){for(const id of ['timeSpecies','tempSpecies']){$(id).replaceChildren();result.elements.forEach((e,i)=>$(id).add(new Option(e.name,i)));}}
+const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function chart(id,legendID,series,log=false){
+ const W=920,H=440,left=76,right=22,top=30,bottom=60,pw=W-left-right,ph=H-top-bottom;
+ const finite=series.flatMap(s=>s.y).filter(Number.isFinite);let low=log?Math.floor(Math.min(...finite)):0,high=log?Math.ceil(Math.max(...finite)):100;
+ if(!finite.length){$(id).textContent='All diffusivities are zero; no logarithmic values to plot.';$(legendID).replaceChildren();return;}if(high===low){low--;high++;}
+ const X=x=>left+x/runInputs.totalLength*pw,Y=y=>top+(high-y)/(high-low)*ph;
+ let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${log?'Final diffusivity':'Concentration'} versus depth"><rect width="920" height="440" fill="white"/>`;
+ for(let k=0;k<=5;k++){const y=low+(high-low)*k/5;svg+=`<line x1="${left}" x2="${W-right}" y1="${Y(y)}" y2="${Y(y)}" stroke="#e4ebed"/><text x="${left-12}" y="${Y(y)+4}" text-anchor="end" fill="#57707a" font-size="12">${log?y.toFixed(1):y.toFixed(0)}</text>`;const x=runInputs.totalLength*k/5;svg+=`<text x="${X(x)}" y="${H-bottom+24}" text-anchor="middle" fill="#57707a" font-size="12">${Number(x.toPrecision(3))}</text>`;}
+ svg+=`<line x1="${X(runInputs.sourceLength)}" x2="${X(runInputs.sourceLength)}" y1="${top}" y2="${H-bottom}" stroke="#899fa5" stroke-dasharray="5 5"/>`;
+ for(const s of series){let path='',pen=false;s.y.forEach((v,j)=>{if(!Number.isFinite(v)){pen=false;return;}path+=(pen?'L':'M')+X(result.x[j]).toFixed(2)+','+Y(v).toFixed(2);pen=true;});svg+=`<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.5" ${s.dash?'stroke-dasharray="6 4"':''}><title>${escapeHTML(s.name)}</title></path>`;}
+ svg+=`<text x="${left+pw/2}" y="${H-10}" text-anchor="middle" fill="#57707a" font-size="13">Depth (µm)</text><text transform="translate(19 ${top+ph/2}) rotate(-90)" text-anchor="middle" fill="#57707a" font-size="13">${log?'log₁₀ [D / (m²/s)]':'Concentration (%)'}</text></svg>`;
+ $(id).innerHTML=svg;$(legendID).innerHTML=series.map(s=>`<span><i class="swatch" style="background:${s.color}"></i>${escapeHTML(s.name)}</span>`).join('');
+}
+function render2D(){chart('profileChart','profileLegend',[{name:runInputs.targetName,color:'#80939d',dash:true,y:Array.from(result.matrix)},...result.elements.map(e=>({...e,y:Array.from(e.C)}))]);const logarithm=a=>Array.from(a,v=>v>0?Math.log10(v):NaN);chart('diffChart','diffLegend',[{name:runInputs.targetName+' (reference)',color:'#80939d',dash:true,y:logarithm(result.matrixD)},...result.elements.map(e=>({...e,y:logarithm(e.finalD)}))],true);}
+function loadPlotly(){if(window.Plotly)return Promise.resolve();if(plotPromise)return plotPromise;plotPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.plot.ly/plotly-2.27.0.min.js';const timeout=setTimeout(()=>{s.remove();plotPromise=null;reject(Error('3D chart download timed out. Check your internet connection and reopen this tab.'));},20000);s.onload=()=>{clearTimeout(timeout);resolve();};s.onerror=()=>{clearTimeout(timeout);s.remove();plotPromise=null;reject(Error('3D charts need an internet connection to load Plotly. The 2D plots and data export work offline.'));};document.head.append(s);});return plotPromise;}
+async function surface(kind){const captured=result,tab=currentTab,rows=sweep;const id=kind==='time'?'plotly-time':'plotly-temp';$(id).textContent='Loading interactive 3D chart…';try{await loadPlotly();if(result!==captured||currentTab!==tab)return;const index=Number($(kind==='time'?'timeSpecies':'tempSpecies').value),e=result.elements[index],y=kind==='time'?result.times:rows.map(r=>r.T),z=kind==='time'?e.history:rows.map(r=>Array.from(r.res.elements[index].C));$(id).textContent='';await Plotly.react(id,[{type:'surface',x:result.x,y,z,colorscale:[[0,'#edf6f3'],[1,e.color]],cmin:0,cmax:100,colorbar:{title:'%'},hovertemplate:'Depth: %{x:.4g} µm<br>'+ (kind==='time'?'Time: %{y:.4g} h':'Temperature: %{y:.4g} K')+'<br>Concentration: %{z:.4g}%<extra></extra>'}],{title:{text:escapeHTML(e.name),font:{size:16}},margin:{l:0,r:30,t:45,b:0},scene:{xaxis:{title:'Depth (µm)'},yaxis:{title:kind==='time'?'Time (h)':'Temperature (K)'},zaxis:{title:'Concentration (%)',range:[0,100]}},uirevision:kind},{responsive:true,displaylogo:false});}catch(e){if(result===captured)$(id).textContent=e.message;}}
+function renderActive(){if(!result)return;if(currentTab==='time3d')surface('time');if(currentTab==='temp3d'){if(sweep)surface('temp');else{status('Calculating eight temperature runs…','busy');task(runInputs,true,rows=>{sweep=rows;status('Temperature sweep complete.');if(currentTab==='temp3d')surface('temp');});}}}
+function switchTab(tab){if(worker&&result){stop();status('Temperature sweep cancelled. Base run remains available.');}currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===tab;b.setAttribute('aria-selected',active);b.tabIndex=active?0:-1;});document.querySelectorAll('[role=tabpanel]').forEach(p=>p.hidden=p.id!=='pane-'+tab);renderActive();}
+$('controls').addEventListener('input',schedule);$('controls').addEventListener('submit',e=>{e.preventDefault();run();});$('add').onclick=()=>{addElement();schedule();};$('cancel').onclick=()=>{clearTimeout(timer);stop();status(result?'Sweep cancelled. Base run remains available.':'Simulation cancelled.');};
+document.querySelectorAll('[data-tab]').forEach(b=>{b.tabIndex=b.dataset.tab==='profile'?0:-1;b.onclick=()=>switchTab(b.dataset.tab);b.onkeydown=e=>{const tabs=[...document.querySelectorAll('[data-tab]')],i=tabs.indexOf(b);let next;if(e.key==='ArrowRight')next=(i+1)%tabs.length;if(e.key==='ArrowLeft')next=(i+tabs.length-1)%tabs.length;if(e.key==='Home')next=0;if(e.key==='End')next=tabs.length-1;if(next!==undefined){e.preventDefault();tabs[next].focus();switchTab(tabs[next].dataset.tab);}};});
+$('timeSpecies').onchange=()=>surface('time');$('tempSpecies').onchange=()=>{if(sweep)surface('temp');};
+$('save').onclick=()=>{if(!result)return;const p=runInputs,r=result;const clean=s=>String(s).replace(/[\t\r\n]/g,' ');let txt='DIFFUSION STUDIO v6\nModel: independent phenomenological dopant diffusion; matrix balance; no Kirkendall prediction\nParameters: '+JSON.stringify(p)+'\nActual time (h): '+r.actualTimeHours+'\nSteps: '+r.steps+'\nMax inventory error (%): '+r.massError+'\nCoordinates: cell centers; concentrations: cell averages\n\n';txt+=['Depth(um)','Matrix_reference_D(m2/s)','Matrix_Conc(%)',...r.elements.flatMap(e=>[clean(e.name)+'_Conc(%)',clean(e.name)+'_D(m2/s)'])].join('\t')+'\n';for(let j=0;j<p.N;j++)txt+=[r.x[j],r.matrixD[j],r.matrix[j],...r.elements.flatMap(e=>[e.C[j],e.finalD[j]])].map(v=>v.toPrecision(12)).join('\t')+'\n';const url=URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='DiffusionData_v6.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+addElement('Ni');run();
+</script></body></html>
