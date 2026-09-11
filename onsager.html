@@ -228,6 +228,56 @@
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* Responsive scientific workspace — plain CSS, no build step. */
+:root { --bg-app:#f3f5f7; --border:#dce3e8; --text-main:#18303b; --text-muted:#526874; --primary:#087f83; --primary-light:#edf8f7; --accent:#087f83; --accent-light:#e8f5f3; }
+body { height:100dvh; font-size:14px; }
+.app-header { height:76px; padding:0 24px; box-shadow:none; gap:20px; }
+.brand-icon { width:40px; height:40px; border-radius:12px; }
+.brand h1 { font-size:20px; letter-spacing:-.6px; }
+.brand span { display:block; margin:4px 0 0; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+.status-area { opacity:1; margin:0 12px; max-width:240px; min-width:130px; }
+.status-text { min-width:85px; font-size:11px; }
+.nav-tabs { margin-left:auto; align-items:center; gap:3px; }
+.tab-btn { height:40px; border:0; border-radius:7px; padding:0 12px; white-space:nowrap; }
+.sidebar { width:340px; padding:22px; gap:18px; box-shadow:none; }
+.control-panel { padding:15px; border-radius:10px; background:white; }
+.panel-orange,.panel-indigo { background:white; border-color:var(--border); }
+.text-orange,.text-indigo { color:var(--primary); }
+.panel-title { font-size:12px; letter-spacing:.02em; }
+.input-group label { font-size:11px; font-weight:600; margin-bottom:7px; }
+.input-group input,.input-group select { min-height:38px; border-radius:6px; border-color:#ccd7dd; font-variant-numeric:tabular-nums; }
+.input-group input:focus,.input-group select:focus { border-color:var(--accent); box-shadow:0 0 0 3px #087f831a; }
+button:focus-visible,a:focus-visible { outline:3px solid #08999e; outline-offset:3px; }
+button:disabled { opacity:.5; cursor:not-allowed; }
+.btn { min-height:36px; font-size:11px; text-transform:none; letter-spacing:0; border-radius:6px; }
+.btn-add:hover { background:#066367; }
+.btn-download { color:var(--primary); min-height:40px; }
+.element-card { padding:14px; box-shadow:none; border-radius:9px; }
+.element-card:hover { transform:none; box-shadow:none; }
+.element-grid { grid-template-columns:1fr 1fr; gap:12px; }
+.element-grid .input-group:nth-child(2) { grid-column:1/-1; }
+.element-grid .grid-full { margin-right:24px; }
+.delete-btn { display:block; color:#657b86; width:28px; height:28px; }
+.content-area { min-width:0; display:flex; flex-direction:column; padding:28px; }
+.workspace-heading { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:18px; }
+.workspace-heading h2 { font-size:24px; letter-spacing:-.6px; margin:0 0 7px; }
+.workspace-heading p { margin:0; color:var(--text-muted); font-size:12px; line-height:1.5; }
+.run-btn { background:var(--primary); color:white; white-space:nowrap; padding:10px 18px; }
+.result-meta { color:var(--text-muted); font-size:12px; margin:0 0 16px; min-height:18px; }
+.tab-pane { position:relative; top:auto; left:auto; height:auto; flex:1; min-height:0; }
+.chart-wrapper { height:100%; min-height:320px; margin:0; padding:22px; border-radius:12px; box-shadow:0 3px 12px #18303b05; }
+.notice { padding:12px 15px; border:1px solid #e4be79; background:#fff8e9; color:#71450a; border-radius:8px; font-size:12px; line-height:1.5; margin-bottom:14px; }
+.notice[hidden] { display:none; }
+.help-container { padding:28px; border:1px solid var(--border); border-radius:12px; }
+.help-header h1 { font-size:24px; }
+.math-block,.theory-box { overflow-x:auto; }
+#interaction-modal { backdrop-filter:blur(4px); }
+@media(max-width:1100px) { .app-header { flex-wrap:wrap; height:auto; min-height:100px; padding:12px 20px; gap:8px; } .nav-tabs { order:3; width:100%; justify-content:center; } .status-area { margin-left:auto; } .sidebar { width:300px; padding:16px; } .content-area { padding:20px; } }
+@media(max-width:700px) { body { height:auto; min-height:100dvh; overflow:auto; } .app-header { padding:14px; } .brand h1 { font-size:18px; } .status-area { max-width:135px; min-width:100px; margin:0 0 0 auto; } .progress-track { display:none; } .nav-tabs { justify-content:flex-start; overflow-x:auto; } .tab-btn { font-size:12px; padding:0 10px; } .main-container { flex-direction:column; overflow:visible; } .sidebar { width:100%; overflow:visible; display:grid; grid-template-columns:1fr 1fr; padding:16px; gap:12px; border-right:0; } .sidebar>div:last-child { grid-column:1/-1; } .content-area { overflow:visible; min-height:570px; padding:16px; } .tab-pane { overflow:visible; } .chart-wrapper { height:440px; padding:12px; } .workspace-heading h2 { font-size:21px; } .help-container { padding:18px; } }
+@media(max-width:420px) { .sidebar { grid-template-columns:1fr; } .brand span { font-size:9px; } .workspace-heading { align-items:flex-start; } }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; scroll-behavior:auto!important; } }
+
 </style>
 
 </head>
@@ -236,20 +286,20 @@
     <header class="app-header">
         <div class="brand">
             <div class="brand-icon"><i class="fas fa-project-diagram"></i></div>
-            <div><h1>Onsager Diffusion <span>9.2</span></h1></div>
+            <div><h1>Onsager Diffusion <span>Multicomponent diffusion · MgO</span></h1></div>
         </div>
         
-        <div id="status-area" class="status-area">
+        <div id="status-area" class="status-area" role="status" aria-live="polite">
             <div class="progress-track"><div id="header-progress" class="progress-bar"></div></div>
-            <span id="header-status" class="status-text">Calculating...</span>
+            <span id="header-status" class="status-text">Ready</span>
             <button onclick="terminateWorker()" class="stop-btn" title="Stop"><i class="fas fa-stop"></i></button>
         </div>
 
-        <nav class="nav-tabs">
-            <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn active"><i class="fas fa-chart-line"></i> Profile</button>
-            <button onclick="switchTab('flux')" id="tab-flux" class="tab-btn"><i class="fas fa-water"></i> 3D Flux</button>
-            <button onclick="switchTab('time3d')" id="tab-time3d" class="tab-btn"><i class="fas fa-cube"></i> 3D Conc</button>
-            <button onclick="switchTab('help')" id="tab-help" class="tab-btn help-btn"><i class="fas fa-info-circle"></i> Theory & Refs</button>
+        <nav class="nav-tabs" role="tablist" aria-label="Simulation views">
+            <button onclick="switchTab('profile')" id="tab-profile" role="tab" aria-controls="pane-profile" aria-selected="true" tabindex="0" class="tab-btn active"><i class="fas fa-chart-line"></i> Profile</button>
+            <button onclick="switchTab('flux')" id="tab-flux" role="tab" aria-controls="pane-flux" aria-selected="false" tabindex="-1" class="tab-btn"><i class="fas fa-water"></i> 3D Flux</button>
+            <button onclick="switchTab('time3d')" id="tab-time3d" role="tab" aria-controls="pane-time3d" aria-selected="false" tabindex="-1" class="tab-btn"><i class="fas fa-cube"></i> 3D Conc</button>
+            <button onclick="switchTab('help')" id="tab-help" role="tab" aria-controls="pane-help" aria-selected="false" tabindex="-1" class="tab-btn help-btn"><i class="fas fa-info-circle"></i> Theory & Refs</button>
         </nav>
     </header>
 
@@ -316,26 +366,29 @@
                     <button onclick="addElement()" class="btn btn-add"><i class="fas fa-plus"></i> ADD</button>
                 </div>
                 <div id="elementsList"></div>
-                <button onclick="downloadData()" class="btn btn-download"><i class="fas fa-download"></i> Download CSV</button>
+                <button id="download-button" disabled onclick="downloadData()" class="btn btn-download"><i class="fas fa-download"></i> Download CSV</button>
             </div>
         </aside>
 
         <main class="content-area">
+<div class="workspace-heading"><div><h2 id="view-title">Concentration profile</h2><p id="view-description">Explore diffusion across the source and MgO matrix.</p></div><button class="btn run-btn" onclick="triggerCalculation()">Run calculation</button></div>
+<div id="app-notice" class="notice" role="alert" hidden></div>
+<p id="result-meta" class="result-meta">Adjust parameters to calculate automatically.</p>
             
-            <div id="pane-profile" class="tab-pane active">
-                <div class="chart-wrapper"><canvas id="diffusionChart"></canvas></div>
+            <div id="pane-profile" role="tabpanel" aria-labelledby="tab-profile" class="tab-pane active">
+                <div class="chart-wrapper"><canvas id="diffusionChart" role="img" aria-label="Concentration versus depth for the matrix and dopants"></canvas></div>
             </div>
 
-            <div id="pane-flux" class="tab-pane">
+            <div id="pane-flux" role="tabpanel" aria-labelledby="tab-flux" class="tab-pane">
                  <div class="chart-wrapper"><div id="plotly-flux"></div></div>
             </div>
 
-            <div id="pane-time3d" class="tab-pane">
+            <div id="pane-time3d" role="tabpanel" aria-labelledby="tab-time3d" class="tab-pane">
                  <div class="chart-wrapper"><div id="plotly-time"></div></div>
             </div>
 
 
-            <div id="pane-help" class="tab-pane">
+            <div id="pane-help" role="tabpanel" aria-labelledby="tab-help" class="tab-pane">
     <div class="help-container">
         <div class="help-header">
             <h1>Theory & Documentation</h1>
@@ -557,7 +610,7 @@
     </template>
 
 
-<div id="interaction-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
+<div id="interaction-modal" role="dialog" aria-modal="true" aria-label="Interaction parameters" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
   <div style="background:white; padding:0; border-radius:12px; max-width:900px; width:95%; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
     <div style="padding:20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
       <div>
@@ -582,7 +635,8 @@
           <i class="fas fa-magnet"></i> 2. THERMODYNAMICS: Interaction $\Omega_{ij}$ (eV)
         </h3>
         <div style="overflow-x:auto;">
-          <table id="omega-matrix-table" style="width:100%; border-collapse:collapse; font-size:13px; border:1px solid #e2e8f0;"></table>
+          <p id="omega-note" style="font-size:12px;line-height:1.5;color:#71450a">Model limitation: the supplied solver uses dopant–dopant Ω terms only. Mg–dopant Ω values are retained for export but do not affect the calculation.</p>
+          <table id="omega-matrix-table" aria-describedby="omega-note" style="width:100%; border-collapse:collapse; font-size:13px; border:1px solid #e2e8f0;"></table>
         </div>
       </div>
     </div>
@@ -670,26 +724,28 @@
                 if (Dpeak > maxD_est) maxD_est = Dpeak;
             });
 
-            let dt = (0.2 * dx * dx) / maxD_est;
+            const omegaMagnitude=Math.max(0,...species.flatMap(s=>s.omegaVector.map(Math.abs)));
+            let dt = (0.1 * dx * dx) / (maxD_est * (1 + species.length) * (1 + 2 * omegaMagnitude / kBT));
+            if(!Number.isFinite(dt) || dt<=0) throw new Error('Parameters exceed the numerical range. Adjust D₀, Q or geometry.');
 
             let current_time = 0;
             let step = 0;
             
             const estimatedSteps = Math.ceil(Time_s / dt);
+            if(estimatedSteps>2000000) throw new Error('This run needs more than 2 million steps. Reduce time, temperature or grid points.');
             const targetFrames = 40;
             const saveInterval = Math.max(1, Math.floor(estimatedSteps / targetFrames)); 
             const reportInterval = Math.max(100, Math.floor(estimatedSteps / 50));
             
-            let matrixHistory = [];
+            let matrixHistory = [], historyTimes=[];
+            const saveFrame=()=>{
+                historyTimes.push(current_time);
+                species.forEach(s=>{s.history.push(Float64Array.from(s.C));s.fluxHistory.push(Float64Array.from(s.Flux));});
+                matrixHistory.push(Float64Array.from({length:N},(_,i)=>1-species.reduce((sum,s)=>sum+s.C[i],0)));
+            };
 
-            // --- 3. LOOP ---
-            while (current_time < Time_s) {
-                updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
-
-                if (step % 1000 === 0) {
-                     if (current_time + dt > Time_s) dt = Time_s - current_time;
-                }
-
+            // Flux index i is the face between nodes i and i+1; last entry is the sealed right boundary.
+            function calculateFlux() {
                 for (let i = 0; i < N - 1; i++) {
                     const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
                     let sumC = 0; C_local.forEach(c => sumC += c);
@@ -733,6 +789,17 @@
                         s_i.Flux[i] = flux;
                     });
                 }
+                species.forEach(s=>{s.Flux[N-1]=0;});
+            }
+
+            // --- 3. LOOP ---
+            while (current_time < Time_s) {
+                updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
+
+                calculateFlux();
+                dt=Math.min(dt,Time_s-current_time);
+                if(current_time+dt===current_time) throw new Error('Time step is below numerical precision.');
+                if(step===0 && inputs.mode==='history') saveFrame();
 
                 for (let i = 1; i < N - 1; i++) {
                     species.forEach(s => {
@@ -741,27 +808,18 @@
                     });
                 }
                 
-                species.forEach(s => { s.C_new[0] = s.C_new[1]; s.C_new[N-1] = s.C_new[N-2]; });
-
-                species.forEach(s => {
-                    const temp = s.C; s.C = s.C_new; s.C_new = temp;
-                    if (inputs.mode === 'history' && (step % saveInterval === 0 || current_time + dt >= Time_s)) {
-                        s.history.push(Float64Array.from(s.C));
-                        s.fluxHistory.push(Float64Array.from(s.Flux));
-                    }
-                });
-                
-                if (inputs.mode === 'history' && (step % saveInterval === 0 || current_time + dt >= Time_s)) {
-                    const currentMatrix = new Float64Array(N);
-                    for(let i=0; i<N; i++) {
-                        let sum = 0; 
-                        species.forEach(s => sum += s.C[i]);
-                        currentMatrix[i] = Math.max(0, 1 - sum);
-                    }
-                    matrixHistory.push(currentMatrix);
+                // Half-width endpoint volumes: zero outward flux conserves the trapezoidal integral.
+                species.forEach(s => { s.C_new[0]=s.C[0]-2*dt*s.Flux[0]/dx; s.C_new[N-1]=s.C[N-1]+2*dt*s.Flux[N-2]/dx; });
+                for(let i=0;i<N;i++) {
+                    let sum=0;
+                    for(const s of species) { const v=s.C_new[i]; if(!Number.isFinite(v)||v < -1e-10||v>1+1e-10) throw new Error('Unstable concentrations: adjust interaction values or conditions.'); sum+=v; }
+                    if(sum>1+1e-10) throw new Error('Unstable matrix concentration: adjust interaction values or conditions.');
                 }
-
+                species.forEach(s=>{const old=s.C;s.C=s.C_new;s.C_new=old;});
                 current_time += dt;
+                if(inputs.mode==='history' && ((step+1)%saveInterval===0 || current_time>=Time_s)) {
+                    updateDiffusivities(species,matrixD0,matrixQVec,N,kBT); calculateFlux(); saveFrame();
+                }
                 step++;
                 
                 if (step % reportInterval === 0) {
@@ -769,6 +827,7 @@
                 }
             }
 
+            updateDiffusivities(species,matrixD0,matrixQVec,N,kBT); calculateFlux();
             species.forEach(s => delete s.D_star_map);
             const finalMatrix = new Float64Array(N);
             for(let i=0; i<N; i++) {
@@ -776,7 +835,7 @@
                 finalMatrix[i] = Math.max(0, 1 - sum);
             }
 
-            self.postMessage({ type: 'complete', species, matrix: finalMatrix, matrixHistory, dx, interfaceX: Source_m });
+            self.postMessage({ type: 'complete', species, matrix: finalMatrix, matrixHistory, historyTimes, dx, interfaceX: Source_m });
 
         } catch (err) { self.postMessage({ type: 'error', message: err.message }); }
     };
@@ -953,95 +1012,46 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
 
 
     // ---------- WORKER, STATUS, CHART functions (unchanged) ----------
+    function showNotice(message) { const el=document.getElementById('app-notice'); el.textContent=message; el.hidden=false; }
     function createWorker() {
-        const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
-        return new Worker(window.URL.createObjectURL(blob));
+        const url=URL.createObjectURL(new Blob([document.getElementById('worker-code').textContent],{type:'text/javascript'}));
+        try { return new Worker(url); } finally { URL.revokeObjectURL(url); }
     }
-
     function terminateWorker() {
-        if (worker) { worker.terminate(); worker = null; updateStatus(0, "Stopped"); }
+        clearTimeout(debounceTimer);
+        if(worker) { worker.terminate(); worker=null; updateStatus(0,'Stopped'); }
     }
-
-    function updateStatus(percent, text) {
-        const area = document.getElementById('status-area');
-        const bar = document.getElementById('header-progress');
-        const lbl = document.getElementById('header-status');
-        if(text === 'Ready') { area.style.opacity = '0'; } 
-        else { area.style.opacity = '1'; bar.style.width = percent + '%'; lbl.innerText = text || (percent + '%'); }
+    function updateStatus(percent,text) {
+        document.getElementById('header-progress').style.width=percent+'%';
+        document.getElementById('header-status').textContent=text || percent+'%';
+        document.querySelector('.stop-btn').disabled=!worker;
     }
-
 
     function validateInputs() {
-    // FIX: IDs changed to match HTML ('temp' instead of 'temperature', 'time' instead of 'annealTime')
-    const tempElement = document.getElementById('temp');
-    const timeElement = document.getElementById('time');
-    
-    // Safety check in case elements are missing
-    if (!tempElement || !timeElement) return null;
-
-    const temp = parseFloat(tempElement.value);
-    const timeHours = parseFloat(timeElement.value);
-    
-    const totalLength = parseFloat(document.getElementById('totalLength').value);
-    const sourceLength = parseFloat(document.getElementById('sourceLength').value);
-    const N = parseInt(document.getElementById('gridPoints').value);
-
-    if (isNaN(temp) || temp <= 0) {
-        alert("Temperature must be a positive number.");
-        return null;
+    const read = id => { const v=document.getElementById(id).value.trim(); return v === '' ? NaN : Number(v); };
+    const fail = message => { showNotice(message); return null; };
+    const temp=read('temp'), timeHours=read('time'), totalLength=read('totalLength'), sourceLength=read('sourceLength'), N=read('gridPoints'), targetD0=read('targetD0');
+    if (!Number.isFinite(temp) || temp<600 || temp>2800) return fail('Temperature must be between 600 and 2800 K.');
+    if (!Number.isFinite(timeHours) || timeHours<=0 || !Number.isFinite(timeHours*3600)) return fail('Enter a finite, positive anneal time.');
+    if (!Number.isFinite(totalLength) || totalLength<=0) return fail('Total length must be finite and positive.');
+    if (!Number.isFinite(sourceLength) || sourceLength<=0 || sourceLength>=totalLength) return fail('Source length must be positive and less than total length.');
+    if (!Number.isInteger(N) || N<50 || N>400) return fail('Grid points must be an integer from 50 to 400.');
+    if (!Number.isFinite(targetD0) || targetD0<=0) return fail('Matrix D₀ must be finite and positive.');
+    const interfaceNode=Math.round(sourceLength/totalLength*(N-1));
+    if(interfaceNode<1 || interfaceNode>=N-1) return fail('Increase grid resolution or adjust the source length to resolve both regions.');
+    const elements=[];
+    for(const card of document.querySelectorAll('.element-card')) {
+        const name=card.querySelector('.el-name').value;
+        const readCard=cls => { const v=card.querySelector(cls).value.trim(); return v===''?NaN:Number(v); };
+        const d0=readCard('.el-d0'), cLeft=readCard('.el-c-left'), cRight=readCard('.el-c-right');
+        if(!CATION_DB[name] || name==='Mg' || elements.some(e=>e.name===name)) return fail('Choose a different species for each dopant. Mg is reserved for the host matrix.');
+        if(!Number.isFinite(d0) || d0<=0) return fail(name+': D₀ must be finite and positive.');
+        if(![cLeft,cRight].every(v=>Number.isFinite(v)&&v>=0&&v<=100)) return fail(name+': concentrations must be between 0 and 100%.');
+        elements.push({name, fullLabel:CATION_DB[name].label, valence:CATION_DB[name].valence??2, d0,cLeft,cRight,color:card.querySelector('.el-color').value,qVector:buildQVector(name),omegaVector:buildOmegaVector(name)});
     }
-    if (isNaN(timeHours) || timeHours <= 0) {
-        alert("Anneal time must be a positive number.");
-        return null;
-    }
-    if (isNaN(totalLength) || totalLength <= 0) {
-        alert("Total length must be a positive number (µm).");
-        return null;
-    }
-    if (isNaN(sourceLength) || sourceLength <= 0 || sourceLength >= totalLength) {
-        alert("Source length must be >0 and < total length.");
-        return null;
-    }
-    if (isNaN(N) || N < 30) {
-        alert("Grid points N must be at least 30.");
-        return null;
-    }
-
-    const elements = [];
-    document.querySelectorAll('.element-card').forEach(card => {
-        const name = card.querySelector('.el-name').value;
-        const d0 = parseFloat(card.querySelector('.el-d0').value);
-        const cLeft = parseFloat(card.querySelector('.el-c-left').value);
-        const cRight = parseFloat(card.querySelector('.el-c-right').value);
-        const color = card.querySelector('.el-color').value;
-
-        elements.push({
-            name,
-            fullLabel: CATION_DB[name].label,
-            valence: CATION_DB[name].valence ?? 2,
-            d0,
-            cLeft,
-            cRight,
-            color,
-            qVector: buildQVector(name),
-            omegaVector: buildOmegaVector(name)
-        });
-    });
-
-    return {
-        temp,
-        timeHours,
-        totalLength,
-        sourceLength,
-        N,
-        elements,
-
-        // FIX: ID changed to match HTML ('targetD0' instead of 'matrixD0')
-        targetD0: parseFloat(document.getElementById('targetD0')?.value || "1e-10"),
-
-        matrixQVector: buildQVector("Mg"),
-        matrixOmegaVector: buildOmegaVector("Mg")
-    };
+    if(elements.reduce((n,e)=>n+e.cLeft,0)>100 || elements.reduce((n,e)=>n+e.cRight,0)>100) return fail('Total dopant concentration cannot exceed 100% in either region.');
+    if(!Object.values(qMatrixData).every(v=>Number.isFinite(v)&&v>=0) || !Object.values(omegaMatrixData).every(Number.isFinite)) return fail('Q values must be finite and nonnegative; Ω values must be finite.');
+    return {temp,timeHours,totalLength,sourceLength,N,targetD0,elements,matrixQVector:buildQVector('Mg'),matrixOmegaVector:buildOmegaVector('Mg'),qSnapshot:{...qMatrixData},omegaSnapshot:{...omegaMatrixData}};
 }
 
 function buildQVector(species) {
@@ -1079,31 +1089,34 @@ function buildOmegaVector(species) {
 
 
     function triggerCalculation() {
-        const inputs = validateInputs();
-        if(!inputs) return;
         terminateWorker();
-        
-        // Ensure 3D history is captured if we are on those tabs OR if we just loaded
-        inputs.mode = (currentTab === 'time3d' || currentTab === 'flux') ? 'history' : 'snapshot';
-        
-        worker = createWorker();
-        worker.onmessage = function(e) {
-            const msg = e.data;
-            if (msg.type === 'progress') { 
-                updateStatus(msg.percent, msg.percent + '%'); 
-            } else if (msg.type === 'complete') {
-                updateStatus(100, 'Done');
-                setTimeout(() => updateStatus(0, 'Ready'), 1000);
-                renderResults(msg, inputs);
-                worker.terminate();
-            } else if (msg.type === 'error') { 
-                console.error(msg.message); updateStatus(0, 'Error'); 
-            }
-        };
-        updateStatus(0, 'Calculating');
-        worker.postMessage(inputs);
+        document.getElementById('download-button').disabled=true;
+        document.getElementById('app-notice').hidden=true;
+        const inputs=validateInputs();
+        if(!inputs) { updateStatus(0,'Check inputs'); return; }
+        inputs.mode='history';
+        const fail=message=>{ terminateWorker(); updateStatus(0,'Error'); showNotice(message); };
+        try {
+            worker=createWorker();
+            const activeWorker=worker;
+            worker.onerror=e=>{if(worker===activeWorker) fail(e.message || 'Calculation worker failed.');};
+            worker.onmessage=e=>{
+                if(worker!==activeWorker) return;
+                const msg=e.data;
+                if(msg.type==='progress') updateStatus(msg.percent,msg.percent+'%');
+                else if(msg.type==='error') fail(msg.message);
+                else if(msg.type==='complete') {
+                    activeWorker.terminate(); worker=null;
+                    lastResults=msg; lastInputs=inputs;
+                    document.getElementById('download-button').disabled=false;
+                    updateStatus(100,'Complete');
+                    document.getElementById('result-meta').textContent=`${inputs.temp} K · ${inputs.timeHours} h · ${inputs.N} grid points · ${inputs.elements.length} dopants`;
+                    try { renderResults(msg,inputs); } catch(err) { showNotice('Results are ready, but the chart could not load. Check your connection or download the CSV. '+err.message); }
+                }
+            };
+            updateStatus(0,'Calculating'); worker.postMessage(inputs);
+        } catch(err) { fail(err.message); }
     }
-
 
 
 function renderResults(res, inputs) {
@@ -1112,18 +1125,18 @@ function renderResults(res, inputs) {
 
     if (currentTab === 'profile') {
         const dx = res.dx * 1e6;
-        const labels = Array.from({length: inputs.N}, (_, i) => (i * dx).toFixed(2));
+        const labels = Array.from({length: inputs.N}, (_, i) => i * dx);
         const datasets = res.species.map(s => ({
             label: s.fullLabel,
             data: Array.from(s.C).map(v => v * 100),
             borderColor: s.color, backgroundColor: s.color + '20',
-            borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4
+            borderWidth: 2, pointRadius: 0, fill: true, tension: 0
         }));
         datasets.unshift({
             label: 'Matrix (MgO)',
             data: Array.from(res.matrix).map(v => v * 100),
             borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], 
-            pointRadius: 0, fill: false, tension: 0.4
+            pointRadius: 0, fill: false, tension: 0
         });
         
         if(chartInstance) chartInstance.destroy();
@@ -1140,18 +1153,18 @@ function renderResults(res, inputs) {
         });
 
     } else if (currentTab === 'flux' || currentTab === 'time3d') {
-        if (!res.species[0].history || res.species[0].history.length === 0) {
+        if (!res.historyTimes || res.historyTimes.length === 0) {
             console.warn("History missing. Re-running.");
             triggerCalculation(); 
             return;
         }
 
-        const xData = Array.from({length: inputs.N}, (_, i) => i * (res.dx * 1e6));
-        const yData = res.species[0].history.map((_, i) => i * (inputs.timeHours / res.species[0].history.length));
+        const xData = Array.from({length: inputs.N}, (_, i) => (currentTab === 'flux' && i < inputs.N-1 ? i + 0.5 : i) * (res.dx * 1e6));
+        const yData = res.historyTimes.map(t => t / 3600);
         
         const traces = res.species.map(s => {
             let zData;
-            if(currentTab === 'flux') zData = s.fluxHistory.map(row => Array.from(row));
+            if(currentTab === 'flux') zData = s.fluxHistory.map(row => Array.from(row, v => v * 88825));
             else zData = s.history.map(row => Array.from(row).map(v => v*100));
 
             return {
@@ -1175,15 +1188,12 @@ function renderResults(res, inputs) {
             scene: { 
                 aspectmode: 'cube',
                 xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, 
-                zaxis:{title: currentTab === 'flux' ? 'Flux' : 'Conc (%)'}, 
+                zaxis:{title: currentTab === 'flux' ? 'Flux (mol/m²/s)' : 'Conc (%)'}, 
                 camera: { eye: { x: 1.5, y: 1.5, z: 1.3 } } 
             }
-        });
+        }, {responsive:true, displaylogo:false});
     }
 }
-
-
-
 
     // --- INPUTS & DEFAULTS (existing helpers) ---
     function getQValue(diffuser, env) {
@@ -1289,7 +1299,7 @@ function buildMatrixTables() {
             } else if (isLower) {
                 // Lower triangle for Omega: show mirror value but disabled
                 return `<td style="background:#f1f5f9; padding:4px; border-bottom:1px solid #e2e8f0; text-align:center;">
-                    <input type="number" disabled value="${val}" 
+                    <input type="number" class="omega-mirror" data-row="${r}" data-col="${c}" disabled value="${val}" 
                            style="width:70px; padding:4px; border:1px solid #e2e8f0; background:transparent; text-align:center; cursor:not-allowed; color:#94a3b8;">
                 </td>`;
             }
@@ -1312,7 +1322,7 @@ function buildMatrixTables() {
         html += `<tr><td style="font-weight:bold; padding:8px; border-bottom:1px solid #e2e8f0;">${r}</td>`;
         species.forEach(c => {
             const k = keyFor(r,c);
-            const val = (qMatrixData[k] !== undefined) ? Number(qMatrixData[k]).toFixed(3) : Number(getQValue(r,c)).toFixed(3);
+            const val = (qMatrixData[k] !== undefined) ? Number(qMatrixData[k]) : Number(getQValue(r,c));
             html += createCell(r, c, val, 'q');
         });
         html += '</tr>';
@@ -1330,7 +1340,7 @@ function buildMatrixTables() {
         ohtml += `<tr><td style="font-weight:bold; padding:8px; border-bottom:1px solid #e2e8f0;">${r}</td>`;
         species.forEach(c => {
             const k = keyFor(r,c);
-            const val = (omegaMatrixData[k] !== undefined) ? Number(omegaMatrixData[k]).toFixed(3) : Number(getOmegaValue(r,c)).toFixed(3);
+            const val = (omegaMatrixData[k] !== undefined) ? Number(omegaMatrixData[k]) : Number(getOmegaValue(r,c));
             ohtml += createCell(r, c, val, 'omega');
         });
         ohtml += '</tr>';
@@ -1345,6 +1355,7 @@ function attachMatrixListeners(){
     // Q Listeners - Now fully asymmetric, each cell is independent
     document.querySelectorAll('.q-cell').forEach(inp => {
         inp.oninput = () => {
+            inp.setCustomValidity('');
             const r = inp.dataset.row, c = inp.dataset.col;
             const v = parseFloat(inp.value);
             if (!isNaN(v)) {
@@ -1356,6 +1367,7 @@ function attachMatrixListeners(){
     // Omega Listeners (STRICTLY SYMMETRIC)
     document.querySelectorAll('.omega-cell').forEach(inp => {
         inp.oninput = () => {
+            inp.setCustomValidity('');
             const r = inp.dataset.row, c = inp.dataset.col;
             const v = parseFloat(inp.value);
             if (!isNaN(v)) {
@@ -1365,8 +1377,8 @@ function attachMatrixListeners(){
                 omegaMatrixData[keyFor(c,r)] = v;
                 
                 // 3. Update the mirrored input field visually
-                const mirrorInp = document.querySelector(`.omega-cell[data-row="${c}"][data-col="${r}"]`);
-                if (mirrorInp && !mirrorInp.disabled) {
+                const mirrorInp = document.querySelector(`.omega-mirror[data-row="${c}"][data-col="${r}"]`);
+                if (mirrorInp) {
                     mirrorInp.value = v;
                 }
             }
@@ -1383,16 +1395,23 @@ function attachMatrixListeners(){
       rebuildMatricesPreserve();
       buildMatrixTables();
       document.getElementById('interaction-modal').style.display = 'flex';
+      document.querySelector('.app-header').inert=true; document.querySelector('.main-container').inert=true;
+      modalReturnFocus=document.activeElement; document.querySelector('#interaction-modal button').focus(); labelControls();
     }
 
     function closeInteractionModal() {
+      for(const inp of document.querySelectorAll('.q-cell:not(:disabled),.omega-cell:not(:disabled)')) {
+        const v=Number(inp.value);
+        if(inp.value.trim()==='' || !Number.isFinite(v) || (inp.classList.contains('q-cell') && v<0)) { inp.setCustomValidity('Enter a finite value; Q must be nonnegative.'); inp.reportValidity(); inp.focus(); return; }
+        inp.setCustomValidity('');
+      }
       // read final values from inputs (listeners already update maps, but ensure parsing)
       document.querySelectorAll('.q-cell').forEach(inp=>{
         const k = keyFor(inp.dataset.row, inp.dataset.col);
         const v = parseFloat(inp.value);
         if (!isNaN(v)) qMatrixData[k] = v;
       });
-      document.querySelectorAll('.omega-cell').forEach(inp=>{
+      document.querySelectorAll('.omega-cell:not(:disabled)').forEach(inp=>{
         const k = keyFor(inp.dataset.row, inp.dataset.col);
         const v = parseFloat(inp.value);
         if (!isNaN(v)) {
@@ -1402,13 +1421,15 @@ function attachMatrixListeners(){
       });
 
       document.getElementById('interaction-modal').style.display = 'none';
+      document.querySelector('.app-header').inert=false; document.querySelector('.main-container').inert=false;
+      modalReturnFocus?.focus();
       debouncedUpdate();
     }
 
     // keep syncSymmetry for any inline handlers (backwards compatibility)
     function syncSymmetry(input) {
       const r = input.dataset.row, c = input.dataset.col;
-      const mirror = document.querySelector(`.omega-cell[data-row="${c}"][data-col="${r}"]`);
+      const mirror = document.querySelector(`.omega-mirror[data-row="${c}"][data-col="${r}"]`);
       if (mirror) mirror.value = input.value;
       // update maps
       const v = parseFloat(input.value);
@@ -1421,9 +1442,11 @@ function attachMatrixListeners(){
     // -------------------------
     // Preserve-aware addElement / updateElementParams
     // -------------------------
-    function addElement(initialKey = "Fe2") {
+    function addElement(initialKey) {
+        const used = getSpeciesList();
+        initialKey = initialKey || Object.keys(CATION_DB).find(k => !used.includes(k));
         const list = document.getElementById('elementsList');
-        if (list.children.length >= 4) { alert("Max 4 dopants"); return; }
+        if (list.children.length >= 4) { showNotice("Max 4 dopants"); return; }
         
         const template = document.getElementById('elementTemplate');
         const clone = template.content.cloneNode(true);
@@ -1434,7 +1457,7 @@ function attachMatrixListeners(){
         clone.querySelector('.el-color').value = color;
         
         const select = clone.querySelector('.el-name');
-        const keys = Object.keys(CATION_DB);
+        const keys = Object.keys(CATION_DB).filter(k => k !== "Mg");
         keys.forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.text = CATION_DB[k].label; select.appendChild(opt); });
         
         select.value = initialKey;
@@ -1462,6 +1485,7 @@ function attachMatrixListeners(){
         };
 
         list.appendChild(clone);
+        labelControls();
 
         // after adding, rebuild matrices preserving existing edits; new pairs get defaults
         rebuildMatricesPreserve();
@@ -1480,7 +1504,7 @@ function attachMatrixListeners(){
 
     function downloadData() {
     if (!lastResults || !lastInputs) {
-        alert("No simulation data found. Please run a calculation first.");
+        showNotice("No simulation data found. Please run a calculation first.");
         return;
     }
 
@@ -1505,16 +1529,18 @@ function attachMatrixListeners(){
     csv += "\n--- KINETICS MATRIX (Q in eV) ---\n";
     csv += "Pair,Value\n";
     // Sort keys for tidiness
-    Object.keys(qMatrixData).sort().forEach(key => {
-        csv += `${key},${qMatrixData[key]}\n`;
+    Object.keys(lastInputs.qSnapshot).sort().forEach(key => {
+        csv += `${key},${lastInputs.qSnapshot[key]}\n`;
     });
 
     csv += "\n--- THERMO MATRIX (Omega in eV) ---\n";
     csv += "Pair,Value\n";
-    Object.keys(omegaMatrixData).sort().forEach(key => {
-        csv += `${key},${omegaMatrixData[key]}\n`;
+    Object.keys(lastInputs.omegaSnapshot).sort().forEach(key => {
+        csv += `${key},${lastInputs.omegaSnapshot[key]}\n`;
     });
 
+    csv += "\nFlux location,Internal face i is halfway between depth nodes i and i+1; last flux is the sealed right boundary\n";
+    csv += "Model limitation,Mg-dopant Omega terms are not used by the supplied solver\n";
     // --- 4. SIMULATION DATA ---
     csv += "\n--- CALCULATION RESULTS ---\n";
     
@@ -1523,7 +1549,7 @@ function attachMatrixListeners(){
         .map(s => `${s.name} Conc (%),${s.name} Flux (mol/m2s)`)
         .join(",");
         
-    csv += `Depth (um),Matrix Conc (%),${speciesHeaders}\n`;
+    csv += `Depth (um),Flux face depth (um),Matrix Conc (%),${speciesHeaders}\n`;
 
     // Write Rows
     const dx = lastResults.dx * 1e6; // Convert m to um
@@ -1539,7 +1565,7 @@ function attachMatrixListeners(){
 }).join(",");
 
 
-        csv += `${depth},${matC},${spData}\n`;
+        csv += `${depth},${((i < lastInputs.N-1 ? i+0.5 : i)*dx).toFixed(4)},${matC},${spData}\n`;
     }
 
     // --- 5. TRIGGER DOWNLOAD ---
@@ -1556,10 +1582,11 @@ function attachMatrixListeners(){
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 
-    function debouncedUpdate() { clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
+    function debouncedUpdate() { terminateWorker(); document.getElementById('download-button').disabled=true; document.getElementById('result-meta').textContent='Parameters changed — results pending.'; clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
     
     function switchTab(tab) {
         currentTab = tab;
@@ -1568,9 +1595,29 @@ function attachMatrixListeners(){
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         document.getElementById('pane-' + tab).classList.add('active');
         if(tab === 'time3d' || tab === 'flux') window.dispatchEvent(new Event('resize'));
-        if(tab !== 'help') triggerCalculation();
+        document.getElementById('view-title').textContent=({profile:'Concentration profile',flux:'Flux over time',time3d:'Concentration over time',help:'Theory & references'})[tab];
+        document.getElementById('view-description').textContent=tab==='help'?'Model equations and supplied reference parameters.':'Explore diffusion across the source and MgO matrix.';
+        document.querySelectorAll('.tab-btn').forEach(b=>{ const active=b.id==='tab-'+tab; b.setAttribute('aria-selected',String(active)); b.tabIndex=active?0:-1; });
+        if(tab !== 'help' && lastResults) { try { renderResults(lastResults,lastInputs); } catch(err) { showNotice('Chart unavailable: '+err.message); } }
     }
 
+let modalReturnFocus=null;
+let controlId=0;
+function labelControls() {
+    document.querySelectorAll('.input-group').forEach((g,i)=>{ const control=g.querySelector('input:not([type=hidden]),select'), label=g.querySelector('label'); if(control&&label) { if(!control.id) control.id='control-'+(++controlId); label.htmlFor=control.id; } });
+    document.querySelectorAll('#interaction-modal input').forEach(el=>el.setAttribute('aria-label',`${el.classList.contains('q-cell')?'Q':'Omega'} ${el.dataset.row} to ${el.dataset.col}`));
+    document.querySelectorAll('button').forEach(el=>{ if(!el.textContent.trim()) el.setAttribute('aria-label',el.title || 'Close interaction parameters'); });
+}
+document.addEventListener('keydown',e=>{
+    if(e.target.matches('.tab-btn') && ['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) {
+        e.preventDefault(); const tabs=[...document.querySelectorAll('.tab-btn')]; let index=tabs.indexOf(e.target);
+        index=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+        tabs[index].focus(); switchTab(tabs[index].id.replace('tab-','')); return;
+    }
+    const modal=document.getElementById('interaction-modal'); if(modal.style.display!=='flex') return;
+    if(e.key==='Escape') { e.preventDefault(); closeInteractionModal(); }
+    if(e.key==='Tab') { const items=[...modal.querySelectorAll('button,input:not(:disabled)')]; const first=items[0],last=items[items.length-1]; if(e.shiftKey&&document.activeElement===first) {e.preventDefault();last.focus();} else if(!e.shiftKey&&document.activeElement===last) {e.preventDefault();first.focus();} }
+});
 window.onload = function() { 
       // Default to Fe2+ (Fast/Classic) and Ni (Ideal) for demonstration of difference
       addElement("Fe2"); 
