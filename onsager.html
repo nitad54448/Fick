@@ -35,6 +35,7 @@
     }
 
     * { box-sizing: border-box; }
+    body.calculating, body.calculating * { cursor: progress !important; }
 
     body {
         margin: 0; padding: 0;
@@ -264,6 +265,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 .workspace-heading h2 { font-size:24px; letter-spacing:-.6px; margin:0 0 7px; }
 .workspace-heading p { margin:0; color:var(--text-muted); font-size:12px; line-height:1.5; }
 .run-btn { background:var(--primary); color:white; white-space:nowrap; padding:10px 18px; }
+.run-btn.is-running { background:var(--danger); }
 .result-meta { color:var(--text-muted); font-size:12px; margin:0 0 16px; min-height:18px; }
 .tab-pane { position:relative; top:auto; left:auto; height:auto; flex:1; min-height:0; }
 .chart-wrapper { height:100%; min-height:320px; margin:0; padding:22px; border-radius:12px; box-shadow:0 3px 12px #18303b05; }
@@ -314,15 +316,16 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 <div class="input-grid">
                     <div class="input-group">
                         <label>Source Length (µm)</label>
-                        <input type="number" id="sourceLength" value="5" min="0.1" step="0.1" onchange="debouncedUpdate()">
+                        <input type="number" id="sourceLength" value="5" min="0.1" step="0.1" oninput="debouncedUpdate()">
                     </div>
                     <div class="input-group">
                         <label>Total Length (µm)</label>
-                        <input type="number" id="totalLength" value="20" min="1" step="1" onchange="debouncedUpdate()">
+                        <input type="number" id="totalLength" value="20" min="1" step="1" oninput="debouncedUpdate()">
                     </div>
                     <div class="input-group col-span-2">
                         <label>Grid Points</label>
-                        <input type="number" id="gridPoints" value="100" min="50" max="400" onchange="debouncedUpdate()">
+                        <input type="number" id="gridPoints" value="100" min="50" max="500" step="1" onchange="debouncedUpdate()">
+                        <small style="color:var(--text-muted)">Allowed grid: 50–500 points. While running, click Stop above the plot to cancel.</small>
                     </div>
                 </div>
             </div>
@@ -350,7 +353,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 <div class="input-grid">
                     <div class="input-group col-span-2">
                         <label>Matrix D₀ (m²/s) [Extrinsic]</label>
-                        <input type="text" id="targetD0" value="1.0e-10" onchange="debouncedUpdate()">
+                        <input type="text" id="targetD0" value="4.0e-9" onchange="debouncedUpdate()">
                     </div>
                     <div class="input-group col-span-2">
                         <button onclick="openInteractionModal()" class="btn" style="width:100%; background:white; border:1px solid #c7d2fe; color:#3730a3;">
@@ -371,7 +374,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
         </aside>
 
         <main class="content-area">
-<div class="workspace-heading"><div><h2 id="view-title">Concentration profile</h2><p id="view-description">Explore diffusion across the source and MgO matrix.</p></div><button class="btn run-btn" onclick="triggerCalculation()">Run calculation</button></div>
+<div class="workspace-heading"><div><h2 id="view-title">Concentration profile</h2><p id="view-description">Explore diffusion across the source and MgO matrix.</p></div><button id="calculation-button" class="btn run-btn" onclick="toggleCalculation()" title="Start calculation">Run calculation</button></div>
 <div id="app-notice" class="notice" role="alert" hidden></div>
 <p id="result-meta" class="result-meta">Adjust parameters to calculate automatically.</p>
             
@@ -437,11 +440,16 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             <div class="theory-box" style="border-left-color:#db2777; background:#fdf2f8;">
                 <h4 style="color:#be185d;"><i class="fas fa-magnet"></i> 2.3 Thermodynamics: The Ω-Matrix</h4>
                 <p>
-                    The $\Omega$-matrix defines enthalpic mixing interactions using a regular-solution model ($ H_{mix} = \sum \Omega_{ij} X_i X_j $). Positive $\Omega$ implies demixing/clustering. This is converted into the thermodynamic matrix $\Phi$:
+                    All symmetric pair interactions, including Mg–dopant pairs, enter the regular-solution free energy. Index 0 denotes Mg; all cation fractions sum to one. The chemical-potential gradients drive the flux:
                 </p>
                 <div class="math-block">
-                    $$ \Phi_{ij} = \delta_{ij} - \frac{2 \Omega_{ij} C_i C_j}{k_B T} $$
+                    $$ g = k_B T\sum_i C_i\ln C_i + h, \qquad h=\sum_{i&lt;j}\Omega_{ij}C_iC_j $$
+                    $$ F_i = \nabla C_i + \frac{C_i}{k_BT}\left(\sum_j\Omega_{ij}\nabla C_j-\nabla h\right) $$
+                    $$ J_i = -D_i^*F_i + C_i\sum_k D_k^*F_k $$
                 </div>
+                <p>For one dopant, the thermodynamic factor reduces to $1-2\Omega C(1-C)/(k_BT)$. Unstable or marginal compositions stop with a message; phase separation requires a gradient-energy model. The existing vacancy correction and parameter database remain phenomenological.</p>
+                <p>The finite-volume solver uses upwind drift for every cation, including Mg, with a common lattice velocity that enforces zero total cation flux. The time step follows current outgoing transport rates; failed trial steps are retried without clipping or renormalizing concentrations. There is no step-count cutoff. The main Run calculation button becomes Stop while the worker runs and immediately cancels it when clicked. Upwind transport adds numerical smoothing, so compare grid resolutions for sharp profiles. <a href="https://pages.nist.gov/fipy/en/latest/_downloads/fipy.pdf" target="_blank" rel="noopener">Reference: NIST FiPy manual, numerical schemes.</a></p>
+                <p><a href="https://ocw.mit.edu/courses/3-205-thermodynamics-and-kinetics-of-materials-fall-2006/4aa3ce8d667e1dbc481198aee896dfd9_lecture10_review.pdf" target="_blank" rel="noopener">Reference: MIT lecture on spinodal decomposition and gradient energy</a>.</p>
             </div>
         </div>
         
@@ -449,7 +457,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             <h2 class="help-title">3. Reference Values (MgO Host Matrix)</h2>
             <p>
                 The defaults below are the exact values used in the simulation code.
-                $D_0$ values assume the extrinsic vacancy regime ($D \approx 10^{-10} m^2/s$).
+                These are supplied model parameters; diffusivity also depends on temperature, composition and the vacancy factor.
             </p>
 
             <div class="theory-box">
@@ -461,72 +469,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     <thead>
                         <tr><th>Ion</th><th>D₀ (m²/s)</th><th>Q (eV)</th><th>Notes / Ref Context</th></tr>
                     </thead>
-                    <tbody>
-                        <tr style="background:#f1f5f9; border-left: 3px solid #64748b;">
-                            <td><strong>Mg²⁺</strong></td>
-                            <td>1.0e‑10</td>
-                            <td>2.30</td>
-                            <td><strong>Host Matrix.</strong> <em>Wuensch et al. (1973)</em>.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Fe²⁺</strong></td><td>8.0e-10</td><td>1.76</td>
-                            <td><span class="tag tag-orange">Fast</span> <em>Blank & Pask (1969)</em>.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Zn²⁺</strong></td><td>8.0e-10</td><td>1.85</td>
-                            <td><span class="tag tag-orange">Fast</span> <em>Wuensch (1983)</em>.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Mn²⁺</strong></td><td>1.5e-10</td><td>2.10</td>
-                            <td>Intermediate speed.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Co²⁺</strong></td><td>4.0e-10</td><td>2.06</td>
-                            <td><em>Chen & Peterson (1980)</em>.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Cu²⁺</strong></td><td>3.0e-10</td><td>2.15</td>
-                            <td>Jahn-Teller distortion.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Ni²⁺</strong></td><td>1.0e-10</td><td>2.28</td>
-                            <td><span class="tag tag-blue">Ideal</span> <em>Hardin et al. (1973)</em>.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Ca²⁺</strong></td><td>0.5e-10</td><td>2.70</td>
-                            <td><span class="tag tag-red">Slow</span> Size Mismatch ($1.00\mathring{A}$).</td>
-                        </tr>
-                        
-                        <tr style="border-top: 2px solid #e2e8f0;">
-                            <td><strong>V³⁺</strong></td><td>6.0e-10</td><td>2.35</td>
-                            <td>Aliovalent defect drag.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Sc³⁺</strong></td><td>4.0e-10</td><td>2.40</td>
-                            <td>Early 3d series.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Ga³⁺</strong></td><td>4.5e-10</td><td>2.30</td>
-                            <td>Post-transition.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Fe³⁺</strong></td><td>5.0e-10</td><td>2.45</td>
-                            <td><em>Gourdin et al. (1979)</em>.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Cr³⁺</strong></td><td>3.5e-10</td><td>2.50</td>
-                            <td><em>Weber (1972)</em>.</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Co³⁺</strong></td><td>2.0e-10</td><td>2.55</td>
-                            <td>High electrostatic interaction.</td>
-                        </tr>
-
-                        <tr style="border-top: 2px solid #e2e8f0;">
-                            <td><strong>Ti⁴⁺</strong></td><td>2.0e-10</td><td>2.80</td>
-                            <td><span class="tag tag-red">Very Slow</span> High charge drag.</td>
-                        </tr>
-                    </tbody>
+                    <tbody id="cation-reference-body"></tbody>
                 </table>
             </div>
 
@@ -635,7 +578,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
           <i class="fas fa-magnet"></i> 2. THERMODYNAMICS: Interaction $\Omega_{ij}$ (eV)
         </h3>
         <div style="overflow-x:auto;">
-          <p id="omega-note" style="font-size:12px;line-height:1.5;color:#71450a">Model limitation: the supplied solver uses dopant–dopant Ω terms only. Mg–dopant Ω values are retained for export but do not affect the calculation.</p>
+          <p id="omega-note" style="font-size:12px;line-height:1.5;color:#71450a">All Mg–dopant and dopant–dopant Ω values affect the regular-solution chemical potentials. Positive values favor demixing. Runs stop if a spinodal or marginally stable composition is reached; this solver describes single-phase diffusion.</p>
           <table id="omega-matrix-table" aria-describedby="omega-note" style="width:100%; border-collapse:collapse; font-size:13px; border:1px solid #e2e8f0;"></table>
         </div>
       </div>
@@ -663,7 +606,9 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             const L_m = inputs.totalLength * 1e-6; 
             const Source_m = inputs.sourceLength * 1e-6;
             const dx = L_m / (N - 1);
-            const interfaceNode = Math.round(Source_m / dx);
+            if (!Number.isInteger(N) || N < 50 || N > 500 ||
+                !Number.isFinite(dx) || dx <= 0 || !Number.isFinite(Time_s) || Time_s <= 0)
+                throw new Error('Invalid grid, geometry or duration.');
             
             // --- 1. SETUP ---
             const matrixD0 = inputs.targetD0;
@@ -672,7 +617,13 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 
             const species = inputs.elements.map(el => {
                 const C = new Float64Array(N);
-                for(let i=0; i<N; i++) C[i] = (i < interfaceNode) ? el.cLeft / 100 : el.cRight / 100;
+                // Cell averages preserve source amount, including a partially filled cell.
+                for (let i = 0; i < N; i++) {
+                    const left = Math.max(0, (i - 0.5) * dx);
+                    const right = Math.min(L_m, (i + 0.5) * dx);
+                    const fraction = Math.max(0, Math.min(1, (Source_m - left) / (right - left)));
+                    C[i] = (fraction * el.cLeft + (1 - fraction) * el.cRight) / 100;
+                }
                 return { 
                     ...el,
                     D_star_map: new Float64Array(N),
@@ -681,61 +632,16 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 };
             });
 
-            // --- 2. INITIALIZE ---
-            updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
-
-            let maxD_est = matrixD0 * Math.exp(-Math.min(...matrixQVec) / kBT);
-            species.forEach(s => {
-                for (let i = 0; i < N; i++) {
-                    if (s.D_star_map[i] > maxD_est) maxD_est = s.D_star_map[i];
-                }
-            });
-            
-            let peakV = 1;
-            {
-                const V_int = 1e-4, f_assoc = 0.5, V_sat = 0.02;
-                let maxDonor = 0, maxAcceptor = 0;
-                species.forEach(s => {
-                    const Z = s.valence ?? 2;
-                    let cMax = 0;
-                    for (let i = 0; i < N; i++) if (s.C[i] > cMax) cMax = s.C[i];
-                    const contrib = cMax * Math.abs(Z - 2) / 2;
-                    if (Z > 2) maxDonor += contrib;
-                    else if (Z < 2) maxAcceptor += contrib;
-                });
-                if (maxDonor > 0) {
-                    const Vt = Math.sqrt(V_int*V_int + (maxDonor*0.5)**2);
-                    const Vf = Vt * (1 - f_assoc * Math.tanh(maxDonor / V_sat)) / V_int;
-                    if (Vf > peakV) peakV = Vf;
-                }
-                for (let i = 0; i < N; i++) {
-                    let exc = 0;
-                    species.forEach(s => { exc += s.C[i] * ((s.valence ?? 2) - 2) / 2; });
-                    if (exc > 0) {
-                        const Vt = Math.sqrt(V_int*V_int + (exc*0.5)**2);
-                        const Vf = Vt * (1 - f_assoc * Math.tanh(exc / V_sat)) / V_int;
-                        if (Vf > peakV) peakV = Vf;
-                    }
-                }
-            }
-            maxD_est = Math.max(maxD_est, matrixD0 * Math.exp(-Math.min(...matrixQVec) / kBT) * peakV);
-            species.forEach(s => {
-                const Dpeak = s.d0 * Math.exp(-Math.min(...s.qVector) / kBT) * peakV;
-                if (Dpeak > maxD_est) maxD_est = Dpeak;
-            });
-
-            const omegaMagnitude=Math.max(0,...species.flatMap(s=>s.omegaVector.map(Math.abs)));
-            let dt = (0.1 * dx * dx) / (maxD_est * (1 + species.length) * (1 + 2 * omegaMagnitude / kBT));
-            if(!Number.isFinite(dt) || dt<=0) throw new Error('Parameters exceed the numerical range. Adjust D₀, Q or geometry.');
-
+            // Derive each time step from the current outgoing transport rates below.
+            // No preflight or runtime step-count cap: long runs remain cancellable.
+            let dt = 0;
             let current_time = 0;
             let step = 0;
-            
-            const estimatedSteps = Math.ceil(Time_s / dt);
-            if(estimatedSteps>2000000) throw new Error('This run needs more than 2 million steps. Reduce time, temperature or grid points.');
             const targetFrames = 40;
-            const saveInterval = Math.max(1, Math.floor(estimatedSteps / targetFrames)); 
-            const reportInterval = Math.max(100, Math.floor(estimatedSteps / 50));
+            let nextFrame = 1;
+            const frameInterval = Time_s / targetFrames;
+            let rejectedSteps = 0; 
+            let lastReport = performance.now();
             
             let matrixHistory = [], historyTimes=[];
             const saveFrame=()=>{
@@ -744,52 +650,86 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 matrixHistory.push(Float64Array.from({length:N},(_,i)=>1-species.reduce((sum,s)=>sum+s.C[i],0)));
             };
 
-            // Flux index i is the face between nodes i and i+1; last entry is the sealed right boundary.
+            // Reuse face buffers to avoid allocating arrays at every face and step.
+            const count = species.length;
+            const omega = [matrixOmegaVec, ...species.map(s => s.omegaVector)];
+            if (omega.some((row, a) => row.length !== count + 1 || row.some((v, b) =>
+                !Number.isFinite(v) || Math.abs(v - omega[b]?.[a]) > 1e-12 || (a === b && v !== 0))))
+                throw new Error('Omega must be finite, symmetric and zero on its diagonal.');
+            const thermoScratch = {excess: new Float64Array(count + 1), chol: new Float64Array(count * count)};
+            const local = new Float64Array(count), grads = new Float64Array(count);
+            const diffusivities = new Float64Array(count), driving = new Float64Array(count);
+            const left = new Float64Array(count+1), right = new Float64Array(count+1);
+            const faceD = new Float64Array(count+1), drift = new Float64Array(count+1);
+            const faceFlux = new Float64Array(count+1), breaks = new Float64Array(count+1);
+            const outgoing = Array.from({length:count+1},()=>new Float64Array(N));
+            let transportDt = Infinity;
+            // Flux i is between nodes i and i+1; last entry is the sealed boundary.
             function calculateFlux() {
+                for (const rates of outgoing) rates.fill(0);
                 for (let i = 0; i < N - 1; i++) {
-                    const C_local = species.map(s => (s.C[i] + s.C[i+1]) / 2);
-                    let sumC = 0; C_local.forEach(c => sumC += c);
-                    const C_mat = Math.max(0, 1.0 - sumC);
-
-                    let Q_mat_local = matrixQVec[0] * C_mat;
-                    species.forEach((s, idx) => { Q_mat_local += matrixQVec[idx+1] * C_local[idx]; });
-                    const D_star_matrix_local = matrixD0 * Math.exp(-Q_mat_local / kBT);
-                    const grads = species.map(s => (s.C[i+1] - s.C[i]) / dx);
-
-                    const D_star_arr = species.map(s => (s.D_star_map[i] + s.D_star_map[i+1]) / 2);
-
-                    const Phi = [];
-                    for (let a = 0; a < species.length; a++) {
-                        const row = new Array(species.length);
-                        for (let b = 0; b < species.length; b++) {
-                            const Omega_ab = species[a].omegaVector[b + 1];
-                            let dlng_dCb = -2 * Omega_ab * C_local[b] / kBT;
-                            row[b] = (a === b ? 1 : 0) + C_local[a] * dlng_dCb;
-                        }
-                        if (row[a] < 0.05) row[a] = 0.05;
-                        Phi.push(row);
+                    let sumC = 0;
+                    for (let a = 0; a < count; a++) {
+                        const s = species[a];
+                        local[a] = (s.C[i] + s.C[i+1]) / 2;
+                        sumC += local[a];
+                        grads[a] = (s.C[i+1] - s.C[i]) / dx;
+                        diffusivities[a] = (s.D_star_map[i] + s.D_star_map[i+1]) / 2;
                     }
-
-                    species.forEach((s_i, idx_i) => {
-                        const D_star_i = D_star_arr[idx_i];
-                        let flux = 0;
-                        for (let idx_j = 0; idx_j < species.length; idx_j++) {
-                            let DPhi_ij = 0;
-                            for (let idx_k = 0; idx_k < species.length; idx_k++) {
-                                let D_ik;
-                                if (idx_i === idx_k) {
-                                    D_ik = D_star_i + C_local[idx_i] * (D_star_matrix_local - D_star_i);
-                                } else {
-                                    D_ik = C_local[idx_i] * (D_star_matrix_local - D_star_arr[idx_k]);
-                                }
-                                DPhi_ij += D_ik * Phi[idx_k][idx_j];
-                            }
-                            flux += -DPhi_ij * grads[idx_j];
+                    let Q = matrixQVec[0] * Math.max(0, 1 - sumC);
+                    for (let a = 0; a < count; a++) Q += matrixQVec[a+1] * local[a];
+                    const matrixD = matrixD0 * Math.exp(-Q / kBT);
+                    regularSolutionForces(local, grads, omega, kBT, driving, thermoScratch);
+                    left[0] = 1; right[0] = 1; faceD[0] = matrixD;
+                    let enthalpyGrad = Math.max(0, 1-sumC) * thermoScratch.excess[0];
+                    for (let a = 0; a < count; a++) {
+                        left[a+1] = species[a].C[i]; right[a+1] = species[a].C[i+1];
+                        left[0] -= left[a+1]; right[0] -= right[a+1];
+                        faceD[a+1] = diffusivities[a];
+                        enthalpyGrad += local[a] * thermoScratch.excess[a+1];
+                    }
+                    for (let a = 0; a <= count; a++) {
+                        drift[a] = -faceD[a] * (thermoScratch.excess[a] - enthalpyGrad) / kBT;
+                        breaks[a] = -drift[a];
+                    }
+                    // Upwind drift with one common lattice velocity enforces sum(J_i)=0.
+                    // Its root is piecewise linear; solve exactly in the active interval.
+                    breaks.sort();
+                    let velocity = NaN, low = -Infinity;
+                    for (let interval = 0; interval <= count+1; interval++) {
+                        const high = interval <= count ? breaks[interval] : Infinity;
+                        let slope = 0, intercept = 0;
+                        for (let a = 0; a <= count; a++) {
+                            const donor = -drift[a] <= low ? left[a] : right[a];
+                            slope += donor;
+                            intercept += faceD[a] * (left[a]-right[a]) / dx + drift[a] * donor;
                         }
-                        s_i.Flux[i] = flux;
-                    });
+                        if (slope > 1e-14) {
+                            const root = -intercept / slope;
+                            if (root >= low && root <= high) { velocity = root; break; }
+                        } else if (Math.abs(intercept) < 1e-30 && Number.isFinite(low)) {
+                            velocity = low; break;
+                        }
+                        low = high;
+                    }
+                    if (!Number.isFinite(velocity)) throw new Error('Unable to resolve the coupled lattice velocity.');
+                    for (let a = 0; a <= count; a++) {
+                        const v = drift[a] + velocity;
+                        const forward = faceD[a]/dx + Math.max(v,0);
+                        const backward = faceD[a]/dx + Math.max(-v,0);
+                        faceFlux[a] = forward * left[a] - backward * right[a];
+                        outgoing[a][i] += forward;
+                        outgoing[a][i+1] += backward;
+                        if (!Number.isFinite(faceFlux[a])) throw new Error('Non-finite transport coefficients.');
+                        if (a > 0) species[a-1].Flux[i] = faceFlux[a];
+                    }
                 }
-                species.forEach(s=>{s.Flux[N-1]=0;});
+                for (const s of species) s.Flux[N-1] = 0;
+                transportDt = Infinity;
+                for (let a = 0; a <= count; a++) for (let i = 0; i < N; i++) {
+                    const width = (i === 0 || i === N-1) ? dx/2 : dx;
+                    if (outgoing[a][i] > 0) transportDt = Math.min(transportDt, 0.8 * width / outgoing[a][i]);
+                }
             }
 
             // --- 3. LOOP ---
@@ -797,33 +737,50 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
 
                 calculateFlux();
-                dt=Math.min(dt,Time_s-current_time);
+                dt=Math.min(transportDt, Time_s-current_time, nextFrame*frameInterval-current_time);
+                if (!Number.isFinite(dt) || dt <= 0) throw new Error('Transport rates exceed the numerical range. Check diffusion parameters and geometry.');
                 if(current_time+dt===current_time) throw new Error('Time step is below numerical precision.');
                 if(step===0 && inputs.mode==='history') saveFrame();
 
-                for (let i = 1; i < N - 1; i++) {
-                    species.forEach(s => {
-                        const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
-                        s.C_new[i] = s.C[i] - dt * dJ_dx;
-                    });
-                }
+                for (let attempt=0; attempt<20; attempt++) {
+                    for (let i = 1; i < N - 1; i++) {
+                        species.forEach(s => {
+                            const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
+                            s.C_new[i] = s.C[i] - dt * dJ_dx;
+                        });
+                    }
                 
-                // Half-width endpoint volumes: zero outward flux conserves the trapezoidal integral.
-                species.forEach(s => { s.C_new[0]=s.C[0]-2*dt*s.Flux[0]/dx; s.C_new[N-1]=s.C[N-1]+2*dt*s.Flux[N-2]/dx; });
-                for(let i=0;i<N;i++) {
-                    let sum=0;
-                    for(const s of species) { const v=s.C_new[i]; if(!Number.isFinite(v)||v < -1e-10||v>1+1e-10) throw new Error('Unstable concentrations: adjust interaction values or conditions.'); sum+=v; }
-                    if(sum>1+1e-10) throw new Error('Unstable matrix concentration: adjust interaction values or conditions.');
+                    // Half-width endpoint volumes: zero outward flux conserves the trapezoidal integral.
+                    species.forEach(s => { s.C_new[0]=s.C[0]-2*dt*s.Flux[0]/dx; s.C_new[N-1]=s.C[N-1]+2*dt*s.Flux[N-2]/dx; });
+                    let valid = true;
+                    for (let i=0;i<N;i++) {
+                        let sum=0;
+                        for (const s of species) {
+                            const v=s.C_new[i];
+                            if (!Number.isFinite(v) || v < -1e-12 || v > 1+1e-12) valid=false;
+                            sum+=v;
+                        }
+                        if (sum>1+1e-12) valid=false;
+                    }
+                    if (valid) break;
+                    rejectedSteps++;
+                    dt *= 0.5;
+                    if (attempt === 19 || current_time+dt===current_time)
+                        throw new Error('Concentration bounds could not be preserved after time-step reduction. Check the selected species, concentrations and interactions.');
                 }
                 species.forEach(s=>{const old=s.C;s.C=s.C_new;s.C_new=old;});
                 current_time += dt;
-                if(inputs.mode==='history' && ((step+1)%saveInterval===0 || current_time>=Time_s)) {
-                    updateDiffusivities(species,matrixD0,matrixQVec,N,kBT); calculateFlux(); saveFrame();
+                if (current_time >= nextFrame*frameInterval || current_time >= Time_s) {
+                    nextFrame++;
+                    if(inputs.mode==='history') {
+                        updateDiffusivities(species,matrixD0,matrixQVec,N,kBT); calculateFlux(); saveFrame();
+                    }
                 }
                 step++;
                 
-                if (step % reportInterval === 0) {
-                    self.postMessage({ type: 'progress', percent: Math.min(100, Math.round((current_time / Time_s) * 100)) });
+                if (step % 100 === 0 && performance.now() - lastReport >= 250) {
+                    lastReport = performance.now();
+                    self.postMessage({ type: 'progress', percent: Math.min(99, Math.floor((current_time / Time_s) * 100)), steps: step });
                 }
             }
 
@@ -835,10 +792,43 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 finalMatrix[i] = Math.max(0, 1 - sum);
             }
 
-            self.postMessage({ type: 'complete', species, matrix: finalMatrix, matrixHistory, historyTimes, dx, interfaceX: Source_m });
+            self.postMessage({ type: 'complete', species, matrix: finalMatrix, matrixHistory, historyTimes, dx, interfaceX: Source_m, solverStats: {steps: step, rejectedSteps, scheme: 'Conservative upwind drift with adaptive positivity time step'} });
 
         } catch (err) { self.postMessage({ type: 'error', message: err.message }); }
     };
+
+// g = kBT sum(c_i ln c_i) + sum_{i<j} Omega_ij c_i c_j, including Mg (index 0).
+// c_i grad(mu_i)/kBT = grad(c_i) + c_i [sum_j Omega_ij grad(c_j) - grad(h)]/kBT.
+// No log or division by c_i is needed in the transport force at zero concentration.
+function regularSolutionForces(c, grad, omega, kBT, out, scratch) {
+    const n = c.length, excess = scratch.excess, chol = scratch.chol;
+    let matrixC = 1, matrixGrad = 0;
+    for (let a = 0; a < n; a++) { matrixC -= c[a]; matrixGrad -= grad[a]; }
+    for (let a = 0; a <= n; a++) {
+        let value = omega[a][0] * matrixGrad;
+        for (let b = 0; b < n; b++) value += omega[a][b+1] * grad[b];
+        excess[a] = value;
+    }
+    let enthalpyGrad = matrixC * excess[0];
+    for (let a = 0; a < n; a++) enthalpyGrad += c[a] * excess[a+1];
+    for (let a = 0; a < n; a++) out[a] = grad[a] + c[a] * (excess[a+1] - enthalpyGrad) / kBT;
+
+    // Check the reduced free-energy Hessian (scaled by sqrt(c_i c_j)/kBT).
+    // Negative curvature requires a gradient-energy phase-field model; do not clip it.
+    const host = Math.max(matrixC, 1e-12);
+    for (let a = 0; a < n; a++) {
+        for (let b = 0; b <= a; b++) {
+            let value = (a === b ? 1 : 0) + Math.sqrt(Math.max(0,c[a]) * Math.max(0,c[b])) *
+                (1 / host + (omega[a+1][b+1] - omega[a+1][0] - omega[0][b+1]) / kBT);
+            for (let k = 0; k < b; k++) value -= chol[a*n+k] * chol[b*n+k];
+            if (a === b) {
+                if (!Number.isFinite(value) || value <= 1e-12)
+                    throw new Error('Spinodal or marginally stable composition: this single-phase solver cannot model phase separation. Reduce repulsive Omega values or change temperature/composition; phase separation needs a gradient-energy model.');
+                chol[a*n+b] = Math.sqrt(value);
+            } else chol[a*n+b] = value / chol[b*n+b];
+        }
+    }
+}
 
 function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
     const V_int = 1e-4;          
@@ -857,7 +847,7 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         });
 
         const C_mat = Math.max(0, 1 - sumC);
-        const C_vec = [C_mat, ...species.map(s => s.C[x])];
+
 
         let V_free;
         if (excess_signed >= 0) {
@@ -873,8 +863,8 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         const V_factor = V_free / V_int;
 
         species.forEach((s, idx) => {
-            let Q_eff = 0;
-            for (let j = 0; j < C_vec.length; j++) Q_eff += C_vec[j] * s.qVector[j];
+            let Q_eff = C_mat * s.qVector[0];
+            for (let j = 0; j < species.length; j++) Q_eff += species[j].C[x] * s.qVector[j+1];
             s.D_star_map[x] = s.d0 * Math.exp(-Q_eff / kBT) * V_factor;
         });
     }
@@ -1017,9 +1007,22 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         const url=URL.createObjectURL(new Blob([document.getElementById('worker-code').textContent],{type:'text/javascript'}));
         try { return new Worker(url); } finally { URL.revokeObjectURL(url); }
     }
+    function toggleCalculation() {
+        if (worker) terminateWorker();
+        else triggerCalculation();
+    }
+    function setBusy(busy) {
+        const button = document.getElementById('calculation-button');
+        button.textContent = busy ? 'Stop' : 'Run calculation';
+        button.title = busy ? 'Stop the running calculation' : 'Start calculation';
+        button.classList.toggle('is-running', busy);
+        document.body.classList.toggle('calculating', busy);
+        document.getElementById('result-meta').setAttribute('aria-busy', String(busy));
+    }
     function terminateWorker() {
         clearTimeout(debounceTimer);
-        if(worker) { worker.terminate(); worker=null; updateStatus(0,'Stopped'); }
+        setBusy(false);
+        if(worker) { worker.terminate(); worker=null; updateStatus(0,'Stopped'); document.getElementById('result-meta').textContent='Calculation stopped — no completed results. Click Run calculation to restart.'; }
     }
     function updateStatus(percent,text) {
         document.getElementById('header-progress').style.width=percent+'%';
@@ -1035,7 +1038,7 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
     if (!Number.isFinite(timeHours) || timeHours<=0 || !Number.isFinite(timeHours*3600)) return fail('Enter a finite, positive anneal time.');
     if (!Number.isFinite(totalLength) || totalLength<=0) return fail('Total length must be finite and positive.');
     if (!Number.isFinite(sourceLength) || sourceLength<=0 || sourceLength>=totalLength) return fail('Source length must be positive and less than total length.');
-    if (!Number.isInteger(N) || N<50 || N>400) return fail('Grid points must be an integer from 50 to 400.');
+    if (!Number.isInteger(N) || N<50 || N>500) return fail('Grid points must be an integer from 50 to 500.');
     if (!Number.isFinite(targetD0) || targetD0<=0) return fail('Matrix D₀ must be finite and positive.');
     const interfaceNode=Math.round(sourceLength/totalLength*(N-1));
     if(interfaceNode<1 || interfaceNode>=N-1) return fail('Increase grid resolution or adjust the source length to resolve both regions.');
@@ -1088,32 +1091,50 @@ function buildOmegaVector(species) {
 
 
 
+    function clearResults() {
+        lastResults = null;
+        lastInputs = null;
+        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        for (const id of ['plotly-flux', 'plotly-time']) {
+            const plot = document.getElementById(id);
+            if (typeof Plotly !== 'undefined') Plotly.purge(plot);
+            plot.replaceChildren();
+        }
+        document.getElementById('download-button').disabled = true;
+    }
+
     function triggerCalculation() {
         terminateWorker();
+        clearResults();
+        document.getElementById('result-meta').textContent = 'Checking parameters…';
         document.getElementById('download-button').disabled=true;
         document.getElementById('app-notice').hidden=true;
         const inputs=validateInputs();
-        if(!inputs) { updateStatus(0,'Check inputs'); return; }
+        if(!inputs) { updateStatus(0,'Check inputs'); document.getElementById('result-meta').textContent='No current results — check the input message.'; return; }
         inputs.mode='history';
-        const fail=message=>{ terminateWorker(); updateStatus(0,'Error'); showNotice(message); };
+        const fail=message=>{ terminateWorker(); updateStatus(0,'Error'); document.getElementById('result-meta').textContent='Calculation failed — no current results.'; showNotice(message); };
         try {
             worker=createWorker();
+            setBusy(true);
             const activeWorker=worker;
+            worker.onmessageerror=()=>{if(worker===activeWorker) fail('Unable to read calculation results.');};
             worker.onerror=e=>{if(worker===activeWorker) fail(e.message || 'Calculation worker failed.');};
             worker.onmessage=e=>{
                 if(worker!==activeWorker) return;
                 const msg=e.data;
-                if(msg.type==='progress') updateStatus(msg.percent,msg.percent+'%');
+                if(msg.type==='progress') updateStatus(msg.percent,msg.percent+'% · '+msg.steps.toLocaleString()+' steps');
                 else if(msg.type==='error') fail(msg.message);
                 else if(msg.type==='complete') {
                     activeWorker.terminate(); worker=null;
+                    setBusy(false);
                     lastResults=msg; lastInputs=inputs;
                     document.getElementById('download-button').disabled=false;
                     updateStatus(100,'Complete');
-                    document.getElementById('result-meta').textContent=`${inputs.temp} K · ${inputs.timeHours} h · ${inputs.N} grid points · ${inputs.elements.length} dopants`;
+                    document.getElementById('result-meta').textContent=`0–${inputs.totalLength} µm · source ${inputs.sourceLength} µm · ${inputs.temp} K · ${inputs.timeHours} h · ${inputs.N} grid points · ${inputs.elements.length} dopants`;
                     try { renderResults(msg,inputs); } catch(err) { showNotice('Results are ready, but the chart could not load. Check your connection or download the CSV. '+err.message); }
                 }
             };
+            document.getElementById('result-meta').textContent=`Calculating 0–${inputs.totalLength} µm · source ${inputs.sourceLength} µm · ${inputs.N} grid points…`;
             updateStatus(0,'Calculating'); worker.postMessage(inputs);
         } catch(err) { fail(err.message); }
     }
@@ -1187,7 +1208,7 @@ function renderResults(res, inputs) {
             margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
             scene: { 
                 aspectmode: 'cube',
-                xaxis:{title:'Depth (µm)'}, yaxis:{title:'Time (h)'}, 
+                xaxis:{title:'Depth (µm)', range:[0, inputs.totalLength], autorange:false}, yaxis:{title:'Time (h)'}, 
                 zaxis:{title: currentTab === 'flux' ? 'Flux (mol/m²/s)' : 'Conc (%)'}, 
                 camera: { eye: { x: 1.5, y: 1.5, z: 1.3 } } 
             }
@@ -1508,6 +1529,7 @@ function attachMatrixListeners(){
         return;
     }
 
+    if (document.getElementById('download-button').disabled) return;
     // --- 1. METADATA HEADER ---
     let csv = "--- GLOBAL PARAMETERS ---\n";
     csv += `Temperature (K),${lastInputs.temp}\n`;
@@ -1515,6 +1537,11 @@ function attachMatrixListeners(){
     csv += `Source Length (um),${lastInputs.sourceLength}\n`;
     csv += `Total Length (um),${lastInputs.totalLength}\n`;
     csv += `Grid Points,${lastInputs.N}\n`;
+    if (lastResults.solverStats) {
+        csv += `Solver,${lastResults.solverStats.scheme}\n`;
+        csv += `Accepted steps,${lastResults.solverStats.steps}\n`;
+        csv += `Retried steps,${lastResults.solverStats.rejectedSteps}\n`;
+    }
     csv += `Matrix Base D0 (m^2/s),${lastInputs.targetD0}\n`;
 
     // --- 2. DOPANT DEFINITIONS ---
@@ -1540,7 +1567,7 @@ function attachMatrixListeners(){
     });
 
     csv += "\nFlux location,Internal face i is halfway between depth nodes i and i+1; last flux is the sealed right boundary\n";
-    csv += "Model limitation,Mg-dopant Omega terms are not used by the supplied solver\n";
+    csv += "Thermodynamic model,Full pairwise regular solution including Mg-dopant interactions; single-phase stability required\n";
     // --- 4. SIMULATION DATA ---
     csv += "\n--- CALCULATION RESULTS ---\n";
     
@@ -1586,7 +1613,7 @@ function attachMatrixListeners(){
 }
 
 
-    function debouncedUpdate() { terminateWorker(); document.getElementById('download-button').disabled=true; document.getElementById('result-meta').textContent='Parameters changed — results pending.'; clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
+    function debouncedUpdate() { terminateWorker(); clearResults(); document.getElementById('download-button').disabled=true; document.getElementById('result-meta').textContent='Parameters changed — results pending.'; clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
     
     function switchTab(tab) {
         currentTab = tab;
@@ -1619,6 +1646,8 @@ document.addEventListener('keydown',e=>{
     if(e.key==='Tab') { const items=[...modal.querySelectorAll('button,input:not(:disabled)')]; const first=items[0],last=items[items.length-1]; if(e.shiftKey&&document.activeElement===first) {e.preventDefault();last.focus();} else if(!e.shiftKey&&document.activeElement===last) {e.preventDefault();first.focus();} }
 });
 window.onload = function() { 
+      document.getElementById('cation-reference-body').innerHTML = Object.entries(CATION_DB)
+          .map(([key, entry]) => `<tr><td>${entry.label}</td><td>${entry.d0.toExponential(2)}</td><td>${Q_DEFAULTS[key].toFixed(2)}</td><td>Supplied model default</td></tr>`).join('');
       // Default to Fe2+ (Fast/Classic) and Ni (Ideal) for demonstration of difference
       addElement("Fe2"); 
       addElement("Ni");
