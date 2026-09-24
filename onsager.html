@@ -311,15 +311,15 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             <div class="control-panel panel-orange">
                 <div class="panel-header text-orange">
                     <i class="fas fa-ruler-combined"></i>
-                    <h3 class="panel-title">1. Geometry (MgO)</h3>
+                    <h3 class="panel-title">1. Geometry (film + MgO)</h3>
                 </div>
                 <div class="input-grid">
                     <div class="input-group">
-                        <label>Source Length (µm)</label>
+                        <label>Film thickness (µm)</label>
                         <input type="number" id="sourceLength" value="5" min="0.1" step="0.1" oninput="debouncedUpdate()">
                     </div>
                     <div class="input-group">
-                        <label>Total Length (µm)</label>
+                        <label>Total thickness (µm)</label>
                         <input type="number" id="totalLength" value="20" min="1" step="1" oninput="debouncedUpdate()">
                     </div>
                     <div class="input-group col-span-2">
@@ -341,7 +341,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     </div>
                     <div class="input-group">
                         <label>Time (Hours)</label>
-                        <input type="number" id="time" value="24" min="0.1" step="0.1" onchange="debouncedUpdate()">
+                        <input type="number" id="time" value="24" min="0" step="0.1" onchange="debouncedUpdate()">
                     </div>
                 </div>
             </div>
@@ -365,16 +365,19 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 
             <div style="margin-top:auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <h3 class="panel-title">4. Dopants</h3>
+                    <h3 class="panel-title">4. Deposited film</h3>
                     <button onclick="addElement()" class="btn btn-add"><i class="fas fa-plus"></i> ADD</button>
                 </div>
+                <p style="font-size:12px;color:var(--text-muted)">Film shares are percentages of cation sites and must total 100%. The initial slab is pure MgO. Oxygen stoichiometry and differences in oxide density are not resolved.</p>
+                <div id="film-total" role="status" style="font-size:12px;margin-bottom:8px"></div>
+                <button class="btn" onclick="normalizeFilm();debouncedUpdate()">Normalize film to 100%</button>
                 <div id="elementsList"></div>
                 <button id="download-button" disabled onclick="downloadData()" class="btn btn-download"><i class="fas fa-download"></i> Download CSV</button>
             </div>
         </aside>
 
         <main class="content-area">
-<div class="workspace-heading"><div><h2 id="view-title">Concentration profile</h2><p id="view-description">Explore diffusion across the source and MgO matrix.</p></div><button id="calculation-button" class="btn run-btn" onclick="toggleCalculation()" title="Start calculation">Run calculation</button></div>
+<div class="workspace-heading"><div><h2 id="view-title">Concentration profile</h2><p id="view-description">Film at left; MgO slab at right. Dashed vertical line: initial interface.</p></div><button id="calculation-button" class="btn run-btn" onclick="toggleCalculation()" title="Start calculation">Run calculation</button></div>
 <div id="app-notice" class="notice" role="alert" hidden></div>
 <p id="result-meta" class="result-meta">Adjust parameters to calculate automatically.</p>
             
@@ -411,6 +414,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 
 <div class="help-section">
             <h2 class="help-title">2. Physical Models</h2>
+            <p>Initially the deposited film contains 100% selected non-Mg cations, while the substrate is pure MgO. The domain spans film plus slab. Both external boundaries are sealed; Mg can diffuse into the film during annealing. Set time to zero to inspect the initial state. One finite-volume cell crossing the initial interface contains the volume-weighted average of both layers. Film percentages are cation-site fractions, not oxide mass or formula-unit fractions; this constant-site-density model does not resolve separate oxide phases, oxygen transport or density changes.</p>
 
             <div class="theory-box">
                 <h4>2.1 Onsager Flux Equation</h4>
@@ -541,12 +545,12 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     <input type="text" class="el-d0" onchange="debouncedUpdate()">
                 </div>
                 <div class="input-group">
-                    <label>Source %</label>
+                    <label>Film cation %</label>
                     <input type="number" class="el-c-left" min="0" max="100" onchange="debouncedUpdate()">
                 </div>
                 <div class="input-group">
-                    <label>Matrix %</label>
-                    <input type="number" class="el-c-right" min="0" max="100" onchange="debouncedUpdate()">
+                    <label>Initial slab %</label>
+                    <input type="number" class="el-c-right" value="0" readonly title="The initial slab is pure MgO">
                 </div>
             </div>
         </div>
@@ -607,7 +611,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             const Source_m = inputs.sourceLength * 1e-6;
             const dx = L_m / (N - 1);
             if (!Number.isInteger(N) || N < 50 || N > 500 ||
-                !Number.isFinite(dx) || dx <= 0 || !Number.isFinite(Time_s) || Time_s <= 0)
+                !Number.isFinite(dx) || dx <= 0 || !Number.isFinite(Time_s) || Time_s < 0)
                 throw new Error('Invalid grid, geometry or duration.');
             
             // --- 1. SETUP ---
@@ -615,6 +619,10 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             const matrixQVec = inputs.matrixQVector;
             const matrixOmegaVec = inputs.matrixOmegaVector;
 
+            const filmTotal = inputs.elements.reduce((sum,el)=>sum+el.cLeft,0);
+            if (!inputs.elements.length || !Number.isFinite(filmTotal) || Math.abs(filmTotal-100)>1e-8 ||
+                inputs.elements.some(el=>!Number.isFinite(el.cLeft)||el.cLeft<0||el.cRight!==0))
+                throw new Error('Film cation shares must total 100%; initial slab dopant concentrations must be zero.');
             const species = inputs.elements.map(el => {
                 const C = new Float64Array(N);
                 // Cell averages preserve source amount, including a partially filled cell.
@@ -631,6 +639,17 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     history: [], fluxHistory: [] 
                 };
             });
+
+            if (Time_s === 0) {
+                const matrix = Float64Array.from({length:N},(_,i)=>Math.max(0,1-species.reduce((sum,s)=>sum+s.C[i],0)));
+                for (const s of species) {
+                    s.Flux.fill(NaN); // Initial-state preview; flux was not evaluated.
+                    s.history=[Float64Array.from(s.C)]; s.fluxHistory=[];
+                    delete s.D_star_map;
+                }
+                self.postMessage({type:'complete',species,matrix,matrixHistory:[matrix],historyTimes:[0],dx,interfaceX:Source_m,initialOnly:true});
+                return;
+            }
 
             // Derive each time step from the current outgoing transport rates below.
             // No preflight or runtime step-count cap: long runs remain cancellable.
@@ -1035,7 +1054,7 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
     const fail = message => { showNotice(message); return null; };
     const temp=read('temp'), timeHours=read('time'), totalLength=read('totalLength'), sourceLength=read('sourceLength'), N=read('gridPoints'), targetD0=read('targetD0');
     if (!Number.isFinite(temp) || temp<600 || temp>2800) return fail('Temperature must be between 600 and 2800 K.');
-    if (!Number.isFinite(timeHours) || timeHours<=0 || !Number.isFinite(timeHours*3600)) return fail('Enter a finite, positive anneal time.');
+    if (!Number.isFinite(timeHours) || timeHours<0 || !Number.isFinite(timeHours*3600)) return fail('Enter a finite, nonnegative anneal time. Use 0 to inspect the deposited film before diffusion.');
     if (!Number.isFinite(totalLength) || totalLength<=0) return fail('Total length must be finite and positive.');
     if (!Number.isFinite(sourceLength) || sourceLength<=0 || sourceLength>=totalLength) return fail('Source length must be positive and less than total length.');
     if (!Number.isInteger(N) || N<50 || N>500) return fail('Grid points must be an integer from 50 to 500.');
@@ -1052,7 +1071,9 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         if(![cLeft,cRight].every(v=>Number.isFinite(v)&&v>=0&&v<=100)) return fail(name+': concentrations must be between 0 and 100%.');
         elements.push({name, fullLabel:CATION_DB[name].label, valence:CATION_DB[name].valence??2, d0,cLeft,cRight,color:card.querySelector('.el-color').value,qVector:buildQVector(name),omegaVector:buildOmegaVector(name)});
     }
-    if(elements.reduce((n,e)=>n+e.cLeft,0)>100 || elements.reduce((n,e)=>n+e.cRight,0)>100) return fail('Total dopant concentration cannot exceed 100% in either region.');
+    const filmTotal=elements.reduce((n,e)=>n+e.cLeft,0);
+    if(!elements.length || Math.abs(filmTotal-100)>1e-8) return fail('Film cation shares must total 100% (currently '+filmTotal.toFixed(6)+'%). Edit the shares or click Normalize film to 100%.');
+    if(elements.some(e=>e.cRight!==0)) return fail('The initial slab must be pure MgO: all slab dopant shares must be zero.');
     if(!Object.values(qMatrixData).every(v=>Number.isFinite(v)&&v>=0) || !Object.values(omegaMatrixData).every(Number.isFinite)) return fail('Q values must be finite and nonnegative; Ω values must be finite.');
     return {temp,timeHours,totalLength,sourceLength,N,targetD0,elements,matrixQVector:buildQVector('Mg'),matrixOmegaVector:buildOmegaVector('Mg'),qSnapshot:{...qMatrixData},omegaSnapshot:{...omegaMatrixData}};
 }
@@ -1130,11 +1151,11 @@ function buildOmegaVector(species) {
                     lastResults=msg; lastInputs=inputs;
                     document.getElementById('download-button').disabled=false;
                     updateStatus(100,'Complete');
-                    document.getElementById('result-meta').textContent=`0–${inputs.totalLength} µm · source ${inputs.sourceLength} µm · ${inputs.temp} K · ${inputs.timeHours} h · ${inputs.N} grid points · ${inputs.elements.length} dopants`;
+                    document.getElementById('result-meta').textContent=`0–${inputs.totalLength} µm · film ${inputs.sourceLength} µm · ${inputs.temp} K · ${inputs.timeHours} h · ${inputs.N} grid points · ${inputs.elements.length} dopants`;
                     try { renderResults(msg,inputs); } catch(err) { showNotice('Results are ready, but the chart could not load. Check your connection or download the CSV. '+err.message); }
                 }
             };
-            document.getElementById('result-meta').textContent=`Calculating 0–${inputs.totalLength} µm · source ${inputs.sourceLength} µm · ${inputs.N} grid points…`;
+            document.getElementById('result-meta').textContent=`Calculating 0–${inputs.totalLength} µm · film ${inputs.sourceLength} µm · ${inputs.N} grid points…`;
             updateStatus(0,'Calculating'); worker.postMessage(inputs);
         } catch(err) { fail(err.message); }
     }
@@ -1163,6 +1184,16 @@ function renderResults(res, inputs) {
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(document.getElementById('diffusionChart'), {
             type: 'line', data: { labels, datasets },
+            plugins: [{id:'initialInterface', afterDatasetsDraw(chart) {
+                const {ctx,chartArea,scales}=chart;
+                const x=scales.x.getPixelForValue(inputs.sourceLength);
+                ctx.save(); ctx.strokeStyle='#334155'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+                ctx.beginPath(); ctx.moveTo(x,chartArea.top); ctx.lineTo(x,chartArea.bottom); ctx.stroke();
+                ctx.setLineDash([]); ctx.fillStyle='#334155'; ctx.font='12px sans-serif';
+                const label=`Initial interface: ${inputs.sourceLength} µm`;
+                ctx.fillText(label,Math.max(chartArea.left+4,Math.min(x+6,chartArea.right-ctx.measureText(label).width-4)),chartArea.top+14);
+                ctx.restore();
+            }}],
             options: { 
                 responsive: true, maintainAspectRatio: false, animation: false,
                 interaction: { mode: 'index', intersect: false },
@@ -1174,6 +1205,7 @@ function renderResults(res, inputs) {
         });
 
     } else if (currentTab === 'flux' || currentTab === 'time3d') {
+        if(res.initialOnly) { showNotice('At zero time, inspect the Profile tab for the initial film and slab. Flux and time surfaces require a positive duration.'); return; }
         if (!res.historyTimes || res.historyTimes.length === 0) {
             console.warn("History missing. Re-running.");
             triggerCalculation(); 
@@ -1204,7 +1236,12 @@ function renderResults(res, inputs) {
             });
         }
 
-        Plotly.newPlot(currentTab === 'flux' ? 'plotly-flux' : 'plotly-time', traces, {
+        const zTop=currentTab==='time3d'?100:0;
+        traces.push({type:'scatter3d',mode:'lines',name:'Initial film/slab interface',
+            x:[inputs.sourceLength,inputs.sourceLength,inputs.sourceLength,inputs.sourceLength],
+            y:[yData[0],yData[0],yData[yData.length-1],yData[yData.length-1]],
+            z:[0,zTop,zTop,0],line:{color:'#334155',width:5,dash:'dash'},hovertemplate:'Initial interface: %{x} µm<extra></extra>'});
+        Plotly.newPlot(currentTab === 'flux'  ? 'plotly-flux' : 'plotly-time', traces, {
             margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
             scene: { 
                 aspectmode: 'cube',
@@ -1463,6 +1500,24 @@ function attachMatrixListeners(){
     // -------------------------
     // Preserve-aware addElement / updateElementParams
     // -------------------------
+    function updateFilmTotal() {
+        const values=[...document.querySelectorAll('.el-c-left')].map(el=>Number(el.value));
+        const total=values.reduce((sum,v)=>sum+v,0);
+        document.getElementById('film-total').textContent=`Film total: ${Number.isFinite(total)?total.toFixed(6).replace(/\.?0+$/,''):'invalid'}% / 100%`;
+    }
+    function normalizeFilm() {
+        const fields=[...document.querySelectorAll('.el-c-left')];
+        if(!fields.length) { updateFilmTotal(); return; }
+        const values=fields.map(el=>Number(el.value));
+        if(values.some(v=>!Number.isFinite(v)||v<0)) { showNotice('Enter nonnegative film shares before normalizing.'); return; }
+        const sum=values.reduce((a,b)=>a+b,0);
+        let used=0;
+        fields.forEach((el,i)=>{
+            const value=i===fields.length-1?100-used:Number((sum>0?values[i]/sum*100:100/fields.length).toFixed(10));
+            el.value=value; used+=value;
+        });
+        updateFilmTotal();
+    }
     function addElement(initialKey) {
         const used = getSpeciesList();
         initialKey = initialKey || Object.keys(CATION_DB).find(k => !used.includes(k));
@@ -1484,11 +1539,12 @@ function attachMatrixListeners(){
         select.value = initialKey;
         const data = CATION_DB[initialKey];
         clone.querySelector('.el-d0').value = data.d0;
-        clone.querySelector('.el-c-left').value = 25; clone.querySelector('.el-c-right').value = 0;
+        clone.querySelector('.el-c-left').value = list.children.length ? 100/list.children.length : 100; clone.querySelector('.el-c-right').value = 0;
 
         // delete handler: remove element, preserve other edits, rebuild matrices preserving existing entries
         clone.querySelector('.delete-btn').onclick = (e) => { 
-          e.target.closest('.element-card').remove(); 
+          e.target.closest('.element-card').remove();
+          normalizeFilm();
           rebuildMatricesPreserve(); 
           // if modal open, refresh tables to reflect removal
           if (document.getElementById('interaction-modal').style.display === 'flex') buildMatrixTables();
@@ -1506,6 +1562,7 @@ function attachMatrixListeners(){
         };
 
         list.appendChild(clone);
+        normalizeFilm();
         labelControls();
 
         // after adding, rebuild matrices preserving existing edits; new pairs get defaults
@@ -1534,8 +1591,8 @@ function attachMatrixListeners(){
     let csv = "--- GLOBAL PARAMETERS ---\n";
     csv += `Temperature (K),${lastInputs.temp}\n`;
     csv += `Time (Hours),${lastInputs.timeHours}\n`;
-    csv += `Source Length (um),${lastInputs.sourceLength}\n`;
-    csv += `Total Length (um),${lastInputs.totalLength}\n`;
+    csv += `Film thickness (um),${lastInputs.sourceLength}\n`;
+    csv += `Film + slab thickness (um),${lastInputs.totalLength}\n`;
     csv += `Grid Points,${lastInputs.N}\n`;
     if (lastResults.solverStats) {
         csv += `Solver,${lastResults.solverStats.scheme}\n`;
@@ -1544,9 +1601,12 @@ function attachMatrixListeners(){
     }
     csv += `Matrix Base D0 (m^2/s),${lastInputs.targetD0}\n`;
 
+    csv += "Concentration basis,Cation site percent\n";
+    csv += "Initial film Mg percent,0\nInitial slab Mg percent,100\n";
+    if (lastResults.initialOnly) csv += "Flux status,Not evaluated for zero-time preview; flux columns left blank\n";
     // --- 2. DOPANT DEFINITIONS ---
     csv += "\n--- DOPANT SETTINGS ---\n";
-    csv += "Species,D0 (m^2/s),Source %,Matrix %\n";
+    csv += "Species,D0 (m^2/s),Film cation %,Initial slab cation %\n";
     lastInputs.elements.forEach(el => {
         csv += `${el.name},${el.d0},${el.cLeft},${el.cRight}\n`;
     });
@@ -1588,7 +1648,7 @@ function attachMatrixListeners(){
     const spData = lastResults.species.map(s => {
     const MOLAR_DENSITY = 88825; // Cation sites in MgO (mol/m³)
     const trueFlux = s.Flux[i] * MOLAR_DENSITY;
-    return `${(s.C[i] * 100).toFixed(4)},${trueFlux.toExponential(4)}`;
+    return `${(s.C[i] * 100).toFixed(4)},${Number.isFinite(trueFlux)?trueFlux.toExponential(4):''}`;
 }).join(",");
 
 
@@ -1613,7 +1673,7 @@ function attachMatrixListeners(){
 }
 
 
-    function debouncedUpdate() { terminateWorker(); clearResults(); document.getElementById('download-button').disabled=true; document.getElementById('result-meta').textContent='Parameters changed — results pending.'; clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
+    function debouncedUpdate() { updateFilmTotal(); terminateWorker(); clearResults(); document.getElementById('download-button').disabled=true; document.getElementById('result-meta').textContent='Parameters changed — results pending.'; clearTimeout(debounceTimer); debounceTimer = setTimeout(triggerCalculation, 600); }
     
     function switchTab(tab) {
         currentTab = tab;
@@ -1623,7 +1683,7 @@ function attachMatrixListeners(){
         document.getElementById('pane-' + tab).classList.add('active');
         if(tab === 'time3d' || tab === 'flux') window.dispatchEvent(new Event('resize'));
         document.getElementById('view-title').textContent=({profile:'Concentration profile',flux:'Flux over time',time3d:'Concentration over time',help:'Theory & references'})[tab];
-        document.getElementById('view-description').textContent=tab==='help'?'Model equations and supplied reference parameters.':'Explore diffusion across the source and MgO matrix.';
+        document.getElementById('view-description').textContent=tab==='help'?'Model equations and supplied reference parameters.':'Film at left; MgO slab at right. Dashed vertical line: initial interface.';
         document.querySelectorAll('.tab-btn').forEach(b=>{ const active=b.id==='tab-'+tab; b.setAttribute('aria-selected',String(active)); b.tabIndex=active?0:-1; });
         if(tab !== 'help' && lastResults) { try { renderResults(lastResults,lastInputs); } catch(err) { showNotice('Chart unavailable: '+err.message); } }
     }
