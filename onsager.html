@@ -416,6 +416,15 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             <h2 class="help-title">2. Physical Models</h2>
             <p>Initially the deposited film contains 100% selected non-Mg cations, while the substrate is pure MgO. The domain spans film plus slab. Both external boundaries are sealed; Mg can diffuse into the film during annealing. Set time to zero to inspect the initial state. One finite-volume cell crossing the initial interface contains the volume-weighted average of both layers. Film percentages are cation-site fractions, not oxide mass or formula-unit fractions; this constant-site-density model does not resolve separate oxide phases, oxygen transport or density changes.</p>
 
+            <div class="theory-box box-info" id="oxygen-density-help">
+                <h4>Oxygen, film composition &amp; density assumptions</h4>
+                <p><strong>What the percentages mean.</strong> Film inputs and concentration profiles describe the fractions of cation sites occupied by each element. A film containing four cations at 25% each has 100% of its cation sites assigned to those elements. Oxygen is outside that percentage total; these values are not oxide mass percentages or percentages of all atoms.</p>
+                <p><strong>Oxygen is implicit.</strong> The model does not solve oxygen concentration, oxygen diffusion, exchange with the atmosphere, or the oxygen-to-cation ratio of each oxide. Cation valence enters a phenomenological vacancy correction, but this is not an explicit oxygen or charge-balance calculation.</p>
+                <p><strong>Constant cation-site density.</strong> Film and slab share a constant site-density assumption. There is no independently specified deposited-film density, porosity, thermal expansion, or composition-dependent volume change. The film is represented as a mixed-cation region on an MgO-like lattice, rather than as separate oxides with individual densities.</p>
+                <p><strong>Flux conversion.</strong> To display and export fluxes in mol/m²/s, the code multiplies its fraction-based flux by <strong>88,825 mol of cation sites/m³</strong>. For MgO, this corresponds to approximately <strong>3.58 g/cm³</strong>. This factor converts the flux units; it does not change the simulated concentration profiles or account for the actual density of the deposited film.</p>
+                <p><strong>Comparison with an experimental film.</strong> Converting deposited oxide amounts into a cation inventory requires the oxide stoichiometries and an appropriate density or measured mass per unit area. Quantitatively modeling a film whose site density differs from MgO also requires extending the transport model. Film thickness and cation percentages alone do not supply those properties.</p>
+            </div>
+
             <div class="theory-box">
                 <h4>2.1 Onsager Flux Equation</h4>
                 <p>
@@ -546,7 +555,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 </div>
                 <div class="input-group">
                     <label>Film cation %</label>
-                    <input type="number" class="el-c-left" min="0" max="100" onchange="debouncedUpdate()">
+                    <input type="number" class="el-c-left" min="0" max="100" step="0.01" onchange="formatFilmShare(this)">
                 </div>
                 <div class="input-group">
                     <label>Initial slab %</label>
@@ -1072,7 +1081,7 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         elements.push({name, fullLabel:CATION_DB[name].label, valence:CATION_DB[name].valence??2, d0,cLeft,cRight,color:card.querySelector('.el-color').value,qVector:buildQVector(name),omegaVector:buildOmegaVector(name)});
     }
     const filmTotal=elements.reduce((n,e)=>n+e.cLeft,0);
-    if(!elements.length || Math.abs(filmTotal-100)>1e-8) return fail('Film cation shares must total 100% (currently '+filmTotal.toFixed(6)+'%). Edit the shares or click Normalize film to 100%.');
+    if(!elements.length || Math.abs(filmTotal-100)>1e-8) return fail('Film cation shares must total 100% (currently '+Number(filmTotal.toFixed(2))+'%). Edit the shares or click Normalize film to 100%.');
     if(elements.some(e=>e.cRight!==0)) return fail('The initial slab must be pure MgO: all slab dopant shares must be zero.');
     if(!Object.values(qMatrixData).every(v=>Number.isFinite(v)&&v>=0) || !Object.values(omegaMatrixData).every(Number.isFinite)) return fail('Q values must be finite and nonnegative; Ω values must be finite.');
     return {temp,timeHours,totalLength,sourceLength,N,targetD0,elements,matrixQVector:buildQVector('Mg'),matrixOmegaVector:buildOmegaVector('Mg'),qSnapshot:{...qMatrixData},omegaSnapshot:{...omegaMatrixData}};
@@ -1500,10 +1509,15 @@ function attachMatrixListeners(){
     // -------------------------
     // Preserve-aware addElement / updateElementParams
     // -------------------------
+    function formatFilmShare(input) {
+        const value=Number(input.value);
+        if(input.value.trim()!=='' && Number.isFinite(value)) input.value=String(Number(value.toFixed(2)));
+        debouncedUpdate();
+    }
     function updateFilmTotal() {
         const values=[...document.querySelectorAll('.el-c-left')].map(el=>Number(el.value));
         const total=values.reduce((sum,v)=>sum+v,0);
-        document.getElementById('film-total').textContent=`Film total: ${Number.isFinite(total)?total.toFixed(6).replace(/\.?0+$/,''):'invalid'}% / 100%`;
+        document.getElementById('film-total').textContent=`Film total: ${Number.isFinite(total)?String(Number(total.toFixed(2))):'invalid'}% / 100%`;
     }
     function normalizeFilm() {
         const fields=[...document.querySelectorAll('.el-c-left')];
@@ -1511,11 +1525,14 @@ function attachMatrixListeners(){
         const values=fields.map(el=>Number(el.value));
         if(values.some(v=>!Number.isFinite(v)||v<0)) { showNotice('Enter nonnegative film shares before normalizing.'); return; }
         const sum=values.reduce((a,b)=>a+b,0);
-        let used=0;
-        fields.forEach((el,i)=>{
-            const value=i===fields.length-1?100-used:Number((sum>0?values[i]/sum*100:100/fields.length).toFixed(10));
-            el.value=value; used+=value;
-        });
+        // Allocate 10,000 hundredths of a percent; distribute rounding remainders.
+        // This keeps the displayed values AND the simulated total at 100%.
+        const exact=values.map(v=>sum>0?v/sum*10000:10000/fields.length);
+        const units=exact.map(Math.floor);
+        const order=exact.map((v,i)=>i).sort((a,b)=>(exact[b]-units[b])-(exact[a]-units[a]) || a-b);
+        const remaining=10000-units.reduce((a,b)=>a+b,0);
+        for(let i=0;i<remaining;i++) units[order[i%order.length]]++;
+        fields.forEach((el,i)=>{ el.value=String(Number((units[i]/100).toFixed(2))); });
         updateFilmTotal();
     }
     function addElement(initialKey) {
