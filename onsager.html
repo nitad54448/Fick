@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Onsager Diffusion v9.3</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Pinned: an unpinned URL silently jumps to future major versions. Hammer must load before the zoom plugin. -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     
@@ -278,6 +281,21 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 @media(max-width:1100px) { .app-header { flex-wrap:wrap; height:auto; min-height:100px; padding:12px 20px; gap:8px; } .nav-tabs { order:3; width:100%; justify-content:center; } .status-area { margin-left:auto; } .sidebar { width:300px; padding:16px; } .content-area { padding:20px; } }
 @media(max-width:700px) { body { height:auto; min-height:100dvh; overflow:auto; } .app-header { padding:14px; } .brand h1 { font-size:18px; } .status-area { max-width:135px; min-width:100px; margin:0 0 0 auto; } .progress-track { display:none; } .nav-tabs { justify-content:flex-start; overflow-x:auto; } .tab-btn { font-size:12px; padding:0 10px; } .main-container { flex-direction:column; overflow:visible; } .sidebar { width:100%; overflow:visible; display:grid; grid-template-columns:1fr 1fr; padding:16px; gap:12px; border-right:0; } .sidebar>div:last-child { grid-column:1/-1; } .content-area { overflow:visible; min-height:570px; padding:16px; } .tab-pane { overflow:visible; } .chart-wrapper { height:440px; padding:12px; } .workspace-heading h2 { font-size:21px; } .help-container { padding:18px; } }
 @media(max-width:420px) { .sidebar { grid-template-columns:1fr; } .brand span { font-size:9px; } .workspace-heading { align-items:flex-start; } }
+/* Profile zoom toolbar */
+.profile-wrapper { display:flex; flex-direction:column; gap:10px; }
+.chart-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+.chart-toolbar[hidden] { display:none; }
+.zoom-modes { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+.zoom-mode { border:0; background:white; color:var(--text-muted); font-size:11px; font-weight:600; padding:0 10px; min-height:30px; cursor:pointer; }
+.zoom-mode + .zoom-mode { border-left:1px solid var(--border); }
+.chart-toolbar [hidden] { display:none; }
+.zoom-btn[aria-pressed="false"] { color:var(--text-muted); }
+.zoom-mode[aria-pressed="true"], .zoom-btn[aria-pressed="true"] { background:var(--accent-light); color:var(--accent); }
+.zoom-btn { border:1px solid var(--border); background:white; color:var(--text-main); border-radius:7px; min-width:30px; min-height:30px; padding:0 8px; cursor:pointer; font-size:11px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.zoom-mode:hover, .zoom-btn:hover:not(:disabled) { background:var(--bg-app); }
+.zoom-hint { margin-left:auto; font-size:11px; color:var(--text-muted); }
+.chart-canvas-box { position:relative; flex:1; min-height:0; }
+@media(max-width:700px) { .zoom-hint { display:none; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; scroll-behavior:auto!important; } }
 
 </style>
@@ -382,7 +400,21 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 <p id="result-meta" class="result-meta">Adjust parameters to calculate automatically.</p>
             
             <div id="pane-profile" role="tabpanel" aria-labelledby="tab-profile" class="tab-pane active">
-                <div class="chart-wrapper"><canvas id="diffusionChart" role="img" aria-label="Concentration versus depth for the matrix and dopants"></canvas></div>
+                <div class="chart-wrapper profile-wrapper">
+                    <div id="zoom-toolbar" class="chart-toolbar" role="toolbar" aria-label="Profile chart controls">
+                        <div class="zoom-modes" data-zoom-ui role="group" aria-label="Zoom axes">
+                            <button type="button" class="zoom-mode" data-mode="x" aria-pressed="false" onclick="setProfileZoomMode('x')">Depth</button>
+                            <button type="button" class="zoom-mode" data-mode="y" aria-pressed="false" onclick="setProfileZoomMode('y')">Conc.</button>
+                            <button type="button" class="zoom-mode" data-mode="xy" aria-pressed="true" onclick="setProfileZoomMode('xy')">Both</button>
+                        </div>
+                        <button type="button" class="zoom-btn" data-zoom data-zoom-ui onclick="zoomProfile(1.5)" title="Zoom in" aria-label="Zoom in" disabled><i class="fas fa-search-plus"></i></button>
+                        <button type="button" class="zoom-btn" data-zoom data-zoom-ui onclick="zoomProfile(1/1.5)" title="Zoom out" aria-label="Zoom out" disabled><i class="fas fa-search-minus"></i></button>
+                        <button type="button" id="zoom-reset" class="zoom-btn" data-zoom-ui onclick="resetProfileZoom()" title="Show the full profile" disabled><i class="fas fa-expand"></i> Reset</button>
+                        <button type="button" id="interface-toggle" class="zoom-btn" aria-pressed="true" onclick="toggleInterfaceMarker()" title="Show or hide the initial-interface marker"><i class="fas fa-grip-lines-vertical"></i> Interface</button>
+                        <span class="zoom-hint" data-zoom-ui>Scroll or pinch to zoom · drag a box · Shift+drag to pan · double-click to reset</span>
+                    </div>
+                    <div class="chart-canvas-box"><canvas id="diffusionChart" role="img" aria-label="Concentration versus depth for the matrix and dopants"></canvas></div>
+                </div>
             </div>
 
             <div id="pane-flux" role="tabpanel" aria-labelledby="tab-flux" class="tab-pane">
@@ -1144,12 +1176,92 @@ function buildOmegaVector(species) {
         lastResults = null;
         lastInputs = null;
         if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        updateZoomUI();
         for (const id of ['plotly-flux', 'plotly-time']) {
             const plot = document.getElementById(id);
             if (typeof Plotly !== 'undefined') Plotly.purge(plot);
             plot.replaceChildren();
         }
         document.getElementById('download-button').disabled = true;
+    }
+
+    // ---------- PROFILE ZOOM (chartjs-plugin-zoom) ----------
+    // The visible window is kept across tab switches and re-runs with the same total thickness.
+    let profileZoomMode = 'xy';
+    let profileView = null; // {L, x:{min,max}, y:{min,max}} or null when showing the full profile
+    const zoomAvailable = () => typeof Chart !== 'undefined' && typeof ChartZoom !== 'undefined';
+    const hammerAvailable = () => typeof Hammer !== 'undefined';
+
+    function profileZoomOptions(inputs, dxMicron) {
+        if (!zoomAvailable()) return false;
+        const save = ({chart}) => saveProfileView(chart, inputs.totalLength);
+        return {
+            limits: {
+                x: { min: 0, max: inputs.totalLength, minRange: Math.max(2 * dxMicron, 1e-3) },
+                y: { min: 0, max: 100, minRange: 1e-4 }
+            },
+            zoom: {
+                mode: profileZoomMode,
+                wheel: { enabled: true, speed: 0.1 },
+                pinch: { enabled: hammerAvailable() },
+                drag: { enabled: true, threshold: 6, backgroundColor: 'rgba(8,127,131,0.12)', borderColor: '#087f83', borderWidth: 1 },
+                onZoomComplete: save
+            },
+            pan: { enabled: hammerAvailable(), mode: profileZoomMode, modifierKey: 'shift', onPanComplete: save }
+        };
+    }
+
+    function saveProfileView(chart, L) {
+        const {x, y} = chart.scales;
+        const tol = 1e-9;
+        const zoomed = x.min > tol || x.max < L - tol * L || y.min > tol || y.max < 100 - tol;
+        profileView = zoomed ? {L, x: {min: x.min, max: x.max}, y: {min: y.min, max: y.max}} : null;
+        updateZoomUI();
+    }
+
+    function restoreProfileView(inputs) {
+        if (profileView && profileView.L !== inputs.totalLength) profileView = null;
+        if (profileView && zoomAvailable() && typeof chartInstance?.zoomScale === 'function') {
+            const view = profileView;
+            chartInstance.zoomScale('x', view.x, 'none');
+            chartInstance.zoomScale('y', view.y, 'none');
+        }
+        updateZoomUI();
+    }
+
+    function zoomProfile(factor) {
+        if (!chartInstance || !zoomAvailable()) return;
+        chartInstance.zoom(factor);
+        saveProfileView(chartInstance, lastInputs.totalLength);
+    }
+
+    function resetProfileZoom() {
+        if (chartInstance && zoomAvailable()) chartInstance.resetZoom();
+        profileView = null;
+        updateZoomUI();
+    }
+
+    function setProfileZoomMode(mode) {
+        profileZoomMode = mode;
+        document.querySelectorAll('.zoom-mode').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+        const opts = chartInstance?.options?.plugins?.zoom;
+        if (opts && opts.zoom) { opts.zoom.mode = mode; opts.pan.mode = mode; chartInstance.update('none'); }
+    }
+
+    // Initial film/slab interface marker on the profile chart (display only).
+    let showInterfaceMarker = true;
+    function toggleInterfaceMarker() {
+        showInterfaceMarker = !showInterfaceMarker;
+        document.getElementById('interface-toggle').setAttribute('aria-pressed', String(showInterfaceMarker));
+        if (chartInstance) chartInstance.update('none'); // keeps the current zoom
+    }
+
+    function updateZoomUI() {
+        const ready = !!chartInstance && zoomAvailable();
+        // Zoom controls hide if the plugin failed to load; the interface toggle always works.
+        document.querySelectorAll('[data-zoom-ui]').forEach(el => { el.hidden = !zoomAvailable(); });
+        document.querySelectorAll('[data-zoom]').forEach(b => { b.disabled = !ready; });
+        document.getElementById('zoom-reset').disabled = !ready || !profileView;
     }
 
     function triggerCalculation() {
@@ -1199,25 +1311,43 @@ function renderResults(res, inputs) {
         const datasets = res.species.map(s => ({
             label: s.fullLabel,
             data: Array.from(s.C).map(v => v * 100),
-            borderColor: s.color, backgroundColor: s.color + '20',
-            borderWidth: 2, pointRadius: 0, fill: true, tension: 0
+            // Plain lines, no area fill.
+            borderColor: s.color, backgroundColor: s.color,
+            borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 3, pointStyle: 'line', fill: false, tension: 0
         }));
         datasets.unshift({
-            label: 'Matrix (MgO)',
+            label: 'Mg (matrix)',
             data: Array.from(res.matrix).map(v => v * 100),
-            borderColor: '#6366f1', borderWidth: 2, borderDash: [5,5], 
-            pointRadius: 0, fill: false, tension: 0
+            borderColor: '#000000', backgroundColor: '#000000', borderWidth: 1.8, borderDash: [6,4],
+            pointRadius: 0, pointHoverRadius: 3, pointStyle: 'line', fill: false, tension: 0
+        });
+        // Journal-style axes: black text, closed frame, outward ticks, no grid.
+        const INK = '#000000', FONT = {family: 'Arial, Helvetica, sans-serif', size: 12};
+        const axis = (title, extra) => ({
+            ...extra,
+            title: {display: true, text: title, color: INK, font: {...FONT, size: 13}},
+            ticks: {color: INK, font: FONT, padding: 4},
+            grid: {display: true, drawOnChartArea: false, drawTicks: true, tickLength: 5, color: INK, lineWidth: 1},
+            border: {display: true, color: INK, width: 1}
         });
         
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(document.getElementById('diffusionChart'), {
             type: 'line', data: { labels, datasets },
-            plugins: [{id:'initialInterface', afterDatasetsDraw(chart) {
+            plugins: [{id:'plotFrame', afterDraw(chart) {
+                // Close the box on the top and right sides.
+                const {ctx, chartArea:a} = chart;
+                ctx.save(); ctx.strokeStyle=INK; ctx.lineWidth=1;
+                ctx.strokeRect(Math.round(a.left)+0.5, Math.round(a.top)+0.5, Math.round(a.right-a.left), Math.round(a.bottom-a.top));
+                ctx.restore();
+            }}, {id:'initialInterface', afterDatasetsDraw(chart) {
                 const {ctx,chartArea,scales}=chart;
                 const x=scales.x.getPixelForValue(inputs.sourceLength);
-                ctx.save(); ctx.strokeStyle='#334155'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+                // When zoomed, the interface can lie outside the visible depth range: do not draw over the axes.
+                if (!showInterfaceMarker || !Number.isFinite(x) || x < chartArea.left || x > chartArea.right) return;
+                ctx.save(); ctx.strokeStyle='#6b6b6b'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
                 ctx.beginPath(); ctx.moveTo(x,chartArea.top); ctx.lineTo(x,chartArea.bottom); ctx.stroke();
-                ctx.setLineDash([]); ctx.fillStyle='#334155'; ctx.font='12px sans-serif';
+                ctx.setLineDash([]); ctx.fillStyle='#4b4b4b'; ctx.font='11px Arial, Helvetica, sans-serif';
                 const label=`Initial interface: ${inputs.sourceLength} µm`;
                 ctx.fillText(label,Math.max(chartArea.left+4,Math.min(x+6,chartArea.right-ctx.measureText(label).width-4)),chartArea.top+14);
                 ctx.restore();
@@ -1225,12 +1355,18 @@ function renderResults(res, inputs) {
             options: { 
                 responsive: true, maintainAspectRatio: false, animation: false,
                 interaction: { mode: 'index', intersect: false },
-                scales: { 
-                    x: { type: 'linear', min: 0, max: inputs.totalLength, title: {display:true, text:'Depth (µm)'} },
-                    y: { min: 0, max: 100, title: {display:true, text:'Concentration (%)'} }
+                scales: {
+                    x: axis('Depth (µm)', { type: 'linear', min: 0, max: inputs.totalLength }),
+                    y: axis('Concentration (cation-site %)', { min: 0, max: 100 })
+                },
+                plugins: {
+                    legend: { position: 'top', align: 'end', labels: { color: INK, font: FONT, usePointStyle: true, pointStyleWidth: 30, boxHeight: 2, padding: 14 } },
+                    tooltip: { usePointStyle: true },
+                    zoom: profileZoomOptions(inputs, dx)
                 }
             }
         });
+        restoreProfileView(inputs);
 
     } else if (currentTab === 'flux' || currentTab === 'time3d') {
         if(res.initialOnly) { showNotice('At zero time, inspect the Profile tab for the initial film and slab. Flux and time surfaces require a positive duration.'); return; }
@@ -1731,7 +1867,11 @@ document.addEventListener('keydown',e=>{
     if(e.key==='Escape') { e.preventDefault(); closeInteractionModal(); }
     if(e.key==='Tab') { const items=[...modal.querySelectorAll('button,input:not(:disabled)')]; const first=items[0],last=items[items.length-1]; if(e.shiftKey&&document.activeElement===first) {e.preventDefault();last.focus();} else if(!e.shiftKey&&document.activeElement===last) {e.preventDefault();first.focus();} }
 });
-window.onload = function() { 
+window.onload = function() {
+      // Register the zoom plugin explicitly (harmless if its UMD build already did).
+      if (zoomAvailable()) Chart.register(ChartZoom);
+      document.getElementById('diffusionChart').addEventListener('dblclick', resetProfileZoom);
+      updateZoomUI();
       document.getElementById('cation-reference-body').innerHTML = Object.entries(CATION_DB)
           .map(([key, entry]) => `<tr><td>${entry.label}</td><td>${entry.d0.toExponential(2)}</td><td>${Q_DEFAULTS[key].toFixed(2)}</td><td>${entry.ref ? '<span class="tag tag-blue">Measured</span>' + entry.ref : (entry.exploratory ? '<span class="tag tag-red">Exploratory</span>' : '<span class="tag tag-orange">Estimate</span>') + (entry.note || '')}</td></tr>`).join('');
       const pairLabel = pair => pair.split('-').map(k => k === 'Mg' ? 'Mg' : (CATION_DB[k]?.label.split(' ')[0] ?? k)).join(' – ');
