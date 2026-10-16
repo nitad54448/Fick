@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onsager Diffusion v9.2</title>
+    <title>Onsager Diffusion v9.3</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -353,7 +353,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 <div class="input-grid">
                     <div class="input-group col-span-2">
                         <label>Matrix D₀ (m²/s) [Extrinsic]</label>
-                        <input type="text" id="targetD0" value="4.0e-9" onchange="debouncedUpdate()">
+                        <input type="text" id="targetD0" value="4.19e-8" onchange="debouncedUpdate()">
                     </div>
                     <div class="input-group col-span-2">
                         <button onclick="openInteractionModal()" class="btn" style="width:100%; background:white; border:1px solid #c7d2fe; color:#3730a3;">
@@ -398,7 +398,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
     <div class="help-container">
         <div class="help-header">
             <h1>Theory & Documentation</h1>
-            <p>Onsager Multi-Component Diffusion Solver • v9.2</p>
+            <p>Onsager Multi-Component Diffusion Solver • v9.3</p>
         </div>
 
         <div class="help-section">
@@ -446,8 +446,20 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     $$ D_i^*(x) = D_{0,i}\, \exp\left(-\frac{\sum_j C_j(x)\, Q_{ij}}{k_B T}\right) \times V_{factor}(x) $$
                 </div>
                 <p style="font-size:13px; margin-top:8px;">
-                    <em>Note:</em> $V_{factor}$ is calculated dynamically. Aliovalent donors (Valence > 2) increase vacancies, accelerating diffusion. Acceptors (Valence < 2) suppress free vacancies down to the intrinsic Schottky limit.
+                    The same $V_{factor}$ multiplies <strong>every</strong> cation, including the host Mg, because all of them jump through the same cation vacancies. $V_{factor}$ is the local free cation-vacancy fraction divided by its value in the undoped slab, so the tabulated $D_0$ and $Q$ (measured on nominally pure crystals) apply unchanged in the slab.
                 </p>
+                <div class="math-block">
+                    $$ [V_{Mg}]-[V_O]=d,\qquad [V_{Mg}][V_O]=K_S=e^{-H_S/k_BT},\qquad d=V_{bg}+\sum_i C_i\frac{Z_i-2}{2} $$
+                    $$ V_{factor}=\frac{[V_{Mg}]\left(1-f_{assoc}\tanh(\max(0,d-V_{bg})/V_{sat})\right)}{[V_{Mg}]_{d=V_{bg}}} $$
+                </div>
+                <ul style="font-size:13px;">
+                    <li><strong>$V_{bg}=10^{-4}$</strong> is the <em>extrinsic</em> background of cation vacancies compensating trivalent impurities in nominally pure MgO (commercial crystals: roughly 15–1000 ppm). It is not an intrinsic limit.</li>
+                    <li><strong>$H_S = 6.7$ eV</strong> (≈650 kJ/mol Schottky-pair enthalpy) gives a temperature-dependent intrinsic level $\sqrt{K_S}$, ≈3×10⁻¹² at 1473 K. It matters only where acceptors outweigh the background.</li>
+                    <li>Donors ($Z&gt;2$): one cation vacancy per two M³⁺ or per M⁴⁺. A pure trivalent film therefore reaches $V_{factor}\approx 2500$ (after association), a pure Ti film ≈5000.</li>
+                    <li>Acceptors ($Z&lt;2$) are assumed compensated by oxygen vacancies only; hole compensation is not modelled, so cation-vacancy suppression (and the slowdown) in acceptor-rich regions is an upper bound.</li>
+                    <li>$f_{assoc}=0.5$, $V_{sat}=0.02$: phenomenological vacancy–donor association, applied equally to all cations. Real M³⁺–vacancy pairs speed up the trivalent cation and slow the others (Van Orman et al. 2009), which this model does not separate.</li>
+                </ul>
+                <p style="font-size:13px;"><strong>Default Q matrix.</strong> $Q_{ij}=Q_i$ for every environment $j$, applied the same way to Mg and to the dopants. This reproduces the measured dilute tracer value in MgO and assumes no composition dependence of the barrier. Composition dependence then comes only from $V_{factor}$ and $\Omega$. Edit the Q matrix in the Interaction dialog when environment-dependent data exist.</p>
             </div>
 
             <div class="theory-box" style="border-left-color:#db2777; background:#fdf2f8;">
@@ -460,7 +472,9 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     $$ F_i = \nabla C_i + \frac{C_i}{k_BT}\left(\sum_j\Omega_{ij}\nabla C_j-\nabla h\right) $$
                     $$ J_i = -D_i^*F_i + C_i\sum_k D_k^*F_k $$
                 </div>
-                <p>For one dopant, the thermodynamic factor reduces to $1-2\Omega C(1-C)/(k_BT)$. Unstable or marginal compositions stop with a message; phase separation requires a gradient-energy model. The existing vacancy correction and parameter database remain phenomenological.</p>
+                <p>For one dopant, the thermodynamic factor reduces to $1-2\Omega C(1-C)/(k_BT)$. Unstable or marginal compositions stop with a message; phase separation requires a gradient-energy model. The vacancy correction and most of the parameter database remain phenomenological.</p>
+                <p>Stability is checked with a Cholesky factorization of the free-energy Hessian on the composition simplex. The cation eliminated from the reduced coordinates is the <em>most abundant</em> one at each face (fraction ≥ 1/(n+1)), so the $1/C_{ref}$ term stays small even inside the Mg-free film and no precision is lost. Positive definiteness does not depend on this choice.</p>
+                <p>Fluxes are stored on N+1 faces: the sealed boundaries at $x=0$ and $x=L$ (always zero) and the N−1 interior faces at $(k-\tfrac12)\Delta x$. Both end cells have half width.</p>
                 <p>The finite-volume solver uses upwind drift for every cation, including Mg, with a common lattice velocity that enforces zero total cation flux. The time step follows current outgoing transport rates; failed trial steps are retried without clipping or renormalizing concentrations. There is no step-count cutoff. The main Run calculation button becomes Stop while the worker runs and immediately cancels it when clicked. Upwind transport adds numerical smoothing, so compare grid resolutions for sharp profiles. <a href="https://pages.nist.gov/fipy/en/latest/_downloads/fipy.pdf" target="_blank" rel="noopener">Reference: NIST FiPy manual, numerical schemes.</a></p>
                 <p><a href="https://ocw.mit.edu/courses/3-205-thermodynamics-and-kinetics-of-materials-fall-2006/4aa3ce8d667e1dbc481198aee896dfd9_lecture10_review.pdf" target="_blank" rel="noopener">Reference: MIT lecture on spinodal decomposition and gradient energy</a>.</p>
             </div>
@@ -480,7 +494,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 </p>
                 <table class="param-table">
                     <thead>
-                        <tr><th>Ion</th><th>D₀ (m²/s)</th><th>Q (eV)</th><th>Notes / Ref Context</th></tr>
+                        <tr><th>Ion</th><th>D₀ (m²/s)</th><th>Q (eV)</th><th>Source</th></tr>
                     </thead>
                     <tbody id="cation-reference-body"></tbody>
                 </table>
@@ -489,33 +503,13 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             <div class="theory-box box-warning">
                 <h4>3.2 Interaction Energies ($\Omega$)</h4>
                 <p style="font-size:12px; margin-bottom:10px; color:#78350f;">
-                    Explicit pair values defined in the code. Pairs not listed here use the Default (0.05 eV).
+                    All values are model estimates, generated from the code. Pairs not listed use the Default (0.05 eV). Negative Ω is attractive (favors mixing).
                 </p>
                 <table class="param-table">
                     <thead>
-                        <tr><th>Defined Pair</th><th>$\Omega$ (eV)</th><th>Physical Origin</th></tr>
+                        <tr><th>Defined Pair</th><th>$\Omega$ (eV)</th><th>Basis</th></tr>
                     </thead>
-                    <tbody>
-                        <tr><td><strong>Ni - Co²⁺</strong></td><td>0.01</td><td>Ideal Solution</td></tr>
-                        <tr><td><strong>Mg - Ni</strong></td><td>0.02</td><td>Ideal Solution</td></tr>
-                        <tr><td><strong>Mg - Co²⁺</strong></td><td>0.02</td><td>Ideal Solution</td></tr>
-                        <tr><td><strong>Fe²⁺ - Co²⁺</strong></td><td>0.02</td><td>Near Ideal</td></tr>
-                        <tr><td><strong>Mg - Fe²⁺</strong></td><td>0.03</td><td>Near Ideal</td></tr>
-                        <tr><td><strong>Mg - Mn</strong></td><td>0.04</td><td>Low Mismatch</td></tr>
-                        
-                        <tr><td><strong>Mg - Cu</strong></td><td>0.15</td><td>Jahn-Teller Strain</td></tr>
-                        <tr><td><strong>Ni - Zn</strong></td><td>0.20</td><td>Structural Mismatch</td></tr>
-                        <tr><td><strong>Mg - Zn</strong></td><td>0.25</td><td>Tetrahedral Preference</td></tr>
-
-                        <tr><td><strong>Mg - Sc</strong></td><td>0.45</td><td>Charge Mismatch</td></tr>
-                        <tr><td><strong>Mg - Ga</strong></td><td>0.45</td><td>Charge Mismatch</td></tr>
-                        <tr><td><strong>Mg - Fe³⁺</strong></td><td>0.50</td><td>Defect Clustering</td></tr>
-                        <tr><td><strong>Mg - V</strong></td><td>0.50</td><td>Defect Clustering</td></tr>
-                        <tr><td><strong>Mg - Co³⁺</strong></td><td>0.50</td><td>Defect Clustering</td></tr>
-                        <tr><td><strong>Mg - Cr</strong></td><td>0.55</td><td>Defect Clustering</td></tr>
-                        <tr><td><strong>Mg - Ca</strong></td><td>0.65</td><td>Large Miscibility Gap</td></tr>
-                        <tr><td><strong>Mg - Ti</strong></td><td>0.70</td><td>Strong Repulsion ($4+$)</td></tr>
-                    </tbody>
+                    <tbody id="omega-reference-body"></tbody>
                 </table>
             </div>
         </div>
@@ -523,14 +517,19 @@ button:disabled { opacity:.5; cursor:not-allowed; }
         <div class="help-section" style="border-top: 2px solid #e2e8f0; padding-top: 20px;">
             <h2 class="help-title" style="font-size:16px;">4. Bibliography</h2>
             <ul style="font-size:13px; color:#475569; line-height:1.6; padding-left:20px;">
-                <li><strong>Blank, S. L., & Pask, J. A. (1969).</strong> "Diffusion of Iron and Nickel in Magnesium Oxide." <em>J. Am. Ceram. Soc.</em> 52.</li>
-                <li><strong>Chen, W. K., & Peterson, N. L. (1980).</strong> "Grain-boundary diffusion of 60Co and 51Cr in NiO." <em>J. Am. Ceram. Soc.</em> 63.</li>
-                <li><strong>Doman, R. C., et al. (1973).</strong> "Phase Equilibria in the System CaO-MgO." <em>J. Mater. Sci.</em> 8.</li>
-                <li><strong>Gourdin, W. H., & Kingery, W. D. (1979).</strong> "The defect structure of MgO containing trivalent cation solutes." <em>J. Mater. Sci.</em> 14.</li>
-                <li><strong>Hardin, B. D., et al. (1973).</strong> "Diffusion of Ni2+ in MgO." <em>J. Am. Ceram. Soc.</em> 56.</li>
-                <li><strong>Rungis, J., & Mortlock, A. J. (1966).</strong> "The diffusion of Calcium in Magnesium Oxide." <em>Phil. Mag.</em> 14.</li>
-                <li><strong>Weber, G. W. et al. (1972).</strong> "Diffusion of 51Cr in MgO." <em>J. Chem. Phys.</em></li>
-                <li><strong>Wuensch, B. J., et al. (1973).</strong> "Diffusion of Mg-28 in MgO up to 1900C." <em>J. Chem. Phys.</em> 58.</li>
+                <li><strong>Blank, S. L., &amp; Pask, J. A. (1969).</strong> "Diffusion of Iron and Nickel in Magnesium Oxide Single Crystals." <em>J. Am. Ceram. Soc.</em> 52. <a href="https://doi.org/10.1111/j.1151-2916.1969.tb16074.x" target="_blank" rel="noopener">doi</a></li>
+                <li><strong>Crispin, K. L., &amp; Van Orman, J. A. (2010).</strong> "Influence of the crystal field effect on chemical transport in Earth's mantle: Cr³⁺ and Ga³⁺ diffusion in periclase." <em>Phys. Earth Planet. Inter.</em> <a href="https://pure.psu.edu/en/publications/influence-of-the-crystal-field-effect-on-chemical-transport-in-ea/" target="_blank" rel="noopener">record</a></li>
+                <li><strong>Doman, R. C., Barr, J. B., McNally, R. N., &amp; Alper, A. M. (1963).</strong> "Phase Equilibria in the System CaO–MgO." <em>J. Am. Ceram. Soc.</em> 46.</li>
+                <li><strong>Gourdin, W. H., &amp; Kingery, W. D. (1979).</strong> "The defect structure of MgO containing trivalent cation solutes: shell model calculations." <em>J. Mater. Sci.</em> 14.</li>
+                <li><strong>Harding, B. C. (1972).</strong> "Diffusion of Ni and Ba in MgO up to 2500 °C." <em>Phys. Status Solidi B</em> 50, 135.</li>
+                <li><strong>Harding, B. C., &amp; Price, D. M. (1972).</strong> "Cation self-diffusion in MgO up to 2350 °C." <em>Phil. Mag.</em> 26, 253–260. <a href="https://doi.org/10.1080/14786437208221033" target="_blank" rel="noopener">doi</a> (²⁸Mg radiotracer, 1265–2350 °C)</li>
+                <li><strong>Osenbach, J. W., &amp; Stubican, V. S. (1983).</strong> "Grain-boundary diffusion of ⁵¹Cr in MgO and Cr-doped MgO." <em>J. Am. Ceram. Soc.</em> 66, 191–195. <a href="https://doi.org/10.1111/j.1151-2916.1983.tb10015.x" target="_blank" rel="noopener">doi</a></li>
+                <li><strong>Rungis, J., &amp; Mortlock, A. J. (1966).</strong> "The diffusion of calcium in magnesium oxide." <em>Phil. Mag.</em> 14, 821–827. <a href="https://doi.org/10.1080/14786436608211974" target="_blank" rel="noopener">doi</a></li>
+                <li><strong>Van Orman, J. A., &amp; Crispin, K. L. (2010).</strong> "Diffusion in Oxides." <em>Rev. Mineral. Geochem.</em> 72, 757–825. <a href="https://doi.org/10.2138/rmg.2010.72.17" target="_blank" rel="noopener">doi</a></li>
+                <li><strong>Van Orman, J. A., Li, C., &amp; Crispin, K. L. (2009).</strong> "Aluminum diffusion and Al-vacancy association in periclase." <em>Phys. Earth Planet. Inter.</em> 172, 34–42.</li>
+                <li><strong>Weber, G. W., Bitler, W. R., &amp; Stubican, V. S. (1977).</strong> "Diffusion of ⁵¹Cr in MgO Crystals." <em>J. Am. Ceram. Soc.</em> 60, 61–64.</li>
+                <li><strong>Wuensch, B. J., Steele, W. C., &amp; Vasilos, T. (1973).</strong> "Cation self-diffusion in single-crystal MgO." <em>J. Chem. Phys.</em> 58, 5258–5266. (Stable-isotope mass spectrometry, 1000–2400 °C, argon.)</li>
+                <li><strong>Wuensch, B. J., &amp; Vasilos, T. (1962).</strong> "Diffusion of Transition Metal Ions in Single-Crystal MgO." <em>J. Chem. Phys.</em> 36, 2917–2922. <a href="https://doi.org/10.1063/1.1732402" target="_blank" rel="noopener">doi</a></li>
             </ul>
         </div>
 
@@ -607,7 +606,16 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 
 
 <script id="worker-code" type="javascript/worker">
-    const KB_EV = 8.617333262145e-5; 
+    const KB_EV = 8.617333262145e-5;
+
+    // --- Cation-vacancy model (all values are fractions of cation sites) ---
+    // V_BG: extrinsic background vacancies compensating trivalent impurities in nominally
+    //   pure MgO (~100 ppm; Van Orman & Crispin 2010). Tracer D0/Q values were measured on such
+    //   crystals, so V_factor = 1 in the undoped slab. This is NOT the intrinsic level.
+    // H_SCHOTTKY: Schottky-pair formation enthalpy (~650 kJ/mol = 6.7 eV). The intrinsic
+    //   vacancy fraction sqrt(K_S) is temperature dependent (~3e-12 at 1473 K).
+    // F_ASSOC, V_SAT: phenomenological association of vacancies with donor cations.
+    const V_BG = 1e-4, H_SCHOTTKY = 6.7, F_ASSOC = 0.5, V_SAT = 0.02;
 
     self.onmessage = function(e) {
         const inputs = e.data;
@@ -616,13 +624,13 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             const kBT = KB_EV * Temp;
             const Time_s = inputs.timeHours * 3600;
             const N = inputs.N;
-            const L_m = inputs.totalLength * 1e-6; 
+            const L_m = inputs.totalLength * 1e-6;
             const Source_m = inputs.sourceLength * 1e-6;
             const dx = L_m / (N - 1);
             if (!Number.isInteger(N) || N < 50 || N > 500 ||
                 !Number.isFinite(dx) || dx <= 0 || !Number.isFinite(Time_s) || Time_s < 0)
                 throw new Error('Invalid grid, geometry or duration.');
-            
+
             // --- 1. SETUP ---
             const matrixD0 = inputs.targetD0;
             const matrixQVec = inputs.matrixQVector;
@@ -641,13 +649,16 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     const fraction = Math.max(0, Math.min(1, (Source_m - left) / (right - left)));
                     C[i] = (fraction * el.cLeft + (1 - fraction) * el.cRight) / 100;
                 }
-                return { 
+                return {
                     ...el,
                     D_star_map: new Float64Array(N),
-                    C, C_new: new Float64Array(N), Flux: new Float64Array(N),
-                    history: [], fluxHistory: [] 
+                    // Flux[k] lives on face k: k=0 is the sealed left boundary (x=0),
+                    // k=1..N-1 are interior faces at x=(k-0.5)dx, k=N is the sealed right boundary (x=L).
+                    C, C_new: new Float64Array(N), Flux: new Float64Array(N + 1),
+                    history: [], fluxHistory: []
                 };
             });
+            const matrixMap = new Float64Array(N); // Mg tracer diffusivity per node (includes V_factor)
 
             if (Time_s === 0) {
                 const matrix = Float64Array.from({length:N},(_,i)=>Math.max(0,1-species.reduce((sum,s)=>sum+s.C[i],0)));
@@ -668,9 +679,9 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             const targetFrames = 40;
             let nextFrame = 1;
             const frameInterval = Time_s / targetFrames;
-            let rejectedSteps = 0; 
+            let rejectedSteps = 0;
             let lastReport = performance.now();
-            
+
             let matrixHistory = [], historyTimes=[];
             const saveFrame=()=>{
                 historyTimes.push(current_time);
@@ -684,37 +695,36 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             if (omega.some((row, a) => row.length !== count + 1 || row.some((v, b) =>
                 !Number.isFinite(v) || Math.abs(v - omega[b]?.[a]) > 1e-12 || (a === b && v !== 0))))
                 throw new Error('Omega must be finite, symmetric and zero on its diagonal.');
-            const thermoScratch = {excess: new Float64Array(count + 1), chol: new Float64Array(count * count)};
+            const thermoScratch = {
+                excess: new Float64Array(count + 1), chol: new Float64Array(count * count),
+                frac: new Float64Array(count + 1), idx: new Int32Array(count), enthalpyGrad: 0
+            };
             const local = new Float64Array(count), grads = new Float64Array(count);
-            const diffusivities = new Float64Array(count), driving = new Float64Array(count);
             const left = new Float64Array(count+1), right = new Float64Array(count+1);
             const faceD = new Float64Array(count+1), drift = new Float64Array(count+1);
             const faceFlux = new Float64Array(count+1), breaks = new Float64Array(count+1);
             const outgoing = Array.from({length:count+1},()=>new Float64Array(N));
             let transportDt = Infinity;
-            // Flux i is between nodes i and i+1; last entry is the sealed boundary.
+
             function calculateFlux() {
                 for (const rates of outgoing) rates.fill(0);
+                for (const s of species) { s.Flux[0] = 0; s.Flux[N] = 0; } // sealed boundaries
                 for (let i = 0; i < N - 1; i++) {
-                    let sumC = 0;
                     for (let a = 0; a < count; a++) {
                         const s = species[a];
                         local[a] = (s.C[i] + s.C[i+1]) / 2;
-                        sumC += local[a];
                         grads[a] = (s.C[i+1] - s.C[i]) / dx;
-                        diffusivities[a] = (s.D_star_map[i] + s.D_star_map[i+1]) / 2;
                     }
-                    let Q = matrixQVec[0] * Math.max(0, 1 - sumC);
-                    for (let a = 0; a < count; a++) Q += matrixQVec[a+1] * local[a];
-                    const matrixD = matrixD0 * Math.exp(-Q / kBT);
-                    regularSolutionForces(local, grads, omega, kBT, driving, thermoScratch);
-                    left[0] = 1; right[0] = 1; faceD[0] = matrixD;
-                    let enthalpyGrad = Math.max(0, 1-sumC) * thermoScratch.excess[0];
+                    // Returns excess-potential gradients and grad(h); also checks single-phase stability.
+                    regularSolutionForces(local, grads, omega, kBT, thermoScratch);
+                    const enthalpyGrad = thermoScratch.enthalpyGrad;
+                    left[0] = 1; right[0] = 1;
+                    // Mg uses the same vacancy-scaled, node-averaged diffusivity as the dopants.
+                    faceD[0] = (matrixMap[i] + matrixMap[i+1]) / 2;
                     for (let a = 0; a < count; a++) {
                         left[a+1] = species[a].C[i]; right[a+1] = species[a].C[i+1];
                         left[0] -= left[a+1]; right[0] -= right[a+1];
-                        faceD[a+1] = diffusivities[a];
-                        enthalpyGrad += local[a] * thermoScratch.excess[a+1];
+                        faceD[a+1] = (species[a].D_star_map[i] + species[a].D_star_map[i+1]) / 2;
                     }
                     for (let a = 0; a <= count; a++) {
                         drift[a] = -faceD[a] * (thermoScratch.excess[a] - enthalpyGrad) / kBT;
@@ -749,10 +759,9 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                         outgoing[a][i] += forward;
                         outgoing[a][i+1] += backward;
                         if (!Number.isFinite(faceFlux[a])) throw new Error('Non-finite transport coefficients.');
-                        if (a > 0) species[a-1].Flux[i] = faceFlux[a];
+                        if (a > 0) species[a-1].Flux[i+1] = faceFlux[a];
                     }
                 }
-                for (const s of species) s.Flux[N-1] = 0;
                 transportDt = Infinity;
                 for (let a = 0; a <= count; a++) for (let i = 0; i < N; i++) {
                     const width = (i === 0 || i === N-1) ? dx/2 : dx;
@@ -762,7 +771,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 
             // --- 3. LOOP ---
             while (current_time < Time_s) {
-                updateDiffusivities(species, matrixD0, matrixQVec, N, kBT);
+                updateDiffusivities(species, matrixMap, matrixD0, matrixQVec, N, kBT);
 
                 calculateFlux();
                 dt=Math.min(transportDt, Time_s-current_time, nextFrame*frameInterval-current_time);
@@ -771,15 +780,11 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 if(step===0 && inputs.mode==='history') saveFrame();
 
                 for (let attempt=0; attempt<20; attempt++) {
-                    for (let i = 1; i < N - 1; i++) {
-                        species.forEach(s => {
-                            const dJ_dx = (s.Flux[i] - s.Flux[i-1]) / dx;
-                            s.C_new[i] = s.C[i] - dt * dJ_dx;
-                        });
+                    // Finite volumes: half-width cells at both sealed ends conserve the trapezoidal integral.
+                    for (let i = 0; i < N; i++) {
+                        const width = (i === 0 || i === N-1) ? dx/2 : dx;
+                        for (const s of species) s.C_new[i] = s.C[i] - dt * (s.Flux[i+1] - s.Flux[i]) / width;
                     }
-                
-                    // Half-width endpoint volumes: zero outward flux conserves the trapezoidal integral.
-                    species.forEach(s => { s.C_new[0]=s.C[0]-2*dt*s.Flux[0]/dx; s.C_new[N-1]=s.C[N-1]+2*dt*s.Flux[N-2]/dx; });
                     let valid = true;
                     for (let i=0;i<N;i++) {
                         let sum=0;
@@ -801,18 +806,18 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 if (current_time >= nextFrame*frameInterval || current_time >= Time_s) {
                     nextFrame++;
                     if(inputs.mode==='history') {
-                        updateDiffusivities(species,matrixD0,matrixQVec,N,kBT); calculateFlux(); saveFrame();
+                        updateDiffusivities(species,matrixMap,matrixD0,matrixQVec,N,kBT); calculateFlux(); saveFrame();
                     }
                 }
                 step++;
-                
+
                 if (step % 100 === 0 && performance.now() - lastReport >= 250) {
                     lastReport = performance.now();
                     self.postMessage({ type: 'progress', percent: Math.min(99, Math.floor((current_time / Time_s) * 100)), steps: step });
                 }
             }
 
-            updateDiffusivities(species,matrixD0,matrixQVec,N,kBT); calculateFlux();
+            updateDiffusivities(species,matrixMap,matrixD0,matrixQVec,N,kBT); calculateFlux();
             species.forEach(s => delete s.D_star_map);
             const finalMatrix = new Float64Array(N);
             for(let i=0; i<N; i++) {
@@ -827,11 +832,13 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 
 // g = kBT sum(c_i ln c_i) + sum_{i<j} Omega_ij c_i c_j, including Mg (index 0).
 // c_i grad(mu_i)/kBT = grad(c_i) + c_i [sum_j Omega_ij grad(c_j) - grad(h)]/kBT.
-// No log or division by c_i is needed in the transport force at zero concentration.
-function regularSolutionForces(c, grad, omega, kBT, out, scratch) {
-    const n = c.length, excess = scratch.excess, chol = scratch.chol;
+// Writes scratch.excess (sum_j Omega_ij grad c_j for every cation) and scratch.enthalpyGrad
+// (grad h); no log or division by c_i is needed at zero concentration.
+function regularSolutionForces(c, grad, omega, kBT, scratch) {
+    const n = c.length, excess = scratch.excess, chol = scratch.chol, frac = scratch.frac, idx = scratch.idx;
     let matrixC = 1, matrixGrad = 0;
     for (let a = 0; a < n; a++) { matrixC -= c[a]; matrixGrad -= grad[a]; }
+    matrixC = Math.max(0, matrixC);
     for (let a = 0; a <= n; a++) {
         let value = omega[a][0] * matrixGrad;
         for (let b = 0; b < n; b++) value += omega[a][b+1] * grad[b];
@@ -839,15 +846,26 @@ function regularSolutionForces(c, grad, omega, kBT, out, scratch) {
     }
     let enthalpyGrad = matrixC * excess[0];
     for (let a = 0; a < n; a++) enthalpyGrad += c[a] * excess[a+1];
-    for (let a = 0; a < n; a++) out[a] = grad[a] + c[a] * (excess[a+1] - enthalpyGrad) / kBT;
+    scratch.enthalpyGrad = enthalpyGrad;
 
-    // Check the reduced free-energy Hessian (scaled by sqrt(c_i c_j)/kBT).
+    // Single-phase stability: Hessian of g on the composition simplex, scaled by sqrt(c_p c_q)/kBT.
+    // The dependent (eliminated) cation is the MOST ABUNDANT one, whose fraction is >= 1/(n+1), so the
+    // rank-one 1/c_ref term stays <= n+1 and the Cholesky factorization never subtracts huge numbers.
+    // Positive definiteness does not depend on which cation is eliminated.
     // Negative curvature requires a gradient-energy phase-field model; do not clip it.
-    const host = Math.max(matrixC, 1e-12);
+    frac[0] = matrixC;
+    for (let a = 0; a < n; a++) frac[a+1] = Math.max(0, c[a]);
+    let ref = 0;
+    for (let k = 1; k <= n; k++) if (frac[k] > frac[ref]) ref = k;
+    let m = 0;
+    for (let k = 0; k <= n; k++) if (k !== ref) idx[m++] = k;
+    const inv = 1 / frac[ref];
     for (let a = 0; a < n; a++) {
+        const p = idx[a];
         for (let b = 0; b <= a; b++) {
-            let value = (a === b ? 1 : 0) + Math.sqrt(Math.max(0,c[a]) * Math.max(0,c[b])) *
-                (1 / host + (omega[a+1][b+1] - omega[a+1][0] - omega[0][b+1]) / kBT);
+            const q = idx[b];
+            let value = (a === b ? 1 : 0) + Math.sqrt(frac[p] * frac[q]) *
+                (inv + (omega[p][q] - omega[p][ref] - omega[ref][q]) / kBT);
             for (let k = 0; k < b; k++) value -= chol[a*n+k] * chol[b*n+k];
             if (a === b) {
                 if (!Number.isFinite(value) || value <= 1e-12)
@@ -858,15 +876,22 @@ function regularSolutionForces(c, grad, omega, kBT, out, scratch) {
     }
 }
 
-function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
-    const V_int = 1e-4;          
-    const f_assoc = 0.5;         
-    const V_sat = 0.02;          
-    const V_floor = 1e-6;        
+// Free cation-vacancy fraction from electroneutrality + Schottky equilibrium:
+//   [V_Mg] - [V_O] = d,  [V_Mg][V_O] = K_S = exp(-H_S/kBT)
+// d = V_BG + sum_i c_i (Z_i - 2)/2  (donors add vacancies; acceptors are compensated by V_O).
+// Both branches are written without cancellation.
+function cationVacancies(d, K_S) {
+    const root = Math.sqrt(d * d + 4 * K_S);
+    return d >= 0 ? (d + root) / 2 : 2 * K_S / (root - d);
+}
+
+function updateDiffusivities(species, matrixMap, matrixD0, matrixQVec, N, kBT) {
+    const K_S = Math.exp(-H_SCHOTTKY / kBT);
+    const V_ref = cationVacancies(V_BG, K_S); // undoped slab -> V_factor = 1
 
     for (let x = 0; x < N; x++) {
         let sumC = 0;
-        let excess_signed = 0;
+        let excess_signed = 0; // net donor charge, in cation-vacancy equivalents
 
         species.forEach(s => {
             sumC += s.C[x];
@@ -875,22 +900,17 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         });
 
         const C_mat = Math.max(0, 1 - sumC);
+        const V_total = cationVacancies(V_BG + excess_signed, K_S);
+        // Phenomenological binding of vacancies to donor cations reduces the free fraction.
+        const V_free = V_total * (1 - F_ASSOC * Math.tanh(Math.max(0, excess_signed) / V_SAT));
+        const V_factor = V_free / V_ref;
 
+        // Host Mg diffuses by the same cation vacancies: apply the same V_factor.
+        let Q_mat = C_mat * matrixQVec[0];
+        for (let j = 0; j < species.length; j++) Q_mat += species[j].C[x] * matrixQVec[j+1];
+        matrixMap[x] = matrixD0 * Math.exp(-Q_mat / kBT) * V_factor;
 
-        let V_free;
-        if (excess_signed >= 0) {
-            const V_total = Math.sqrt(V_int * V_int + (excess_signed * 0.5) * (excess_signed * 0.5));
-            const free_factor = 1 - f_assoc * Math.tanh(excess_signed / V_sat);
-            V_free = V_total * free_factor;
-        } else {
-            const a = -excess_signed; 
-            V_free = V_int / Math.sqrt(1 + (a / V_int) * (a / V_int));
-        }
-        if (V_free < V_floor) V_free = V_floor;
-
-        const V_factor = V_free / V_int;
-
-        species.forEach((s, idx) => {
+        species.forEach(s => {
             let Q_eff = C_mat * s.qVector[0];
             for (let j = 0; j < species.length; j++) Q_eff += species[j].C[x] * s.qVector[j+1];
             s.D_star_map[x] = s.d0 * Math.exp(-Q_eff / kBT) * V_factor;
@@ -919,73 +939,64 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
     let omegaMatrixData = {};
 
     // --- SCIENTIFIC DATABASE ---
-    // Ref: Wuensch et al. J. Chem. Phys (1973) for Mg, and reviews for transition metals in MgO.
-    // D0 values are effective constants for extrinsic regime (Vacancy conc fixed by impurities/schottky).
-    
-    // --- SCIENTIFIC DATABASE (COMPLETE) ---
-    // Ref: Wuensch et al. J. Chem. Phys (1973) for Mg, and reviews for transition metals in MgO.
-    // D0 values are effective constants for extrinsic regime (~10^-10 range).
-    
-    // D0 values updated to be more consistent with literature for MgO matrix
-    // (Wuensch & Vasilos, Van Orman & Crispin 2010 review, RiMG vol. 72)
+    // D0 (m²/s) and Q (eV) are tracer values in nominally pure MgO (~100 ppm extrinsic cation
+    // vacancies, i.e. V_factor = 1). Unit check: 1 cm²/s = 1e-4 m²/s.
+    // `ref` = measured source; `note` = basis of an estimate. Entries without `ref` are model estimates.
+    // `exploratory` = no bulk MgO solubility/diffusion basis at film-level (≫1%) concentrations.
     const CATION_DB = {
-        "Mg":  { label: "Mg²⁺ (Matrix)",     d0: 4.0e-9,  valence: 2 },
+        "Mg":  { label: "Mg²⁺ (Matrix)",     d0: 4.19e-8, valence: 2, ref: "Wuensch, Steele & Vasilos 1973 (stable-isotope, 1000–2400 °C)" },
 
-        // Monovalent (acceptors: consume cation vacancies / promote O-vacancies)
-        "Li":  { label: "Li⁺ (Lithium)",     d0: 2.0e-8,  valence: 1 },
-        "Na":  { label: "Na⁺ (Sodium)",      d0: 5.0e-9,  valence: 1 },
-        "K":   { label: "K⁺ (Potassium)",    d0: 2.0e-9,  valence: 1 },
-        "Cu1": { label: "Cu⁺ (Cuprous)",     d0: 8.0e-9,  valence: 1 },
-        "Ag":  { label: "Ag⁺ (Silver)",      d0: 3.0e-9,  valence: 1 },
+        // Monovalent (acceptors: compensated by oxygen vacancies; suppress cation vacancies)
+        "Li":  { label: "Li⁺ (Lithium)",     d0: 2.0e-8,  valence: 1, note: "Estimated (small radius)" },
+        "Na":  { label: "Na⁺ (Sodium)",      d0: 5.0e-9,  valence: 1, note: "Estimated" },
+        "K":   { label: "K⁺ (Potassium) · est.",  d0: 2.0e-9, valence: 1, exploratory: true, note: "Estimated; r(K⁺) ≈ 1.38 Å ≫ r(Mg²⁺) — no bulk rock-salt basis" },
+        "Cu1": { label: "Cu⁺ (Cuprous) · est.",   d0: 8.0e-9, valence: 1, exploratory: true, note: "Estimated; no bulk MgO data" },
+        "Ag":  { label: "Ag⁺ (Silver) · est.",    d0: 3.0e-9, valence: 1, exploratory: true, note: "Estimated; no bulk MgO data" },
 
         // Divalent
-        "Mn":  { label: "Mn²⁺ (Manganese)",  d0: 1.5e-9,  valence: 2 },
-        "Fe2": { label: "Fe²⁺ (Ferrous)",    d0: 8.0e-10, valence: 2 },
-        "Co2": { label: "Co²⁺ (Cobalt II)",  d0: 4.0e-10, valence: 2 },
-        "Ni":  { label: "Ni²⁺ (Nickel)",     d0: 1.8e-9,  valence: 2 },
-        "Cu":  { label: "Cu²⁺ (Copper)",     d0: 3.0e-10, valence: 2 },
-        "Zn":  { label: "Zn²⁺ (Zinc)",       d0: 8.0e-10, valence: 2 },
-        "Ca":  { label: "Ca²⁺ (Calcium)",    d0: 0.5e-10, valence: 2 },
+        "Mn":  { label: "Mn²⁺ (Manganese)",  d0: 1.5e-9,  valence: 2, note: "Estimated (cf. Van Orman & Crispin 2010 review)" },
+        "Fe2": { label: "Fe²⁺ (Ferrous)",    d0: 8.83e-9, valence: 2, ref: "Wuensch & Vasilos 1962 (likely vacancy-enhanced by Fe³⁺)" },
+        "Co2": { label: "Co²⁺ (Cobalt II)",  d0: 5.78e-9, valence: 2, ref: "Wuensch & Vasilos 1962" },
+        "Ni":  { label: "Ni²⁺ (Nickel)",     d0: 1.80e-9, valence: 2, ref: "Wuensch & Vasilos 1962" },
+        "Cu":  { label: "Cu²⁺ (Copper)",     d0: 3.0e-10, valence: 2, note: "Estimated" },
+        "Zn":  { label: "Zn²⁺ (Zinc)",       d0: 8.0e-10, valence: 2, note: "Estimated (data: Wuensch & Vasilos 1965)" },
+        "Ca":  { label: "Ca²⁺ (Calcium)",    d0: 2.95e-9, valence: 2, ref: "Rungis & Mortlock 1966 (⁴⁵Ca, 1183–1973 K)" },
 
         // Trivalent (donors: produce cation vacancies)
-        "Sc":  { label: "Sc³⁺ (Scandium)",   d0: 4.0e-10, valence: 3 },
-        "V":   { label: "V³⁺ (Vanadium)",    d0: 6.0e-10, valence: 3 },
-        "Cr":  { label: "Cr³⁺ (Chromium)",   d0: 3.5e-10, valence: 3 },
-        "Fe3": { label: "Fe³⁺ (Ferric)",     d0: 5.0e-10, valence: 3 },
-        "Co3": { label: "Co³⁺ (Cobalt III)", d0: 2.0e-10, valence: 3 },
-        "Ga":  { label: "Ga³⁺ (Gallium)",    d0: 4.5e-10, valence: 3 },
+        "Sc":  { label: "Sc³⁺ (Scandium)",   d0: 4.0e-10, valence: 3, note: "Estimated; data exist only at 1773 K (Solaga & Mortlock 1970)" },
+        "V":   { label: "V³⁺ (Vanadium)",    d0: 6.0e-10, valence: 3, note: "Estimated" },
+        "Cr":  { label: "Cr³⁺ (Chromium)",   d0: 3.5e-10, valence: 3, note: "Estimated; measured ⁵¹Cr volume Q ≈ 3.1 eV (Weber et al. 1977; Osenbach & Stubican 1983) — not refit" },
+        "Fe3": { label: "Fe³⁺ (Ferric)",     d0: 5.0e-10, valence: 3, note: "Estimated" },
+        "Co3": { label: "Co³⁺ (Cobalt III) · est.", d0: 2.0e-10, valence: 3, exploratory: true, note: "Estimated; no bulk MgO data" },
+        "Ga":  { label: "Ga³⁺ (Gallium)",    d0: 4.5e-10, valence: 3, note: "Estimated; Ga diffuses faster than Cr (Crispin & Van Orman 2010)" },
 
         // Tetravalent (strong donors)
-        "Ti":  { label: "Ti⁴⁺ (Titanium)",   d0: 2.0e-10, valence: 4 }
+        "Ti":  { label: "Ti⁴⁺ (Titanium)",   d0: 2.0e-10, valence: 4, note: "Estimated" }
     };
 
-    // Ref: Activation Energies in MgO Matrix (Wuensch 1983 Review)
-    // Values derived from tracer diffusion Q where available, or estimated via charge/radius trends.
-    // Activation energies in MgO (eV). Tracer/extrinsic regime.
-    // Refs: Wuensch (1983), Van Orman & Crispin (2010) RiMG 72, 757-825.
-    // Note: aliovalent ions are intrinsically faster (more vacancies); their
-    // *effective* slowdown via defect-association is captured by Omega + the
-    // saturating vacancy model in updateDiffusivities.
+    // Activation energies in MgO (eV), tracer/extrinsic regime. Measured values carry a `ref`
+    // in CATION_DB; others are estimates. The vacancy enhancement by aliovalent dopants is
+    // applied separately through V_factor in the solver.
     const Q_DEFAULTS = {
-        "Mg": 2.76,  // Matrix self-diffusion (Wuensch & Vasilos)
+        "Mg": 2.76,   // Wuensch, Steele & Vasilos 1973
 
-        // Monovalent (small ionic radius, fast hops; somewhat offset by image-charge trapping)
-        "Li":  1.50,  // Very fast (small radius)
+        // Monovalent (estimated)
+        "Li":  1.50,
         "Na":  1.85,
-        "K":   2.20,  // Larger ion, slower
+        "K":   2.20,
         "Cu1": 1.70,
         "Ag":  1.95,
 
-        // Divalent (isovalent with matrix - "pure" tracer)
-        "Ni":  2.10,  // Wuensch & Vasilos 1968
-        "Co2": 2.05,
-        "Fe2": 1.95,
+        // Divalent
+        "Ni":  2.10,  // Wuensch & Vasilos 1962
+        "Co2": 2.06,  // Wuensch & Vasilos 1962
+        "Fe2": 1.81,  // Wuensch & Vasilos 1962
         "Mn":  2.20,
         "Zn":  2.00,
-        "Cu":  2.15,  // Jahn-Teller
-        "Ca":  2.90,  // Slow (large size mismatch)
+        "Cu":  2.15,
+        "Ca":  2.13,  // Rungis & Mortlock 1966 (206 kJ/mol)
 
-        // Aliovalent / Trivalent (intrinsic barrier; vacancy boost handled separately)
+        // Trivalent (estimated)
         "Fe3": 2.05,
         "Cr":  2.15,
         "Sc":  2.30,
@@ -993,39 +1004,47 @@ function updateDiffusivities(species, matrixD0, matrixQVec, N, kBT) {
         "Ga":  2.10,
         "Co3": 2.20,
 
-        // Tetravalent
+        // Tetravalent (estimated)
         "Ti":  2.40,
 
         "Unk": 2.30
     };
 
-    // Ref: Thermodynamic Mixing Parameters (Enthalpy of mixing)
+    // Regular-solution interaction parameters Ω (eV). All are model estimates.
+    // Positive = repulsive (favors demixing); negative = attractive (favors mixing).
     const OMEGA_DEFAULTS = {
-        // Ideal-ish Solutions
+        // Near-ideal solutions
         "Mg-Ni": 0.02, "Mg-Co2": 0.02, "Mg-Fe2": 0.03,
         "Ni-Co2": 0.01, "Fe2-Co2": 0.02, "Mg-Mn": 0.04,
 
-        // Structural/Size Mismatch
+        // Structural/size mismatch
         "Mg-Zn": 0.25, "Ni-Zn": 0.20, "Mg-Cu": 0.15,
-        "Mg-Ca": 0.65, // Significant immiscibility
+        "Mg-Ca": 0.65, // Large miscibility gap (Doman et al. 1963)
 
-        // Aliovalent Trivalent (Complex defect clusters modelled as repulsion)
+        // Aliovalent donors (defect clustering modelled as effective repulsion)
         "Mg-Fe3": 0.50, "Mg-Cr": 0.55, "Mg-V": 0.50,
         "Mg-Sc": 0.45, "Mg-Ga": 0.45, "Mg-Co3": 0.50,
         "Mg-Ti": 0.70,
 
-        // Monovalent (large charge mismatch -> strong effective repulsion / image-charge binding)
+        // Monovalent acceptors (charge mismatch -> effective repulsion)
         "Mg-Li":  0.40, "Mg-Na":  0.55, "Mg-K":   0.80,
         "Mg-Cu1": 0.45, "Mg-Ag":  0.50,
 
-        // Cross-charge donor/acceptor pairs (1+ with 3+/4+ should mutually compensate
-        // -> attractive, modeled here as small/zero Omega)
-        "Li-Fe3": 0.05, "Na-Fe3": 0.10,
-        "Li-Cr":  0.05, "Na-Cr":  0.10,
-        "Li-Ti":  0.00, "Na-Ti":  0.05,
+        // Donor/acceptor pairs mutually compensate charge -> attractive (Ω < 0)
+        "Li-Fe3": -0.10, "Na-Fe3": -0.05,
+        "Li-Cr":  -0.10, "Na-Cr":  -0.05,
+        "Li-Ti":  -0.15, "Na-Ti":  -0.10,
 
         "Default": 0.05
     };
+    const OMEGA_GROUPS = [
+        ["Near-ideal", ["Mg-Ni","Mg-Co2","Mg-Fe2","Ni-Co2","Fe2-Co2","Mg-Mn"]],
+        ["Size / structural mismatch", ["Mg-Zn","Ni-Zn","Mg-Cu"]],
+        ["Large miscibility gap (Doman et al. 1963)", ["Mg-Ca"]],
+        ["Aliovalent donor: defect clustering", ["Mg-Fe3","Mg-Cr","Mg-V","Mg-Sc","Mg-Ga","Mg-Co3","Mg-Ti"]],
+        ["Monovalent acceptor: charge mismatch", ["Mg-Li","Mg-Na","Mg-K","Mg-Cu1","Mg-Ag"]],
+        ["Donor–acceptor compensation (attractive)", ["Li-Fe3","Na-Fe3","Li-Cr","Na-Cr","Li-Ti","Na-Ti"]]
+    ];
 
 
 
@@ -1221,7 +1240,10 @@ function renderResults(res, inputs) {
             return;
         }
 
-        const xData = Array.from({length: inputs.N}, (_, i) => (currentTab === 'flux' && i < inputs.N-1 ? i + 0.5 : i) * (res.dx * 1e6));
+        // Flux lives on N+1 faces: x=0 (sealed), interior faces at (k-0.5)·dx, x=L (sealed).
+        const xData = currentTab === 'flux'
+            ? Array.from({length: inputs.N + 1}, (_, k) => k === 0 ? 0 : k === inputs.N ? inputs.totalLength : (k - 0.5) * res.dx * 1e6)
+            : Array.from({length: inputs.N}, (_, i) => i * res.dx * 1e6);
         const yData = res.historyTimes.map(t => t / 3600);
         
         const traces = res.species.map(s => {
@@ -1264,19 +1286,13 @@ function renderResults(res, inputs) {
 
     // --- INPUTS & DEFAULTS (existing helpers) ---
     function getQValue(diffuser, env) {
-        // Convention: Q[diffuser][env] = activation barrier for `diffuser` to
-        // hop in a region whose chemistry is dominated by `env`.
-        //
-        // - For env == "Mg" (matrix): return the intrinsic tracer Q of `diffuser`.
-        //   This guarantees D(infinite dilution in Mg) = d0 * exp(-Q_diff/kT).
-        // - For env == diffuser (self-env, only matters at high concentration):
-        //   also use the intrinsic Q (no extra barrier in own phase).
-        // - For mixed off-diagonal (diffuser X, env Y, both dopants): arithmetic
-        //   mean as a heuristic. Only matters if multiple dopants overlap spatially.
-        const dQ = Q_DEFAULTS[diffuser] ?? Q_DEFAULTS["Unk"];
-        if (env === "Mg" || env === diffuser) return dQ;
-        const eQ = Q_DEFAULTS[env] ?? Q_DEFAULTS["Unk"];
-        return (dQ + eQ) / 2;
+        // Convention: Q[diffuser][env] = activation barrier for `diffuser` to hop in a
+        // region whose cation chemistry is dominated by `env`.
+        // Default: Q[i][j] = Q_i for every environment, treated identically for Mg and dopants.
+        // This reproduces the measured dilute tracer value in MgO and assumes no
+        // composition dependence of the barrier, for which there are no data here. Composition
+        // dependence then enters only through V_factor and Ω. Edit the Q matrix when data exist.
+        return Q_DEFAULTS[diffuser] ?? Q_DEFAULTS["Unk"];
     }
 
     function getOmegaValue(s1, s2) {
@@ -1643,33 +1659,26 @@ function attachMatrixListeners(){
         csv += `${key},${lastInputs.omegaSnapshot[key]}\n`;
     });
 
-    csv += "\nFlux location,Internal face i is halfway between depth nodes i and i+1; last flux is the sealed right boundary\n";
-    csv += "Thermodynamic model,Full pairwise regular solution including Mg-dopant interactions; single-phase stability required\n";
-    // --- 4. SIMULATION DATA ---
-    csv += "\n--- CALCULATION RESULTS ---\n";
-    
-    // Create Columns Header: Depth, Matrix, [Spec1 Conc, Spec1 Flux], ...
-    const speciesHeaders = lastResults.species
-        .map(s => `${s.name} Conc (%),${s.name} Flux (mol/m2s)`)
-        .join(",");
-        
-    csv += `Depth (um),Flux face depth (um),Matrix Conc (%),${speciesHeaders}\n`;
+    csv += "\nThermodynamic model,Full pairwise regular solution including Mg-dopant interactions; single-phase stability required\n";
+    csv += "Vacancy model,Electroneutrality + Schottky equilibrium; background 1e-4; H_Schottky 6.7 eV; V_factor applied to Mg and all dopants\n";
+    csv += "Default Q matrix,Q[i][j] = Q_i (no environment dependence) unless edited\n";
 
-    // Write Rows
-    const dx = lastResults.dx * 1e6; // Convert m to um
+    // --- 4a. NODE CONCENTRATIONS ---
+    const dx = lastResults.dx * 1e6; // m -> um
+    csv += "\n--- CONCENTRATIONS (cation-site %, at depth nodes) ---\n";
+    csv += `Depth (um),Matrix Conc (%),${lastResults.species.map(s => `${s.name} Conc (%)`).join(",")}\n`;
     for (let i = 0; i < lastInputs.N; i++) {
-        const depth = (i * dx).toFixed(4);
-        const matC = (lastResults.matrix[i] * 100).toFixed(4);
-        
-        // Map species data for this row
-    const spData = lastResults.species.map(s => {
+        csv += `${(i * dx).toFixed(4)},${(lastResults.matrix[i] * 100).toFixed(4)},${lastResults.species.map(s => (s.C[i] * 100).toFixed(4)).join(",")}\n`;
+    }
+
+    // --- 4b. FACE FLUXES ---
+    // Faces: 0 = sealed left boundary (x=0); k = 1..N-1 between nodes k-1 and k at (k-0.5)dx; N = sealed right boundary.
     const MOLAR_DENSITY = 88825; // Cation sites in MgO (mol/m³)
-    const trueFlux = s.Flux[i] * MOLAR_DENSITY;
-    return `${(s.C[i] * 100).toFixed(4)},${Number.isFinite(trueFlux)?trueFlux.toExponential(4):''}`;
-}).join(",");
-
-
-        csv += `${depth},${((i < lastInputs.N-1 ? i+0.5 : i)*dx).toFixed(4)},${matC},${spData}\n`;
+    csv += "\n--- FLUXES (mol/m2/s, at cell faces; first and last rows are the sealed boundaries) ---\n";
+    csv += `Face depth (um),${lastResults.species.map(s => `${s.name} Flux (mol/m2s)`).join(",")}\n`;
+    for (let k = 0; k <= lastInputs.N; k++) {
+        const x = k === 0 ? 0 : k === lastInputs.N ? lastInputs.totalLength : (k - 0.5) * dx;
+        csv += `${x.toFixed(4)},${lastResults.species.map(s => { const f = s.Flux[k] * MOLAR_DENSITY; return Number.isFinite(f) ? f.toExponential(4) : ''; }).join(",")}\n`;
     }
 
     // --- 5. TRIGGER DOWNLOAD ---
@@ -1724,7 +1733,10 @@ document.addEventListener('keydown',e=>{
 });
 window.onload = function() { 
       document.getElementById('cation-reference-body').innerHTML = Object.entries(CATION_DB)
-          .map(([key, entry]) => `<tr><td>${entry.label}</td><td>${entry.d0.toExponential(2)}</td><td>${Q_DEFAULTS[key].toFixed(2)}</td><td>Supplied model default</td></tr>`).join('');
+          .map(([key, entry]) => `<tr><td>${entry.label}</td><td>${entry.d0.toExponential(2)}</td><td>${Q_DEFAULTS[key].toFixed(2)}</td><td>${entry.ref ? '<span class="tag tag-blue">Measured</span>' + entry.ref : (entry.exploratory ? '<span class="tag tag-red">Exploratory</span>' : '<span class="tag tag-orange">Estimate</span>') + (entry.note || '')}</td></tr>`).join('');
+      const pairLabel = pair => pair.split('-').map(k => k === 'Mg' ? 'Mg' : (CATION_DB[k]?.label.split(' ')[0] ?? k)).join(' – ');
+      document.getElementById('omega-reference-body').innerHTML = OMEGA_GROUPS
+          .flatMap(([basis, pairs]) => pairs.map(pair => `<tr><td><strong>${pairLabel(pair)}</strong></td><td>${OMEGA_DEFAULTS[pair].toFixed(2)}</td><td>${basis}</td></tr>`)).join('');
       // Default to Fe2+ (Fast/Classic) and Ni (Ideal) for demonstration of difference
       addElement("Fe2"); 
       addElement("Ni");
