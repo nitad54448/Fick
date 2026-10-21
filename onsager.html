@@ -244,7 +244,7 @@ body { height:100dvh; font-size:14px; }
 .status-text { min-width:85px; font-size:11px; }
 .nav-tabs { margin-left:auto; align-items:center; gap:3px; }
 .tab-btn { height:40px; border:0; border-radius:7px; padding:0 12px; white-space:nowrap; }
-.sidebar { width:340px; padding:22px; gap:18px; box-shadow:none; }
+.sidebar { width:440px; min-width:280px; max-width:70vw; padding:22px; gap:18px; box-shadow:none; }
 .control-panel { padding:15px; border-radius:10px; background:white; }
 .panel-orange,.panel-indigo { background:white; border-color:var(--border); }
 .text-orange,.text-indigo { color:var(--primary); }
@@ -281,6 +281,11 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 @media(max-width:1100px) { .app-header { flex-wrap:wrap; height:auto; min-height:100px; padding:12px 20px; gap:8px; } .nav-tabs { order:3; width:100%; justify-content:center; } .status-area { margin-left:auto; } .sidebar { width:300px; padding:16px; } .content-area { padding:20px; } }
 @media(max-width:700px) { body { height:auto; min-height:100dvh; overflow:auto; } .app-header { padding:14px; } .brand h1 { font-size:18px; } .status-area { max-width:135px; min-width:100px; margin:0 0 0 auto; } .progress-track { display:none; } .nav-tabs { justify-content:flex-start; overflow-x:auto; } .tab-btn { font-size:12px; padding:0 10px; } .main-container { flex-direction:column; overflow:visible; } .sidebar { width:100%; overflow:visible; display:grid; grid-template-columns:1fr 1fr; padding:16px; gap:12px; border-right:0; } .sidebar>div:last-child { grid-column:1/-1; } .content-area { overflow:visible; min-height:570px; padding:16px; } .tab-pane { overflow:visible; } .chart-wrapper { height:440px; padding:12px; } .workspace-heading h2 { font-size:21px; } .help-container { padding:18px; } }
 @media(max-width:420px) { .sidebar { grid-template-columns:1fr; } .brand span { font-size:9px; } .workspace-heading { align-items:flex-start; } }
+/* Resizable left panel */
+.sidebar-resizer { width:6px; flex-shrink:0; cursor:col-resize; background:var(--border); position:relative; z-index:6; touch-action:none; }
+.sidebar-resizer:hover, .sidebar-resizer.dragging, .sidebar-resizer:focus-visible { background:var(--accent); }
+body.resizing { cursor:col-resize; user-select:none; }
+@media(max-width:700px) { .sidebar-resizer { display:none; } .sidebar { max-width:none; } }
 /* Profile zoom toolbar */
 .profile-wrapper { display:flex; flex-direction:column; gap:10px; }
 .chart-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
@@ -325,7 +330,7 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 
     <div class="main-container">
         
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="control-panel panel-orange">
                 <div class="panel-header text-orange">
                     <i class="fas fa-ruler-combined"></i>
@@ -333,11 +338,11 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 </div>
                 <div class="input-grid">
                     <div class="input-group">
-                        <label>Film thickness (µm)</label>
+                        <label>Film thickness, real (µm)</label>
                         <input type="number" id="sourceLength" value="5" min="0.1" step="0.1" oninput="debouncedUpdate()">
                     </div>
                     <div class="input-group">
-                        <label>Total thickness (µm)</label>
+                        <label>Total thickness, real (µm)</label>
                         <input type="number" id="totalLength" value="20" min="1" step="1" oninput="debouncedUpdate()">
                     </div>
                     <div class="input-group col-span-2">
@@ -386,13 +391,14 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     <h3 class="panel-title">4. Deposited film</h3>
                     <button onclick="addElement()" class="btn btn-add"><i class="fas fa-plus"></i> ADD</button>
                 </div>
-                <p style="font-size:12px;color:var(--text-muted)">Film shares are percentages of cation sites and must total 100%. The initial slab is pure MgO. Oxygen stoichiometry and differences in oxide density are not resolved.</p>
+                <p style="font-size:12px;color:var(--text-muted)">Film shares are percentages of cation sites and must total 100%. The initial slab is pure MgO. Oxygen stoichiometry is not resolved; oxide density sets the film's cation density.</p>
                 <div id="film-total" role="status" style="font-size:12px;margin-bottom:8px"></div>
                 <button class="btn" onclick="normalizeFilm();debouncedUpdate()">Normalize film to 100%</button>
                 <div id="elementsList"></div>
                 <button id="download-button" disabled onclick="downloadData()" class="btn btn-download"><i class="fas fa-download"></i> Download CSV</button>
             </div>
         </aside>
+        <div id="sidebar-resizer" class="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize left panel" tabindex="0" title="Drag to resize (double-click to reset)"></div>
 
         <main class="content-area">
 <div class="workspace-heading"><div><h2 id="view-title">Concentration profile</h2><p id="view-description">Film at left; MgO slab at right. Dashed vertical line: initial interface.</p></div><button id="calculation-button" class="btn run-btn" onclick="toggleCalculation()" title="Start calculation">Run calculation</button></div>
@@ -452,8 +458,8 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                 <h4>Oxygen, film composition &amp; density assumptions</h4>
                 <p><strong>What the percentages mean.</strong> Film inputs and concentration profiles describe the fractions of cation sites occupied by each element. A film containing four cations at 25% each has 100% of its cation sites assigned to those elements. Oxygen is outside that percentage total; these values are not oxide mass percentages or percentages of all atoms.</p>
                 <p><strong>Oxygen is implicit.</strong> The model does not solve oxygen concentration, oxygen diffusion, exchange with the atmosphere, or the oxygen-to-cation ratio of each oxide. Cation valence enters a phenomenological vacancy correction, but this is not an explicit oxygen or charge-balance calculation.</p>
-                <p><strong>Constant cation-site density.</strong> Film and slab share a constant site-density assumption. There is no independently specified deposited-film density, porosity, thermal expansion, or composition-dependent volume change. The film is represented as a mixed-cation region on an MgO-like lattice, rather than as separate oxides with individual densities.</p>
-                <p><strong>Flux conversion.</strong> To display and export fluxes in mol/m²/s, the code multiplies its fraction-based flux by <strong>88,825 mol of cation sites/m³</strong>. For MgO, this corresponds to approximately <strong>3.58 g/cm³</strong>. This factor converts the flux units; it does not change the simulated concentration profiles or account for the actual density of the deposited film.</p>
+                <p><strong>Film density correction.</strong> Each film cation carries its oxide (e.g. Cr₂O₃, TiO₂) with molar mass, bulk density and cations per formula unit. The film's cation density is $n_{film}=1/\sum_i x_i\,M_i/(\rho_i\nu_i)$ (ideal mixing of volume per cation, $\nu_i$ = cations per formula unit). The solver runs in <em>MgO-equivalent depth</em>: the film thickness is multiplied by $n_{film}/n_{MgO}$ ($n_{MgO}$ = 88,825 mol/m³), so every length unit holds the same moles of cations per area as MgO, while the single-crystal substrate keeps its real thickness. Profiles, the interface marker and the CSV use this depth axis, and fluxes in mol/m²/s remain correct. Porosity, thermal expansion and volume change on mixing are not modelled, and the film is still treated as a full cation lattice.</p>
+                <p><strong>Flux conversion.</strong> To display and export fluxes in mol/m²/s, the code multiplies its fraction-based flux by <strong>88,825 mol of cation sites/m³</strong>. For MgO, this corresponds to approximately <strong>3.58 g/cm³</strong>. This factor converts the flux units; it is valid throughout because the solver depth axis is MgO-equivalent (see film density correction).</p>
                 <p><strong>Comparison with an experimental film.</strong> Converting deposited oxide amounts into a cation inventory requires the oxide stoichiometries and an appropriate density or measured mass per unit area. Quantitatively modeling a film whose site density differs from MgO also requires extending the transport model. Film thickness and cation percentages alone do not supply those properties.</p>
             </div>
 
@@ -589,8 +595,8 @@ button:disabled { opacity:.5; cursor:not-allowed; }
                     <input type="number" class="el-c-left" min="0" max="100" step="0.01" onchange="formatFilmShare(this)">
                 </div>
                 <div class="input-group">
-                    <label>Initial slab %</label>
-                    <input type="number" class="el-c-right" value="0" readonly title="The initial slab is pure MgO">
+                    <label>Oxide density (g/cm³) <span class="el-oxide"></span></label>
+                    <input type="number" class="el-rho" min="0.1" step="0.01" onchange="debouncedUpdate()">
                 </div>
             </div>
         </div>
@@ -668,8 +674,9 @@ button:disabled { opacity:.5; cursor:not-allowed; }
             const matrixQVec = inputs.matrixQVector;
             const matrixOmegaVec = inputs.matrixOmegaVector;
 
-            const filmTotal = inputs.elements.reduce((sum,el)=>sum+el.cLeft,0);
-            if (!inputs.elements.length || !Number.isFinite(filmTotal) || Math.abs(filmTotal-100)>1e-8 ||
+            const mgFilm = inputs.mgFilm ?? 0; // film Mg share (%); the matrix fraction is 1 - sum(dopants)
+            const filmTotal = inputs.elements.reduce((sum,el)=>sum+el.cLeft,mgFilm);
+            if (!inputs.elements.length || !Number.isFinite(mgFilm) || mgFilm<0 || !Number.isFinite(filmTotal) || Math.abs(filmTotal-100)>1e-8 ||
                 inputs.elements.some(el=>!Number.isFinite(el.cLeft)||el.cLeft<0||el.cRight!==0))
                 throw new Error('Film cation shares must total 100%; initial slab dopant concentrations must be zero.');
             const species = inputs.elements.map(el => {
@@ -959,6 +966,42 @@ function updateDiffusivities(species, matrixMap, matrixD0, matrixQVec, N, kBT) {
 
 
 <script>
+    // --- RESIZABLE LEFT PANEL ---
+    (function () {
+        const bar = document.getElementById('sidebar-resizer'), side = document.getElementById('sidebar');
+        const MIN = 280, KEY = 'onsager-sidebar-width';
+        const mobile = () => window.matchMedia('(max-width:700px)').matches;
+        const clamp = w => Math.max(MIN, Math.min(w, window.innerWidth * 0.7));
+        const apply = w => {
+            if (mobile()) { side.style.width = ''; return; }
+            side.style.width = clamp(w) + 'px';
+            if (typeof Plotly !== 'undefined') for (const id of ['plotly-flux', 'plotly-time']) {
+                const el = document.getElementById(id); if (el && el.data) Plotly.Plots.resize(el);
+            }
+        };
+        try { const saved = Number(localStorage.getItem(KEY)); if (saved) apply(saved); } catch (e) {}
+        const save = () => { try { localStorage.setItem(KEY, String(side.offsetWidth)); } catch (e) {} };
+        bar.addEventListener('pointerdown', e => {
+            bar.setPointerCapture(e.pointerId);
+            bar.classList.add('dragging'); document.body.classList.add('resizing');
+        });
+        bar.addEventListener('pointermove', e => {
+            if (bar.hasPointerCapture(e.pointerId)) apply(e.clientX - side.getBoundingClientRect().left);
+        });
+        const end = e => {
+            if (!bar.hasPointerCapture(e.pointerId)) return;
+            bar.releasePointerCapture(e.pointerId);
+            bar.classList.remove('dragging'); document.body.classList.remove('resizing'); save();
+        };
+        bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
+        bar.addEventListener('dblclick', () => { side.style.width = ''; try { localStorage.removeItem(KEY); } catch (e) {} });
+        bar.addEventListener('keydown', e => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault(); apply(side.offsetWidth + (e.key === 'ArrowRight' ? 20 : -20)); save();
+        });
+        window.addEventListener('resize', () => { if (side.style.width) apply(side.offsetWidth); });
+    })();
+
     // --- GLOBAL STATE ---
     let worker = null;
     let chartInstance = null;
@@ -975,35 +1018,38 @@ function updateDiffusivities(species, matrixMap, matrixD0, matrixQVec, N, kBT) {
     // vacancies, i.e. V_factor = 1). Unit check: 1 cm²/s = 1e-4 m²/s.
     // `ref` = measured source; `note` = basis of an estimate. Entries without `ref` are model estimates.
     // `exploratory` = no bulk MgO solubility/diffusion basis at film-level (≫1%) concentrations.
+    // Oxide data (formula, molar mass g/mol, bulk density g/cm³, cations per formula unit) set the film's
+    // cation density. MgO substrate: 3.58 g/cm³, 88,825 mol cations/m³.
+    const MGO_CATION_DENSITY = 88825;
     const CATION_DB = {
-        "Mg":  { label: "Mg²⁺ (Matrix)",     d0: 4.19e-8, valence: 2, ref: "Wuensch, Steele & Vasilos 1973 (stable-isotope, 1000–2400 °C)" },
+        "Mg":  { label: "Mg²⁺ (Matrix / host)",     d0: 4.19e-8, valence: 2, oxide: "MgO", oxM: 40.30, oxRho: 3.58, oxCat: 1, ref: "Wuensch, Steele & Vasilos 1973 (stable-isotope, 1000–2400 °C)" },
 
         // Monovalent (acceptors: compensated by oxygen vacancies; suppress cation vacancies)
-        "Li":  { label: "Li⁺ (Lithium)",     d0: 2.0e-8,  valence: 1, note: "Estimated (small radius)" },
-        "Na":  { label: "Na⁺ (Sodium)",      d0: 5.0e-9,  valence: 1, note: "Estimated" },
-        "K":   { label: "K⁺ (Potassium) · est.",  d0: 2.0e-9, valence: 1, exploratory: true, note: "Estimated; r(K⁺) ≈ 1.38 Å ≫ r(Mg²⁺) — no bulk rock-salt basis" },
-        "Cu1": { label: "Cu⁺ (Cuprous) · est.",   d0: 8.0e-9, valence: 1, exploratory: true, note: "Estimated; no bulk MgO data" },
-        "Ag":  { label: "Ag⁺ (Silver) · est.",    d0: 3.0e-9, valence: 1, exploratory: true, note: "Estimated; no bulk MgO data" },
+        "Li":  { label: "Li⁺ (Lithium)",     d0: 2.0e-8,  valence: 1, oxide: "Li2O", oxM: 29.88, oxRho: 2.01, oxCat: 2, note: "Estimated (small radius)" },
+        "Na":  { label: "Na⁺ (Sodium)",      d0: 5.0e-9,  valence: 1, oxide: "Na2O", oxM: 61.98, oxRho: 2.27, oxCat: 2, note: "Estimated" },
+        "K":   { label: "K⁺ (Potassium) · est.",  d0: 2.0e-9, valence: 1, oxide: "K2O", oxM: 94.2, oxRho: 2.35, oxCat: 2, exploratory: true, note: "Estimated; r(K⁺) ≈ 1.38 Å ≫ r(Mg²⁺) — no bulk rock-salt basis" },
+        "Cu1": { label: "Cu⁺ (Cuprous) · est.",   d0: 8.0e-9, valence: 1, oxide: "Cu2O", oxM: 143.09, oxRho: 6.0, oxCat: 2, exploratory: true, note: "Estimated; no bulk MgO data" },
+        "Ag":  { label: "Ag⁺ (Silver) · est.",    d0: 3.0e-9, valence: 1, oxide: "Ag2O", oxM: 231.74, oxRho: 7.14, oxCat: 2, exploratory: true, note: "Estimated; no bulk MgO data" },
 
         // Divalent
-        "Mn":  { label: "Mn²⁺ (Manganese)",  d0: 1.5e-9,  valence: 2, note: "Estimated (cf. Van Orman & Crispin 2010 review)" },
-        "Fe2": { label: "Fe²⁺ (Ferrous)",    d0: 8.83e-9, valence: 2, ref: "Wuensch & Vasilos 1962 (likely vacancy-enhanced by Fe³⁺)" },
-        "Co2": { label: "Co²⁺ (Cobalt II)",  d0: 5.78e-9, valence: 2, ref: "Wuensch & Vasilos 1962" },
-        "Ni":  { label: "Ni²⁺ (Nickel)",     d0: 1.80e-9, valence: 2, ref: "Wuensch & Vasilos 1962" },
-        "Cu":  { label: "Cu²⁺ (Copper)",     d0: 3.0e-10, valence: 2, note: "Estimated" },
-        "Zn":  { label: "Zn²⁺ (Zinc)",       d0: 8.0e-10, valence: 2, note: "Estimated (data: Wuensch & Vasilos 1965)" },
-        "Ca":  { label: "Ca²⁺ (Calcium)",    d0: 2.95e-9, valence: 2, ref: "Rungis & Mortlock 1966 (⁴⁵Ca, 1183–1973 K)" },
+        "Mn":  { label: "Mn²⁺ (Manganese)",  d0: 1.5e-9,  valence: 2, oxide: "MnO", oxM: 70.94, oxRho: 5.37, oxCat: 1, note: "Estimated (cf. Van Orman & Crispin 2010 review)" },
+        "Fe2": { label: "Fe²⁺ (Ferrous)",    d0: 8.83e-9, valence: 2, oxide: "FeO", oxM: 71.84, oxRho: 5.7, oxCat: 1, ref: "Wuensch & Vasilos 1962 (likely vacancy-enhanced by Fe³⁺)" },
+        "Co2": { label: "Co²⁺ (Cobalt II)",  d0: 5.78e-9, valence: 2, oxide: "CoO", oxM: 74.93, oxRho: 6.44, oxCat: 1, ref: "Wuensch & Vasilos 1962" },
+        "Ni":  { label: "Ni²⁺ (Nickel)",     d0: 1.80e-9, valence: 2, oxide: "NiO", oxM: 74.69, oxRho: 6.67, oxCat: 1, ref: "Wuensch & Vasilos 1962" },
+        "Cu":  { label: "Cu²⁺ (Copper)",     d0: 3.0e-10, valence: 2, oxide: "CuO", oxM: 79.55, oxRho: 6.31, oxCat: 1, note: "Estimated" },
+        "Zn":  { label: "Zn²⁺ (Zinc)",       d0: 8.0e-10, valence: 2, oxide: "ZnO", oxM: 81.38, oxRho: 5.61, oxCat: 1, note: "Estimated (data: Wuensch & Vasilos 1965)" },
+        "Ca":  { label: "Ca²⁺ (Calcium)",    d0: 2.95e-9, valence: 2, oxide: "CaO", oxM: 56.08, oxRho: 3.34, oxCat: 1, ref: "Rungis & Mortlock 1966 (⁴⁵Ca, 1183–1973 K)" },
 
         // Trivalent (donors: produce cation vacancies)
-        "Sc":  { label: "Sc³⁺ (Scandium)",   d0: 4.0e-10, valence: 3, note: "Estimated; data exist only at 1773 K (Solaga & Mortlock 1970)" },
-        "V":   { label: "V³⁺ (Vanadium)",    d0: 6.0e-10, valence: 3, note: "Estimated" },
-        "Cr":  { label: "Cr³⁺ (Chromium)",   d0: 3.5e-10, valence: 3, note: "Estimated; measured ⁵¹Cr volume Q ≈ 3.1 eV (Weber et al. 1977; Osenbach & Stubican 1983) — not refit" },
-        "Fe3": { label: "Fe³⁺ (Ferric)",     d0: 5.0e-10, valence: 3, note: "Estimated" },
-        "Co3": { label: "Co³⁺ (Cobalt III) · est.", d0: 2.0e-10, valence: 3, exploratory: true, note: "Estimated; no bulk MgO data" },
-        "Ga":  { label: "Ga³⁺ (Gallium)",    d0: 4.5e-10, valence: 3, note: "Estimated; Ga diffuses faster than Cr (Crispin & Van Orman 2010)" },
+        "Sc":  { label: "Sc³⁺ (Scandium)",   d0: 4.0e-10, valence: 3, oxide: "Sc2O3", oxM: 137.91, oxRho: 3.86, oxCat: 2, note: "Estimated; data exist only at 1773 K (Solaga & Mortlock 1970)" },
+        "V":   { label: "V³⁺ (Vanadium)",    d0: 6.0e-10, valence: 3, oxide: "V2O3", oxM: 149.88, oxRho: 4.87, oxCat: 2, note: "Estimated" },
+        "Cr":  { label: "Cr³⁺ (Chromium)",   d0: 3.5e-10, valence: 3, oxide: "Cr2O3", oxM: 151.99, oxRho: 5.22, oxCat: 2, note: "Estimated; measured ⁵¹Cr volume Q ≈ 3.1 eV (Weber et al. 1977; Osenbach & Stubican 1983) — not refit" },
+        "Fe3": { label: "Fe³⁺ (Ferric)",     d0: 5.0e-10, valence: 3, oxide: "Fe2O3", oxM: 159.69, oxRho: 5.24, oxCat: 2, note: "Estimated" },
+        "Co3": { label: "Co³⁺ (Cobalt III) · est.", d0: 2.0e-10, valence: 3, oxide: "Co2O3", oxM: 165.86, oxRho: 5.18, oxCat: 2, exploratory: true, note: "Estimated; no bulk MgO data" },
+        "Ga":  { label: "Ga³⁺ (Gallium)",    d0: 4.5e-10, valence: 3, oxide: "Ga2O3", oxM: 187.44, oxRho: 5.88, oxCat: 2, note: "Estimated; Ga diffuses faster than Cr (Crispin & Van Orman 2010)" },
 
         // Tetravalent (strong donors)
-        "Ti":  { label: "Ti⁴⁺ (Titanium)",   d0: 2.0e-10, valence: 4, note: "Estimated" }
+        "Ti":  { label: "Ti⁴⁺ (Titanium)",   d0: 2.0e-10, valence: 4, oxide: "TiO2", oxM: 79.87, oxRho: 4.23, oxCat: 1, note: "Estimated" }
     };
 
     // Activation energies in MgO (eV), tracer/extrinsic regime. Measured values carry a `ref`
@@ -1081,6 +1127,7 @@ function updateDiffusivities(species, matrixMap, matrixD0, matrixQVec, N, kBT) {
 
 
     // ---------- WORKER, STATUS, CHART functions (unchanged) ----------
+    const fmtLen = v => Number(v.toPrecision(4));
     function showNotice(message) { const el=document.getElementById('app-notice'); el.textContent=message; el.hidden=false; }
     function createWorker() {
         const url=URL.createObjectURL(new Blob([document.getElementById('worker-code').textContent],{type:'text/javascript'}));
@@ -1119,23 +1166,33 @@ function updateDiffusivities(species, matrixMap, matrixD0, matrixQVec, N, kBT) {
     if (!Number.isFinite(sourceLength) || sourceLength<=0 || sourceLength>=totalLength) return fail('Source length must be positive and less than total length.');
     if (!Number.isInteger(N) || N<50 || N>500) return fail('Grid points must be an integer from 50 to 500.');
     if (!Number.isFinite(targetD0) || targetD0<=0) return fail('Matrix D₀ must be finite and positive.');
-    const interfaceNode=Math.round(sourceLength/totalLength*(N-1));
-    if(interfaceNode<1 || interfaceNode>=N-1) return fail('Increase grid resolution or adjust the source length to resolve both regions.');
-    const elements=[];
+    const elements=[]; let mgCard=null;
     for(const card of document.querySelectorAll('.element-card')) {
         const name=card.querySelector('.el-name').value;
         const readCard=cls => { const v=card.querySelector(cls).value.trim(); return v===''?NaN:Number(v); };
-        const d0=readCard('.el-d0'), cLeft=readCard('.el-c-left'), cRight=readCard('.el-c-right');
-        if(!CATION_DB[name] || name==='Mg' || elements.some(e=>e.name===name)) return fail('Choose a different species for each dopant. Mg is reserved for the host matrix.');
+        const d0=readCard('.el-d0'), rho=readCard('.el-rho'), cLeft=readCard('.el-c-left'), cRight=0; // the initial slab is pure MgO
+        if(!CATION_DB[name] || elements.some(e=>e.name===name) || (name==='Mg' && mgCard)) return fail('Choose a different species for each film cation.');
         if(!Number.isFinite(d0) || d0<=0) return fail(name+': D₀ must be finite and positive.');
+        if(!Number.isFinite(rho)||rho<=0) return fail(name+': oxide density must be finite and positive.');
         if(![cLeft,cRight].every(v=>Number.isFinite(v)&&v>=0&&v<=100)) return fail(name+': concentrations must be between 0 and 100%.');
-        elements.push({name, fullLabel:CATION_DB[name].label, valence:CATION_DB[name].valence??2, d0,cLeft,cRight,color:card.querySelector('.el-color').value,qVector:buildQVector(name),omegaVector:buildOmegaVector(name)});
+        if(name==='Mg') { mgCard={cLeft,rho}; continue; } // host species: implicit in the solver
+        elements.push({name, fullLabel:CATION_DB[name].label, valence:CATION_DB[name].valence??2, oxide:CATION_DB[name].oxide, rho, d0,cLeft,cRight,color:card.querySelector('.el-color').value,qVector:buildQVector(name),omegaVector:buildOmegaVector(name)});
     }
-    const filmTotal=elements.reduce((n,e)=>n+e.cLeft,0);
-    if(!elements.length || Math.abs(filmTotal-100)>1e-8) return fail('Film cation shares must total 100% (currently '+Number(filmTotal.toFixed(2))+'%). Edit the shares or click Normalize film to 100%.');
-    if(elements.some(e=>e.cRight!==0)) return fail('The initial slab must be pure MgO: all slab dopant shares must be zero.');
+    const mgFilm=mgCard?mgCard.cLeft:0;
+    const filmTotal=elements.reduce((n,e)=>n+e.cLeft,mgFilm);
+    if(!elements.length) return fail('Add at least one film cation other than Mg.');
+    if( Math.abs(filmTotal-100)>1e-8) return fail('Film cation shares must total 100% (currently '+Number(filmTotal.toFixed(2))+'%). Edit the shares or click Normalize film to 100%.');
     if(!Object.values(qMatrixData).every(v=>Number.isFinite(v)&&v>=0) || !Object.values(omegaMatrixData).every(Number.isFinite)) return fail('Q values must be finite and nonnegative; Ω values must be finite.');
-    return {temp,timeHours,totalLength,sourceLength,N,targetD0,elements,matrixQVector:buildQVector('Mg'),matrixOmegaVector:buildOmegaVector('Mg'),qSnapshot:{...qMatrixData},omegaSnapshot:{...omegaMatrixData}};
+    // Film cation density from the oxide densities (ideal mixing of volume per cation). The solver works
+    // in MgO-equivalent depth, where one length unit holds the same cations per area as MgO: the film's
+    // thickness is scaled by n_film/n_MgO, the single-crystal substrate is unchanged.
+    const volPerCation=[...elements,...(mgCard?[{name:'Mg',cLeft:mgCard.cLeft,rho:mgCard.rho}]:[])].reduce((v,e)=>{const d=CATION_DB[e.name]; return v+(e.cLeft/filmTotal)*d.oxM/(e.rho*d.oxCat)*1e-6;},0); // m³/mol
+    const filmCationDensity=1/volPerCation;
+    const filmScale=filmCationDensity/MGO_CATION_DENSITY;
+    const filmEq=sourceLength*filmScale, totalEq=filmEq+(totalLength-sourceLength);
+    const interfaceNode=Math.round(filmEq/totalEq*(N-1));
+    if(interfaceNode<1 || interfaceNode>=N-1) return fail('Increase grid resolution or adjust the source length to resolve both regions.');
+    return {temp,timeHours,totalLength:totalEq,sourceLength:filmEq,filmThickness:sourceLength,totalThickness:totalLength,filmScale,filmCationDensity,N,targetD0,mgFilm,elements,matrixQVector:buildQVector('Mg'),matrixOmegaVector:buildOmegaVector('Mg'),qSnapshot:{...qMatrixData},omegaSnapshot:{...omegaMatrixData}};
 }
 
 function buildQVector(species) {
@@ -1291,11 +1348,11 @@ function buildOmegaVector(species) {
                     lastResults=msg; lastInputs=inputs;
                     document.getElementById('download-button').disabled=false;
                     updateStatus(100,'Complete');
-                    document.getElementById('result-meta').textContent=`0–${inputs.totalLength} µm · film ${inputs.sourceLength} µm · ${inputs.temp} K · ${inputs.timeHours} h · ${inputs.N} grid points · ${inputs.elements.length} dopants`;
+                    document.getElementById('result-meta').textContent=`0–${fmtLen(inputs.totalLength)} µm (MgO-equivalent depth) · film ${inputs.filmThickness} µm real = ${fmtLen(inputs.sourceLength)} µm eq. (cation density ${Math.round(inputs.filmCationDensity).toLocaleString()} mol/m³, ×${inputs.filmScale.toFixed(3)} MgO) · ${inputs.temp} K · ${inputs.timeHours} h · ${inputs.N} grid points · ${inputs.elements.length} dopants`;
                     try { renderResults(msg,inputs); } catch(err) { showNotice('Results are ready, but the chart could not load. Check your connection or download the CSV. '+err.message); }
                 }
             };
-            document.getElementById('result-meta').textContent=`Calculating 0–${inputs.totalLength} µm · film ${inputs.sourceLength} µm · ${inputs.N} grid points…`;
+            document.getElementById('result-meta').textContent=`Calculating 0–${fmtLen(inputs.totalLength)} µm eq. · film ${inputs.filmThickness} µm · ${inputs.N} grid points…`;
             updateStatus(0,'Calculating'); worker.postMessage(inputs);
         } catch(err) { fail(err.message); }
     }
@@ -1348,7 +1405,7 @@ function renderResults(res, inputs) {
                 ctx.save(); ctx.strokeStyle='#6b6b6b'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
                 ctx.beginPath(); ctx.moveTo(x,chartArea.top); ctx.lineTo(x,chartArea.bottom); ctx.stroke();
                 ctx.setLineDash([]); ctx.fillStyle='#4b4b4b'; ctx.font='11px Arial, Helvetica, sans-serif';
-                const label=`Initial interface: ${inputs.sourceLength} µm`;
+                const label=`Initial interface: ${fmtLen(inputs.sourceLength)} µm eq.`;
                 ctx.fillText(label,Math.max(chartArea.left+4,Math.min(x+6,chartArea.right-ctx.measureText(label).width-4)),chartArea.top+14);
                 ctx.restore();
             }}],
@@ -1356,7 +1413,7 @@ function renderResults(res, inputs) {
                 responsive: true, maintainAspectRatio: false, animation: false,
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: axis('Depth (µm)', { type: 'linear', min: 0, max: inputs.totalLength }),
+                    x: axis('Depth, MgO-equivalent (µm)', { type: 'linear', min: 0, max: inputs.totalLength }),
                     y: axis('Concentration (cation-site %)', { min: 0, max: 100 })
                 },
                 plugins: {
@@ -1412,7 +1469,7 @@ function renderResults(res, inputs) {
             margin: {l:0,r:0,b:0,t:30}, showlegend: true, legend: { x: 0, y: 1 },
             scene: { 
                 aspectmode: 'cube',
-                xaxis:{title:'Depth (µm)', range:[0, inputs.totalLength], autorange:false}, yaxis:{title:'Time (h)'}, 
+                xaxis:{title:'Depth, MgO-equivalent (µm)', range:[0, inputs.totalLength], autorange:false}, yaxis:{title:'Time (h)'}, 
                 zaxis:{title: currentTab === 'flux' ? 'Flux (mol/m²/s)' : 'Conc (%)'}, 
                 camera: { eye: { x: 1.5, y: 1.5, z: 1.3 } } 
             }
@@ -1450,7 +1507,7 @@ function renderResults(res, inputs) {
         const sel = card.querySelector('.el-name');
         // FIX: Use .value (e.g., "Ni") instead of parsing text (e.g., "Ni²⁺")
         const name = sel.value || "Unk"; 
-        dopants.push(name);
+        if (name !== 'Mg') dopants.push(name);
     });
     return ["Mg", ...dopants];
 }
@@ -1689,26 +1746,28 @@ function attachMatrixListeners(){
     }
     function addElement(initialKey) {
         const used = getSpeciesList();
-        initialKey = initialKey || Object.keys(CATION_DB).find(k => !used.includes(k));
+        initialKey = initialKey || Object.keys(CATION_DB).find(k => k !== 'Mg' && !used.includes(k));
         const list = document.getElementById('elementsList');
-        if (list.children.length >= 4) { showNotice("Max 4 dopants"); return; }
+        const dopantCards = [...list.querySelectorAll('.el-name')].filter(sel => sel.value !== 'Mg').length;
+        if (dopantCards >= 5) { showNotice("Max 5 dopants (plus Mg, if the film contains it)"); return; }
         
         const template = document.getElementById('elementTemplate');
         const clone = template.content.cloneNode(true);
         const card = clone.querySelector('.element-card');
-        const color = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][list.children.length % 4];
+        const color = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#0ea5e9'][list.children.length % 5];
         
         card.style.borderLeftColor = color;
         clone.querySelector('.el-color').value = color;
         
         const select = clone.querySelector('.el-name');
-        const keys = Object.keys(CATION_DB).filter(k => k !== "Mg");
+        const keys = Object.keys(CATION_DB);
         keys.forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.text = CATION_DB[k].label; select.appendChild(opt); });
         
         select.value = initialKey;
         const data = CATION_DB[initialKey];
         clone.querySelector('.el-d0').value = data.d0;
-        clone.querySelector('.el-c-left').value = list.children.length ? 100/list.children.length : 100; clone.querySelector('.el-c-right').value = 0;
+        setOxideFields(clone.querySelector('.element-card'), initialKey);
+        clone.querySelector('.el-c-left').value = list.children.length ? 100/list.children.length : 100;
 
         // delete handler: remove element, preserve other edits, rebuild matrices preserving existing entries
         clone.querySelector('.delete-btn').onclick = (e) => { 
@@ -1724,6 +1783,7 @@ function attachMatrixListeners(){
         select.onchange = function() {
           const data = CATION_DB[select.value];
           select.closest('.element-card').querySelector('.el-d0').value = data.d0;
+          setOxideFields(select.closest('.element-card'), select.value);
           // when the species changes (e.g. Ni -> Co), we want to preserve any entries that still match
           rebuildMatricesPreserve();
           if (document.getElementById('interaction-modal').style.display === 'flex') buildMatrixTables();
@@ -1740,9 +1800,18 @@ function attachMatrixListeners(){
         debouncedUpdate();
     }
 
+    function setOxideFields(card, key) {
+        const data = CATION_DB[key];
+        card.querySelector('.el-rho').value = data.oxRho ?? '';
+        // Mg is the host species: its D0 comes from the Conditions panel, so the field is hidden.
+        card.querySelector('.el-d0').closest('.input-group').hidden = key === 'Mg';
+        card.querySelector('.el-oxide').textContent = data.oxide ? '(' + data.oxide + ')' : '';
+    }
+
     function updateElementParams(select) {
         const data = CATION_DB[select.value];
         select.closest('.element-card').querySelector('.el-d0').value = data.d0;
+        setOxideFields(select.closest('.element-card'), select.value);
         // species list changed semantics — preserve previous edits if possible and refresh modal if open
         rebuildMatricesPreserve();
         if (document.getElementById('interaction-modal').style.display === 'flex') buildMatrixTables();
@@ -1760,8 +1829,12 @@ function attachMatrixListeners(){
     let csv = "--- GLOBAL PARAMETERS ---\n";
     csv += `Temperature (K),${lastInputs.temp}\n`;
     csv += `Time (Hours),${lastInputs.timeHours}\n`;
-    csv += `Film thickness (um),${lastInputs.sourceLength}\n`;
-    csv += `Film + slab thickness (um),${lastInputs.totalLength}\n`;
+    csv += `Film thickness, real (um),${lastInputs.filmThickness}\n`;
+    csv += `Film + slab thickness, real (um),${lastInputs.totalThickness}\n`;
+    csv += `Film cation density (mol/m3),${lastInputs.filmCationDensity}\n`;
+    csv += `Film thickness, MgO-equivalent (um),${lastInputs.sourceLength}\n`;
+    csv += `Film + slab thickness, MgO-equivalent (um),${lastInputs.totalLength}\n`;
+    csv += "Depth axis,MgO-equivalent (film length scaled by film cation density / MgO cation density; substrate unchanged)\n";
     csv += `Grid Points,${lastInputs.N}\n`;
     if (lastResults.solverStats) {
         csv += `Solver,${lastResults.solverStats.scheme}\n`;
@@ -1771,7 +1844,7 @@ function attachMatrixListeners(){
     csv += `Matrix Base D0 (m^2/s),${lastInputs.targetD0}\n`;
 
     csv += "Concentration basis,Cation site percent\n";
-    csv += "Initial film Mg percent,0\nInitial slab Mg percent,100\n";
+    csv += `Initial film Mg percent,${lastInputs.mgFilm}\nInitial slab Mg percent,100\n`;
     if (lastResults.initialOnly) csv += "Flux status,Not evaluated for zero-time preview; flux columns left blank\n";
     // --- 2. DOPANT DEFINITIONS ---
     csv += "\n--- DOPANT SETTINGS ---\n";
@@ -1802,7 +1875,7 @@ function attachMatrixListeners(){
     // --- 4a. NODE CONCENTRATIONS ---
     const dx = lastResults.dx * 1e6; // m -> um
     csv += "\n--- CONCENTRATIONS (cation-site %, at depth nodes) ---\n";
-    csv += `Depth (um),Matrix Conc (%),${lastResults.species.map(s => `${s.name} Conc (%)`).join(",")}\n`;
+    csv += `Depth MgO-equivalent (um),Matrix Conc (%),${lastResults.species.map(s => `${s.name} Conc (%)`).join(",")}\n`;
     for (let i = 0; i < lastInputs.N; i++) {
         csv += `${(i * dx).toFixed(4)},${(lastResults.matrix[i] * 100).toFixed(4)},${lastResults.species.map(s => (s.C[i] * 100).toFixed(4)).join(",")}\n`;
     }
