@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cation Interdiffusion Simulator v5.4 (Auto-Params)</title>
+    <title>Cation Interdiffusion Simulator v5.4.1 (Auto-Params)</title>
     <link href="./dist/output.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -38,9 +38,12 @@
             </button>
         </div>
         <div class="text-xs text-gray-400 font-mono hidden md:block">
-            DiffusionCouple v5.4 (Auto-Params)
+            DiffusionCouple v5.4.1 (Auto-Params)
         </div>
     </div>
+
+    <div id="simulation-status" role="alert" aria-live="assertive"
+         style="display:none;padding:10px 16px;background:#fff1f2;color:#9f1239;flex-shrink:0"></div>
 
     <div class="flex flex-1 overflow-hidden relative">
         
@@ -175,7 +178,7 @@
                     
                     <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-r">
                         <p class="text-blue-900 font-medium text-sm m-0">
-                            <strong>Version 5.4 Update:</strong> This simulator now utilizes adaptive time-stepping to ensure accuracy at both low and high temperatures. It solves the non-linear Fick's 2nd Law using the Finite Difference Method (FDM) on a 1D grid.
+                            <strong>Version 5.4.1 Update:</strong> Runs that exceed the step budget are refused with a visible error; partial results are never labelled as the requested duration. Successful runs end at that duration, and time-history plots use recorded timestamps. It solves the non-linear Fick's 2nd Law using the Finite Difference Method (FDM) on a 1D grid.
                         </p>
                     </div>
 
@@ -346,9 +349,19 @@
 
         // --- Core Physics Engine ---
         function calculateDiffusionMap(inputs, mode = 'snapshot', overrideTemp = null, overrideTime = null) {
-            const Temp = overrideTemp || inputs.temp;
-            const Time_h = overrideTime || inputs.timeHours;
+            const Temp = overrideTemp ?? inputs.temp;
+            const Time_h = overrideTime ?? inputs.timeHours;
             const Time_s = Time_h * 3600;
+            if (!Number.isFinite(Temp) || Temp <= 0 ||
+                !Number.isFinite(Time_s) || Time_s <= 0 ||
+                !Number.isInteger(inputs.N) || inputs.N < 3 || inputs.N > 400 ||
+                !Number.isFinite(inputs.totalLength) || inputs.totalLength <= 0 ||
+                !Number.isFinite(inputs.sourceLength) || inputs.sourceLength <= 0 || inputs.sourceLength >= inputs.totalLength ||
+                !Number.isFinite(inputs.targetD0) || inputs.targetD0 <= 0 || !Number.isFinite(inputs.targetQ) ||
+                !inputs.elements.length || inputs.elements.some(el =>
+                    ![el.d0, el.q, el.beta, el.c0].every(Number.isFinite) || el.d0 <= 0)) {
+                throw new Error('Use finite positive temperature, duration, lengths and diffusivities, and 3-400 grid points.');
+            }
             const L_m = inputs.totalLength * 1e-6; 
             const dx = L_m / (inputs.N - 1);
             const sourceNodes = Math.ceil((inputs.sourceLength * 1e-6) / dx);
@@ -359,6 +372,7 @@
 
             const snapshots = 25; 
             const historyStep = Time_s / snapshots;
+            const historyTimes = [0];
             let nextHistoryTime = historyStep; // Start recording AFTER t=0
             
             let markerPos = inputs.sourceLength * 1e-6; 
@@ -397,9 +411,11 @@
                 const d = el.D_base * Math.exp(Math.abs(el.beta));
                 if(d > maxD) maxD = d;
             });
+            if (!Number.isFinite(maxD) || maxD < 0) {
+                throw new Error('The diffusivity is outside the finite numerical range. Check temperature and interaction parameters.');
+            }
             if(maxD < 1e-30) maxD = 1e-30;
 
-            // --- THE FIX IS HERE ---
             // 1. Calculate the max stable step allowed by physics
             const stability_dt = (0.4 * dx * dx) / maxD;
             
@@ -407,17 +423,29 @@
             //    This prevents "overshooting" low-temp/low-diffusivity simulations in one giant step.
             const resolution_dt = Time_s / 200;
             
-            // 3. Use the smaller of the two
-            const dt = Math.min(stability_dt, resolution_dt);
-
-            let totalSteps = Math.ceil(Time_s / dt);
-            // Safety cap to prevent browser freezing on extreme high-res runs
-            if(totalSteps > 2000000) totalSteps = 2000000; 
+            // Refuse work that cannot reach the requested time within the budget.
+            // Increasing dt to fit the budget would violate the stability bound.
+            const maxDt = Math.min(stability_dt, resolution_dt);
+            const stepRatio = Time_s / maxDt;
+            const nearestSteps = Math.round(stepRatio);
+            // Unit conversion and CFL arithmetic can put an integer a few ULPs
+            // above itself; do not reject a boundary run for roundoff alone.
+            const totalSteps = Math.abs(stepRatio - nearestSteps) <= 4 * Number.EPSILON * Math.max(1, stepRatio)
+                ? nearestSteps : Math.ceil(stepRatio);
+            const maxSteps = 2000000;
+            if (!Number.isFinite(maxDt) || maxDt <= 0 || !Number.isFinite(totalSteps) || totalSteps > maxSteps) {
+                const maxHours = maxSteps * maxDt / 3600;
+                throw new RangeError(`Cannot reach the requested ${Time_h} h within the simulation limit. ` +
+                    `At this resolution the maximum is ${Number.isFinite(maxHours) ? maxHours.toPrecision(4) : 'unavailable'} h. ` +
+                    'Reduce duration or grid points, or check the diffusion parameters. No partial result was produced.');
+            }
+            // Land on the requested duration without overshooting it.
+            const dt = Time_s / totalSteps;
 
             let currentTime = 0;
 
             for(let t=0; t<totalSteps; t++) {
-                currentTime += dt;
+                currentTime = t === totalSteps - 1 ? Time_s : (t + 1) * dt;
 
                 // 1. Calculate Matrix Concentration Profile FIRST (Available Sites)
                 for(let i=0; i<inputs.N; i++) {
@@ -500,30 +528,39 @@
                 // 6. Record History (Check time)
                 if(mode === 'history' && currentTime >= nextHistoryTime) {
                     elementSims.forEach(el => el.history.push(Float64Array.from(el.C)));
+                    historyTimes.push(currentTime);
                     nextHistoryTime += historyStep;
                 }
             }
 
-            // Ensure the final state is recorded in history if we missed the exact second
-            if(mode === 'history') {
-                 // Check if the last frame is significantly different from the last saved one, or just overwrite/append
-                 // For simplicity, we just ensure the user gets the final result.
-                 // (Optional: You could check length to avoid duplicates)
-                 elementSims.forEach(el => {
-                    // Force push final state
-                    el.history.push(Float64Array.from(el.C));
-                 });
+            if (mode === 'history' && historyTimes[historyTimes.length - 1] !== Time_s) {
+                elementSims.forEach(el => el.history.push(Float64Array.from(el.C)));
+                historyTimes.push(Time_s);
             }
 
             return { 
                 elements: elementSims, 
                 markerShift: (markerPos * 1e6), 
                 originalInterface: inputs.sourceLength,
-                matrixD: finalD_mat
+                matrixD: finalD_mat,
+                requestedTimeHours: Time_h,
+                actualTimeHours: currentTime / 3600,
+                steps: totalSteps,
+                historyTimesHours: mode === 'history' ? historyTimes.map(t => t / 3600) : null
             };
         }
 
         // --- UI Logic ---
+
+        function showSimulationError(error) {
+            const status = document.getElementById('simulation-status');
+            status.textContent = error.message;
+            status.style.display = 'block';
+            if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+            if (diffChartInstance) { diffChartInstance.destroy(); diffChartInstance = null; }
+            Plotly.purge('plotly-time');
+            Plotly.purge('plotly-temp');
+        }
 
         function debouncedUpdate() {
             clearTimeout(debounceTimer);
@@ -594,8 +631,9 @@
 
         function triggerCalculation() {
             const inputs = validateInputs();
-            if(!inputs) return;
-            
+            if (!inputs) { showSimulationError(new Error('Correct the simulation inputs before calculating.')); return; }
+            document.getElementById('simulation-status').style.display = 'none';
+
             const overlay = document.getElementById('loading-overlay');
             if(currentTab !== 'help') overlay.style.display = 'flex';
             
@@ -606,7 +644,8 @@
                     else if (currentTab === 'time3d') render3DTime(inputs);
                     else if (currentTab === 'temp3d') render3DTemp(inputs);
                 } catch (e) { 
-                    console.error("Simulation Error:", e); 
+                    console.error("Simulation Error:", e);
+                    showSimulationError(e);
                 } finally { 
                     overlay.style.display = 'none'; 
                 }
@@ -615,7 +654,8 @@
 
         async function saveData() {
             const inputs = validateInputs();
-            if(!inputs) return;
+            if (!inputs) { showSimulationError(new Error('Correct the simulation inputs before exporting.')); return; }
+            document.getElementById('simulation-status').style.display = 'none';
             const btn = document.getElementById('saveBtn');
             btn.disabled = true;
             btn.innerHTML = 'Generating...';
@@ -623,8 +663,9 @@
             setTimeout(() => {
                 try {
                     const simRes = calculateDiffusionMap(inputs, 'snapshot');
-                    let content = `CATION DIFFUSION SIM v5.4 - EXPORT\n`;
-                    content += `Temp(K): ${inputs.temp}, Time(h): ${inputs.timeHours}\n`;
+                    let content = `CATION DIFFUSION SIM v5.4.1 - EXPORT\n`;
+                    content += `Temp(K): ${inputs.temp}, Requested Time(h): ${simRes.requestedTimeHours}, Actual Time(h): ${simRes.actualTimeHours}\n`;
+                    content += `Completed Steps: ${simRes.steps}\n`;
                     content += `Site Blocking Enabled: ${inputs.blockingEnabled}\n`;
                     content += `Marker Position: ${simRes.markerShift.toFixed(4)} um\n\n`;
 
@@ -650,10 +691,10 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `DiffusionData_v5.4.txt`;
+                    a.download = `DiffusionData_v5.4.1.txt`;
                     a.click();
                     window.URL.revokeObjectURL(url);
-                } catch(e) { console.error(e); } finally { btn.disabled = false; btn.innerText = 'Save Data (.txt)'; }
+                } catch(e) { console.error(e); showSimulationError(e); } finally { btn.disabled = false; btn.innerText = 'Save Data (.txt)'; }
             }, 100);
         }
 
@@ -760,9 +801,7 @@
             const res = calculateDiffusionMap(inputs, 'history');
             const traces = [];
             const xData = Array.from({length: inputs.N}, (_, i) => i * (inputs.totalLength / (inputs.N-1)));
-            const numSnapshots = res.elements[0].history.length;
-            const timeStep = inputs.timeHours / Math.max(1, numSnapshots - 1);
-            const yData = Array.from({length: numSnapshots}, (_, i) => i * timeStep);
+            const yData = res.historyTimesHours;
             
             res.elements.forEach(el => {
                 traces.push({
