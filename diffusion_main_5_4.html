@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cation Interdiffusion Simulator v5.4.1 (Auto-Params)</title>
+    <title>Cation Interdiffusion Simulator v5.4.2 (Auto-Params)</title>
     <link href="./dist/output.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -465,41 +465,44 @@
                         continue;
                     }
 
-                    for(let i=1; i < inputs.N - 1; i++) {
-                        
-                        // -- Interpolations --
-                        const C_right = (el.C[i+1] + el.C[i]) / 2;
-                        const C_left = (el.C[i] + el.C[i-1]) / 2;
-                        
-                        // -- Base D with Self-Interaction (Beta) --
-                        let D_right = el.D_base * Math.exp(el.beta * (C_right / inputs.maxConc));
-                        let D_left  = el.D_base * Math.exp(el.beta * (C_left / inputs.maxConc));
+                    for (let i = 0; i < inputs.N; i++) {
+                        let flux_right = 0;
+                        let flux_left = 0;
+                        let D_right = null;
+                        let D_left = null;
 
-                        // -- Site Blocking / Vacancy Mechanism --
-                        if(inputs.blockingEnabled) {
-                            const Mat_right = (C_mat[i+1] + C_mat[i]) / 2;
-                            const Mat_left = (C_mat[i] + C_mat[i-1]) / 2;
-                            
-                            const factor_right = Math.max(0.01, Mat_right / 100.0);
-                            const factor_left = Math.max(0.01, Mat_left / 100.0);
-
-                            D_right *= factor_right;
-                            D_left *= factor_left;
+                        if (i < inputs.N - 1) {
+                            const C_right = (el.C[i + 1] + el.C[i]) / 2;
+                            D_right = el.D_base * Math.exp(el.beta * (C_right / inputs.maxConc));
+                            if (inputs.blockingEnabled) {
+                                const Mat_right = (C_mat[i + 1] + C_mat[i]) / 2;
+                                D_right *= Math.max(0.01, Mat_right / 100.0);
+                            }
+                            flux_right = -D_right * (el.C[i + 1] - el.C[i]) / dx;
                         }
 
-                        if(t === totalSteps - 1) el.finalD[i] = (D_right + D_left) / 2;
+                        if (i > 0) {
+                            const C_left = (el.C[i] + el.C[i - 1]) / 2;
+                            D_left = el.D_base * Math.exp(el.beta * (C_left / inputs.maxConc));
+                            if (inputs.blockingEnabled) {
+                                const Mat_left = (C_mat[i] + C_mat[i - 1]) / 2;
+                                D_left *= Math.max(0.01, Mat_left / 100.0);
+                            }
+                            flux_left = -D_left * (el.C[i] - el.C[i - 1]) / dx;
+                        }
 
-                        const flux_right = -D_right * (el.C[i+1] - el.C[i]) / dx; 
-                        const flux_left  = -D_left  * (el.C[i] - el.C[i-1]) / dx;
-                        
+                        if (t === totalSteps - 1) {
+                            el.finalD[i] = (D_right !== null && D_left !== null)
+                                ? (D_right + D_left) / 2
+                                : (D_right !== null ? D_right : (D_left ?? 0));
+                        }
+
                         el.C_next[i] = el.C[i] - (dt / dx) * (flux_right - flux_left);
 
-                        if(trackMarker && i === markerNode) {
+                        if (trackMarker && i === markerNode) {
                             netFluxAtMarker += flux_right;
                         }
                     }
-                    el.C_next[0] = el.C_next[1];
-                    el.C_next[inputs.N-1] = el.C_next[inputs.N-2];
                 }
 
                 // 3. Matrix Flux (for Kirkendall)
@@ -598,6 +601,8 @@
 
             const elCards = document.querySelectorAll('.element-card');
             const elements = [];
+            const seenNames = new Set();
+            let totalC0 = 0;
             elCards.forEach((card, idx) => {
                 const c0 = parseFloat(card.querySelector('.el-c0').value);
                 const d0 = parseFloat(card.querySelector('.el-d0').value);
@@ -605,8 +610,12 @@
                 // Handle SELECT name extraction
                 const nameSelect = card.querySelector('.el-name');
                 const name = nameSelect.options[nameSelect.selectedIndex].text;
+                const key = name.trim().toUpperCase();
+                if (seenNames.has(key)) isValid = false;
+                seenNames.add(key);
 
                 if (isNaN(c0) || c0 < 0 || c0 > 100) isValid = false;
+                else totalC0 += c0;
                 if (isNaN(d0) || d0 <= 0) isValid = false;
                 elements.push({
                     name: name,
@@ -615,6 +624,7 @@
                     color: card.querySelector('.el-color').value
                 });
             });
+            if (totalC0 >= 100) isValid = false;
 
             if (!isValid) return null;
 
@@ -663,7 +673,7 @@
             setTimeout(() => {
                 try {
                     const simRes = calculateDiffusionMap(inputs, 'snapshot');
-                    let content = `CATION DIFFUSION SIM v5.4.1 - EXPORT\n`;
+                    let content = `CATION DIFFUSION SIM v5.4.2 - EXPORT\n`;
                     content += `Temp(K): ${inputs.temp}, Requested Time(h): ${simRes.requestedTimeHours}, Actual Time(h): ${simRes.actualTimeHours}\n`;
                     content += `Completed Steps: ${simRes.steps}\n`;
                     content += `Site Blocking Enabled: ${inputs.blockingEnabled}\n`;
